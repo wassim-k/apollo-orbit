@@ -1,0 +1,29 @@
+overwrite: true
+schema:
+  - http://localhost:4000/graphql
+  - './src/**/*.state.ts':
+      noRequire: true
+documents: ./src/**/*.graphql
+config:
+  documentNodeImport: '@apollo/client#TypedDocumentNode'
+  dedupeOperationSuffix: true
+  preResolveTypes: true
+  avoidOptionals:
+    field: true
+generates:
+  ./src/graphql/types.ts:
+    plugins:
+      - add:
+          content: /* eslint-disable */
+      - typescript
+  ./src:
+    preset: near-operation-file
+    presetConfig:
+      extension: .tsx
+      baseTypesPath: graphql/types
+      importTypesNamespace: _
+    plugins:
+      - add:
+          content: /* eslint-disable */
+      - typescript-operations
+      - typed-document-node

@@ -1,0 +1,33 @@
+{
+  "name": "@integration/react",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "concurrently --raw \"yarn codegen --watch\" \"react-scripts start\"",
+    "build": "react-scripts build",
+    "eject": "react-scripts eject",
+    "codegen": "graphql-codegen --config ./codegen.yml",
+    "codegen:inspect": "node --nolazy --inspect-brk ../../node_modules/@graphql-codegen/cli/bin.js --config codegen.yml"
+  },
+  "dependencies": {
+    "@apollo-orbit/react": "*",
+    "toastify-js": "^1.11.1"
+  },
+  "devDependencies": {
+    "@apollo-orbit/codegen": "*",
+    "@graphql-codegen/typed-document-node": "^2.1.0",
+    "graphql-tag": "^2.12.5"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

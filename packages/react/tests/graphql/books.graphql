@@ -1,0 +1,25 @@
+fragment BookFragment on Book {
+  __typename
+  id
+  name
+  genre
+  authorId
+}
+
+query Book($id: ID!) {
+  book(id: $id) {
+    ...BookFragment
+  }
+}
+
+query Books($genre: String) {
+  books(genre: $genre) @client {
+    ...BookFragment
+  }
+}
+
+mutation AddBook($book: BookInput!) {
+  addBook(book: $book) @client {
+    ...BookFragment
+  }
+}
