@@ -1,0 +1,13 @@
+{
+  "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
+  "lib": {
+    "entryFile": "./src/index.ts",
+    "flatModuleFile": "apollo-orbit.react.components",
+    "umdModuleIds": {
+      "@apollo/client": "apollo",
+      "@apollo-orbit/react": "apollo-orbit.react",
+      "react": "React",
+      "react-dom": "ReactDOM"
+    }
+  }
+}

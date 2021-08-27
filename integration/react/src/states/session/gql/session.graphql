@@ -1,0 +1,10 @@
+query Session {
+  session @client {
+    currentUserToken
+    refreshes
+  }
+}
+
+mutation RefreshUserToken {
+    refreshUserToken @client
+}

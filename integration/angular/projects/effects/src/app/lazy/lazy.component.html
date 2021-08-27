@@ -1,0 +1,4 @@
+<ng-container *ngIf="lazy$ | async as lazyResult">
+  <p *ngIf="lazyResult.loading">Loading lazy...</p>
+  <p *ngIf="lazyResult.data?.lazy === true">Lazy loaded</p>
+</ng-container>

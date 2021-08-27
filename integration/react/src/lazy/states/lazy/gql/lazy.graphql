@@ -1,0 +1,3 @@
+query Lazy {
+    lazy @client
+}

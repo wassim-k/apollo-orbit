@@ -1,0 +1,49 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "target": "es2017",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noUnusedParameters": false,
+    "noUnusedLocals": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "jsx": "react",
+    "types": [
+      "node",
+      "jest"
+    ],
+    "paths": {
+      "@apollo-orbit/core/common": [
+        "packages/core/common/src/index.ts"
+      ],
+      "@apollo-orbit/core": [
+        "packages/core/src/index.ts"
+      ],
+      "@apollo-orbit/angular": [
+        "packages/angular/src/index.ts"
+      ],
+      "@apollo-orbit/angular/core": [
+        "packages/angular/core/src/index.ts"
+      ],
+      "@apollo-orbit/angular/http": [
+        "packages/angular/http/src/index.ts"
+      ],
+      "@apollo-orbit/codegen": [
+        "packages/codegen/src/index.ts"
+      ],
+      "@apollo-orbit/react": [
+        "packages/react/src/index.ts"
+      ],
+      "@apollo-orbit/react/components": [
+        "packages/react/components/src/index.ts"
+      ]
+    }
+  },
+  "files": [],
+  "include": [
+    "packages/*/tests"
+  ]
+}

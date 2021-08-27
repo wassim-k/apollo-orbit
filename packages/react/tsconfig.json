@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@apollo-orbit/react": [
+        "./src/index.ts"
+      ],
+      "@apollo-orbit/core": [
+        "../core/src/index.ts"
+      ],
+      "@apollo-orbit/core/common": [
+        "../core/common/src/index.ts"
+      ]
+    }
+  }
+}
