@@ -1,0 +1,32 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.container {
+  width: 100%;
+  height: 100%;
+  padding: 0.5em;
+  box-sizing: border-box;
+  overflow: auto;
+
+  &.dark_theme {
+    background-color: #333;
+    color: #efefef;
+
+    a {
+      color: pink;
+    }
+  }
+}
+
+.main {
+  margin: 0.5em 0;
+}
+
+.router-link {
+  &.is-active {
+    display: none;
+  }
+}

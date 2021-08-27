@@ -1,0 +1,24 @@
+fragment AuthorFragment on Author {
+  __typename
+  id
+  name
+  age
+}
+
+query Authors {
+  authors {
+    ...AuthorFragment
+  }
+}
+
+mutation AddAuthor($author: AuthorInput!) {
+  addAuthor(author: $author) {
+    ...AuthorFragment
+  }
+}
+
+subscription NewAuthor {
+  newAuthor {
+    ...AuthorFragment
+  }
+}

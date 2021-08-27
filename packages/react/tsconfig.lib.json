@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "react"
+  },
+  "files": [
+    "src/index.ts",
+    "components/src/index.ts"
+  ]
+}
