@@ -1,0 +1,34 @@
+{
+  "name": "@apollo-orbit/core",
+  "version": "0.2.0",
+  "description": "Apollo Orbit state management core package",
+  "license": "MIT",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wassim-k/apollo-orbit.git"
+  },
+  "keywords": [
+    "apollo",
+    "orbit",
+    "graphql",
+    "redux",
+    "state",
+    "state-management"
+  ],
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "scripts": {
+    "build": "ng-packagr --config ./tsconfig.lib.json -p ng-package.json",
+    "clean": "rimraf dist",
+    "prebuild": "yarn clean"
+  },
+  "peerDependencies": {
+    "@apollo/client": "^3.2.0",
+    "graphql": ">=0.11"
+  },
+  "dependencies": {
+    "tslib": "^2.3.1"
+  }
+}

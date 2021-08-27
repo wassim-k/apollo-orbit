@@ -1,0 +1,32 @@
+fragment AuthorFragment on Author {
+  __typename
+  id
+  name
+}
+
+fragment AuthorWithBooksFragment on Author {
+  __typename
+  id
+  name
+  books {
+    ...BookFragment
+  }
+}
+
+query Authors {
+  authors @client {
+    ...AuthorFragment
+  }
+}
+
+query Author($id: ID!) {
+  author(id: $id) @client {
+    ...AuthorFragment
+  }
+}
+
+mutation AddAuthor($author: AuthorInput!) {
+  addAuthor(author: $author) @client {
+    ...AuthorFragment
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "lib": {
+    "entryFile": "src/index.ts",
+    "flatModuleFile": "apollo-orbit.angular",
+    "umdModuleIds": {
+      "@apollo/client/core": "apollo",
+      "@apollo-orbit/core": "apollo-orbit.core"
+    }
+  },
+  "allowedNonPeerDependencies": [
+    "@apollo-orbit/core"
+  ]
+}

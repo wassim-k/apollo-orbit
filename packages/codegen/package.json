@@ -1,0 +1,34 @@
+{
+  "name": "@apollo-orbit/codegen",
+  "version": "0.0.0",
+  "description": "GraphQL Code Generator plugin for Apollo Orbit",
+  "license": "MIT",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wassim-k/apollo-orbit.git"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "postbuild": "node ./scripts/postbuild.js",
+    "clean": "rimraf dist",
+    "prebuild": "yarn clean"
+  },
+  "peerDependencies": {
+    "graphql": ">=0.11"
+  },
+  "dependencies": {
+    "@graphql-codegen/plugin-helpers": "^2.0.0",
+    "@graphql-codegen/visitor-plugin-common": "^2.0.0",
+    "auto-bind": "4.0.0",
+    "pascal-case": "3.1.2",
+    "tslib": "^2.3.1"
+  },
+  "devDependencies": {
+    "@graphql-codegen/testing": "^1.17.7",
+    "jest-diff": "^26.6.2"
+  },
+  "publishConfig": {
+    "directory": "dist"
+  }
+}

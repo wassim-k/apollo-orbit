@@ -1,0 +1,41 @@
+input AuthorInput {
+	name: String!
+	age: Int!
+}
+
+input BookInput {
+	name: String!
+	genre: String!
+	authorId: ID!
+}
+
+type Book {
+	id: ID!
+	name: String!
+	genre: String!
+	author: Author!
+	authorId: ID!
+}
+
+type Author {
+	id: ID!
+	name: String!
+	age: Int
+	books: [Book!]!
+}
+
+type Query {
+	book(id: ID!): Book!
+	books(name: String, genre: String, authorId: ID): [Book!]!
+	author(id: ID!): Author!
+	authors: [Author!]!
+}
+
+type Mutation {
+	addAuthor(author: AuthorInput!): Author!
+	addBook(book: BookInput!): Book!
+}
+
+type Subscription {
+	newBook(authorId: ID): Book!
+}

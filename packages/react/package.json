@@ -1,0 +1,44 @@
+{
+  "name": "@apollo-orbit/react",
+  "version": "0.0.0",
+  "description": "Apollo Client modular state management abstraction for React",
+  "license": "MIT",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wassim-k/apollo-orbit.git"
+  },
+  "keywords": [
+    "apollo",
+    "orbit",
+    "react",
+    "graphql",
+    "redux",
+    "state",
+    "state-management"
+  ],
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "scripts": {
+    "build": "ng-packagr --config ./tsconfig.lib.json -p ng-package.json",
+    "clean": "rimraf dist",
+    "prebuild": "yarn clean",
+    "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.yml"
+  },
+  "peerDependencies": {
+    "@apollo/client": "^3.2.0",
+    "graphql": ">=0.11",
+    "react": ">=16.0.0"
+  },
+  "dependencies": {
+    "@apollo-orbit/core": "^0.2.0",
+    "tslib": "^2.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^12.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+query Session {
+  session @client {
+    theme
+    toggles
+  }
+}
+
+mutation ToggleTheme($force: Theme) {
+    toggleTheme(force: $force) @client
+}

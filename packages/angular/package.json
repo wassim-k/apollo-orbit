@@ -1,0 +1,46 @@
+{
+  "name": "@apollo-orbit/angular",
+  "version": "0.0.0",
+  "description": "A fully-featured GraphQL client for Angular with modular state management.",
+  "license": "MIT",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wassim-k/apollo-orbit.git"
+  },
+  "keywords": [
+    "apollo",
+    "angular",
+    "ngx",
+    "graphql",
+    "state",
+    "state-management"
+  ],
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "scripts": {
+    "build": "ng-packagr --config ./tsconfig.lib.json -p ng-package.json",
+    "clean": "rimraf dist",
+    "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.yml",
+    "prebuild": "yarn clean"
+  },
+  "peerDependencies": {
+    "@angular/core": ">=8.0.0",
+    "@apollo/client": "^3.2.0",
+    "graphql": ">=0.11",
+    "rxjs": "^6.0.0"
+  },
+  "dependencies": {
+    "@apollo-orbit/core": "^0.2.0",
+    "tslib": "^2.3.1"
+  },
+  "devDependencies": {
+    "@angular/common": "^12.2.2",
+    "@angular/platform-browser": "^12.2.2",
+    "@angular/platform-browser-dynamic": "^12.2.2",
+    "jest-preset-angular": "^9.0.6",
+    "shortid": "^2.2.16",
+    "ts-jest": "^27.0.5"
+  }
+}

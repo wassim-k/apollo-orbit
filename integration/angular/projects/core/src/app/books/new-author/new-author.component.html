@@ -1,0 +1,17 @@
+<form [formGroup]="form" autocomplete="off" (ngSubmit)="submit()">
+
+  <div *ngIf="error$ | async as error" class="error-well">An error has occured: {{ error.message }}</div>
+
+  <div class="form-group">
+    <label for="name">Name *</label>
+    <input name="name" type="text" formControlName="name" />
+  </div>
+  <div class="form-group">
+    <label for="age">Age</label>
+    <input name="age" type="number" formControlName="age" />
+  </div>
+  <div class="form-buttons">
+    <button type="button" (click)="onClose.next()">Close</button>
+    <button type="submit">Submit</button>
+  </div>
+</form>

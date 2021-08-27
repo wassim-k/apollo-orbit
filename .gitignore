@@ -1,0 +1,22 @@
+dist/
+node_modules/
+coverage/
+lerna-debug.log
+yarn-error.log
+.yarnrc
+.yarn
+.eslintcache
+
+!packages
+packages/*/dist
+packages/*/__ivy_ngcc__
+
+docs/.cache
+
+# IDE - VSCode
+.vscode/*
+!.vscode/*.code-snippets
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
