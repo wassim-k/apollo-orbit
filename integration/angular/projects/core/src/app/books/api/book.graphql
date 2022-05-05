@@ -1,5 +1,4 @@
 fragment BookFragment on Book {
-  __typename
   id
   name
   genre

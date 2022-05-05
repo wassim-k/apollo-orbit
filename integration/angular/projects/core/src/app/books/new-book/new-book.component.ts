@@ -5,7 +5,7 @@ import { cache } from 'decorator-cache-getter';
 import { BehaviorSubject } from 'rxjs';
 import { BookInput } from '../../graphql/types';
 import { AuthorsQuery } from '../api/author';
-import { AddBookMutation } from '../api/book';
+import { AddBookMutation, BookFragment } from '../api/book';
 
 @Component({
   selector: 'app-new-book',
@@ -15,6 +15,7 @@ import { AddBookMutation } from '../api/book';
 })
 export class NewBookComponent {
   @Output() public readonly onClose = new EventEmitter<void>();
+  @Output() public readonly onBookAdded = new EventEmitter<BookFragment>();
 
   public readonly authorsQuery = this.apollo.watchQuery({ ...new AuthorsQuery(), fetchPolicy: 'cache-and-network' });
   public readonly error$ = new BehaviorSubject<Error | undefined>(undefined);
@@ -38,6 +39,7 @@ export class NewBookComponent {
     const book: BookInput = this.form.value;
     this.error$.next(undefined);
     this.apollo.mutate(new AddBookMutation({ book })).subscribe({
+      next: result => this.onBookAdded.next(result.data?.addBook as BookFragment),
       error: (error: Error) => this.error$.next(error)
     });
   }

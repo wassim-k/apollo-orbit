@@ -20,7 +20,7 @@ export const plugin: PluginFunction<ApolloOrbitAngularRawConfig> = (
     } as ApolloOrbitAngularConfig;
     const [allFragments, allAst] = prepareDocuments(documents, externalFragments);
     const visitor = new ApolloOrbitAngularVisitor(schema, allFragments, config, additionalConfig, documents);
-    const visitorResult = visit(allAst, { leave: visitor });
+    const visitorResult = visit(allAst, visitor);
     return {
         prepend: visitor.getImports(),
         content: [

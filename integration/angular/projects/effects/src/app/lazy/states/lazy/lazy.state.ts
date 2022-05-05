@@ -5,13 +5,13 @@ import { Observable, timer } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Query } from '../../../graphql';
 
+@Injectable()
 @State({
   typeDefs: gql`
     extend type Query {
         lazy: Boolean!
     }`
 })
-@Injectable()
 export class LazyState {
   @Resolve(['Query', 'lazy'])
   public lazy(rootValue: any, args: any, context: ResolverContext, info?: ResolverInfo): Observable<Query['lazy']> {

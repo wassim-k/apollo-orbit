@@ -36,8 +36,8 @@ export function NewAuthor({
           <input type="text" onChange={event => setAge(event.target.valueAsNumber)} />
         </div>
         <br />
-        <button style={{ margin: '0 0.25em' }} onClick={() => onClose()}>Close</button>
         <input style={{ margin: '0 0.25em' }} type="submit" value="Submit" disabled={!name} />
+        <button style={{ margin: '0 0.25em' }} onClick={() => onClose()}>Close</button>
       </form>
     </>
   );

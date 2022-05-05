@@ -1,4 +1,4 @@
-import { modifyQuery, state } from '@apollo-orbit/react';
+import { state } from '@apollo-orbit/react';
 import { AddAuthorDocument, AuthorsDocument } from '../api/author';
 
 const Toastify = require('toastify-js'); // eslint-disable-line @typescript-eslint/no-var-requires
@@ -7,7 +7,7 @@ export const authorState = state(descriptor => descriptor
   .mutationUpdate(AddAuthorDocument, (cache, result) => {
     const addAuthor = result.data?.addAuthor;
     if (!addAuthor) return;
-    modifyQuery(cache, { query: AuthorsDocument }, query => query ? { authors: [...query.authors, addAuthor] } : query);
+    cache.updateQuery({ query: AuthorsDocument }, query => query ? { authors: [...query.authors, addAuthor] } : query);
   })
   .effect(AddAuthorDocument, result => {
     if (result.data?.addAuthor) {

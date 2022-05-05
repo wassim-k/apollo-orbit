@@ -17,7 +17,8 @@
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "--testMatch=\"**/${relativeFile}\"",
-        "--runInBand"
+        "--runInBand",
+        "--no-cache"
       ],
       "console": "externalTerminal",
       "internalConsoleOptions": "neverOpen",

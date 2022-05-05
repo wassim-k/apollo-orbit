@@ -1,14 +1,18 @@
-import { ApolloCache, ApolloError, FetchResult, MutationOptions, QueryOptions, RefetchQueryDescriptor } from '@apollo/client/core';
-import { ExecutionResult } from 'graphql';
-import { nameOfMutationDocument, toMutationInfo, ValuesByKey } from './internal';
+import { ApolloCache, ApolloError, FetchResult, MutationOptions, OperationVariables as Variables, QueryOptions, RefetchQueryDescriptor } from '@apollo/client/core';
+import { ExecutionResult, GraphQLError } from 'graphql';
+import { nameOfMutationDocument, ValuesByKey } from './internal';
 import { StateDefinition } from './state';
-import { EffectFn, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { Context, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
 
 export class MutationManager {
-  private readonly mutationUpdates: ValuesByKey<[string, MutationUpdateFn<any, any>]> = new ValuesByKey(([mutation]) => mutation);
-  private readonly effects: ValuesByKey<[string, EffectFn<any, any>]> = new ValuesByKey(([mutation]) => mutation);
-  private readonly refetchQueries: ValuesByKey<[string, RefetchQueriesFn<any, any>]> = new ValuesByKey(([mutation]) => mutation);
-  private readonly optimisticResponses: ValuesByKey<[string, OptimisticResponseFn<any, any>]> = new ValuesByKey(([mutation]) => mutation);
+  private readonly mutationUpdates = new ValuesByKey<[string, MutationUpdateFn<any, any>]>(([mutation]) => mutation);
+  private readonly effects = new ValuesByKey<[string, EffectFn<any, any>]>(([mutation]) => mutation);
+  private readonly refetchQueries = new ValuesByKey<[string, RefetchQueriesFn<any, any>]>(([mutation]) => mutation);
+  private readonly optimisticResponses = new ValuesByKey<[string, OptimisticResponseFn<any, any>]>(([mutation]) => mutation);
+
+  public constructor(
+    private readonly apolloErrorFactory: (graphQLErrors: ReadonlyArray<GraphQLError>) => ApolloError
+  ) { }
 
   public addState(definition: Pick<StateDefinition, 'mutationUpdates' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
     this.mutationUpdates.add(...definition.mutationUpdates);
@@ -26,7 +30,7 @@ export class MutationManager {
     const mutationName = nameOfMutationDocument(mutation);
     const effects = this.effects.get(mutationName);
     if (effects) {
-      const mutationInfo = toMutationInfo(options, result, error);
+      const mutationInfo = this.toMutationInfo(options, result, error);
       effects.forEach(([, fn]) => fn(mutationInfo));
     }
   }
@@ -34,9 +38,17 @@ export class MutationManager {
   public wrapMutationOptions<T, V>(
     options: Pick<MutationOptions<T, V>, 'mutation' | 'variables' | 'optimisticResponse' | 'refetchQueries' | 'update' | 'context'>
   ): MutationOptions<T, V> {
-    const mutationName = nameOfMutationDocument(options.mutation);
     return {
       ...options,
+      ...this.withMutationOptions(options)
+    };
+  }
+
+  public withMutationOptions<T, V>(
+    options: Pick<MutationOptions<T, V>, 'mutation' | 'variables' | 'optimisticResponse' | 'refetchQueries' | 'update' | 'context'>
+  ): Pick<MutationOptions<T, V>, 'update' | 'refetchQueries' | 'optimisticResponse'> {
+    const mutationName = nameOfMutationDocument(options.mutation);
+    return {
       update: this.withUpdate<T, V>(mutationName, options),
       refetchQueries: this.withRefetchQueries<T, V>(mutationName, options),
       optimisticResponse: this.withOptimisticResponse<T, V>(mutationName, options)
@@ -51,7 +63,7 @@ export class MutationManager {
     return refetchQueriesDefs === undefined
       ? refetchQueries
       : (result: ExecutionResult<T>): Array<RefetchQueryDescriptor | QueryOptions> | 'all' | 'active' => {
-        const mutationInfo = toMutationInfo({ variables, context }, result);
+        const mutationInfo = this.toMutationInfo({ variables, context }, result);
         return refetchQueriesDefs.reduce<Array<RefetchQueryDescriptor | QueryOptions> | 'all' | 'active'>(
           (prev, [, fn]) => [...prev, ...fn(mutationInfo)],
           typeof refetchQueries === 'function'
@@ -69,7 +81,7 @@ export class MutationManager {
     return mutationUpdates === undefined
       ? update
       : (cache: ApolloCache<any>, result: FetchResult<T>, options: any) => {
-        const mutationInfo = toMutationInfo({ variables, context }, result);
+        const mutationInfo = this.toMutationInfo({ variables, context }, result);
         mutationUpdates.forEach(([, fn]) => fn(cache, mutationInfo));
         update?.(cache, result, options);
       };
@@ -80,11 +92,27 @@ export class MutationManager {
     { optimisticResponse, context }: Pick<MutationOptions<T, V>, 'optimisticResponse' | 'context'>
   ): MutationOptions<T, V>['optimisticResponse'] {
     const optimisticResponses = this.optimisticResponses.get(mutationName);
-    return optimisticResponse || optimisticResponses === undefined
+    return optimisticResponse !== undefined || optimisticResponses === undefined
       ? optimisticResponse
       : (vars: V): T => {
         const [, fn] = optimisticResponses[optimisticResponses.length - 1];
         return fn(vars, context);
       };
+  }
+
+  private toMutationInfo<T, V = Variables, C = Context>(
+    options: Pick<MutationOptions<T, V>, 'variables' | 'context'>,
+    fetchResult: FetchResult<T> | undefined,
+    apolloError?: ApolloError
+  ): MutationInfo<T, V, C> {
+    const { variables, context: optionsContext } = options;
+    const { data, errors, context: resultContext, extensions } = fetchResult ?? {};
+    return {
+      data: data as T | undefined,
+      error: errors && errors.length > 0 ? this.apolloErrorFactory(errors) : apolloError,
+      context: resultContext || optionsContext ? { ...resultContext, ...optionsContext } as C : undefined,
+      variables,
+      extensions
+    };
   }
 }
