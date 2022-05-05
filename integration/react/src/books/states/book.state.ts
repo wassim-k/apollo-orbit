@@ -1,4 +1,4 @@
-import { modifyQuery, state } from '@apollo-orbit/react';
+import { state } from '@apollo-orbit/react';
 import { gql } from '@apollo/client';
 import shortid from 'shortid';
 import { Book } from '../../graphql/types';
@@ -37,7 +37,7 @@ export const bookState = state(descriptor => descriptor
   .mutationUpdate(AddBookDocument, (cache, result) => {
     const addBook = result.data?.addBook;
     if (!addBook) return;
-    modifyQuery(cache, { query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
+    cache.updateQuery({ query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
   })
 
   .effect(AddBookDocument, info => {

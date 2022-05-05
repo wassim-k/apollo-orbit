@@ -11,6 +11,8 @@ config:
   mutationSuffix: Mutation
   subscriptionSuffix: Subscription
   preResolveTypes: true
+  inlineFragmentTypes: combine
+  maybeValue: T | null
   avoidOptionals:
     field: true
 generates:

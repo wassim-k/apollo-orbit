@@ -1,4 +1,4 @@
-import { ComponentRef, Inject, Injector, ModuleWithProviders, NgModule } from '@angular/core';
+import { ComponentRef, Inject, Injector, ModuleWithProviders, NgModule, ProviderToken } from '@angular/core';
 import { ɵMANAGER_FACTORY as MANAGER_FACTORY } from '@apollo-orbit/angular/core';
 import { StateDefinition, Type } from '@apollo-orbit/core';
 import { BootstrapModule, RootBootstrapListener, ROOT_BOOTSTRAP_LISTENER } from './bootstrap.module';
@@ -28,7 +28,7 @@ export class ApolloOrbitEffectsRootModule {
   }
 
   private instantiateState(state: Type<any>, injector: Injector): StateDefinition {
-    const instance = injector.get(state);
+    const instance = injector.get(state as ProviderToken<any>);
     return bindStateDefinition(state as StateClass, instance);
   }
 }

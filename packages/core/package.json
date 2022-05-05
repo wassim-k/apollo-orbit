@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Apollo Orbit state management core package",
   "license": "MIT",
   "sideEffects": false,
@@ -29,6 +29,6 @@
     "graphql": ">=0.11"
   },
   "dependencies": {
-    "tslib": "^2.3.1"
+    "tslib": "^2.4.0"
   }
 }

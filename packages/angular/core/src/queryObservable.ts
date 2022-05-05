@@ -1,7 +1,8 @@
-import { toQueryResult } from '@apollo-orbit/core/common';
-import { ApolloError, ApolloQueryResult, FetchMoreOptions, FetchMoreQueryOptions, ObservableQuery, OperationVariables as Variables, UpdateQueryOptions, WatchQueryOptions as CoreWatchQueryOptions } from '@apollo/client/core';
-import { Observable } from 'rxjs';
+import { ApolloError, ApolloQueryResult, FetchMoreQueryOptions, ObservableQuery, OperationVariables as Variables, UpdateQueryOptions, WatchQueryOptions as CoreWatchQueryOptions } from '@apollo/client/core';
+import { Observable, Subscription } from 'rxjs';
+import { toQueryResult } from './result';
 import { ExtraWatchQueryOptions, QueryResult, SubscribeToMoreOptions } from './types';
+import { fromZenObservable } from './utils';
 
 export class QueryObservable<TData = any, TVariables = Variables> extends Observable<QueryResult<TData>> {
   private previousData: TData | undefined;
@@ -11,7 +12,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
     { emitInitial = true, throwError = false }: ExtraWatchQueryOptions
   ) {
     super(subscriber => {
-      let subscription: ZenObservable.Subscription | undefined;
+      let subscription: Subscription | undefined;
       const subscribeToObservableQuery = (initial: boolean): void => {
         if (initial) {
           // on calling getCurrentResult apollo client sets lastResult based on fetchPolicy
@@ -26,7 +27,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
           }
         }
 
-        subscription = observableQuery.subscribe({
+        subscription = fromZenObservable(observableQuery).subscribe({
           next: () => {
             const currentResult = this.getCurrentResult();
             const { previousData } = this;
@@ -122,11 +123,16 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
     return this.observableQuery.refetch(variables);
   }
 
-  public fetchMore<K extends keyof TVariables>(
+  public fetchMore<TFetchData = TData, TFetchVars = TVariables>(
     fetchMoreOptions:
-      & FetchMoreQueryOptions<TVariables, K>
-      & FetchMoreOptions<TData, TVariables>
-  ): Promise<ApolloQueryResult<TData>> {
+      & FetchMoreQueryOptions<TFetchVars, TFetchData>
+      & {
+        updateQuery?: (previousQueryResult: TData, options: {
+          fetchMoreResult: TFetchData;
+          variables: TFetchVars;
+        }) => TData;
+      }
+  ): Promise<ApolloQueryResult<TFetchData>> {
     return this.observableQuery.fetchMore(fetchMoreOptions);
   }
 

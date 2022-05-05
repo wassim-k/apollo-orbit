@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache } from '@apollo-orbit/angular';
 import { split } from '@apollo/client/core';
-import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
+import { MockLink, MockSubscriptionLink } from '@apollo/client/testing/core';
 import { getMainDefinition } from '@apollo/client/utilities';
 
 @NgModule({

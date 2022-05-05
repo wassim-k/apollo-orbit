@@ -4,7 +4,7 @@ import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
 import { BehaviorSubject } from 'rxjs';
 import { AuthorInput } from '../../graphql/types';
-import { AddAuthorMutation } from '../gql/author';
+import { AddAuthorMutation, AuthorFragment } from '../gql/author';
 
 @Component({
   selector: 'app-new-author',
@@ -14,6 +14,7 @@ import { AddAuthorMutation } from '../gql/author';
 })
 export class NewAuthorComponent {
   @Output() public readonly onClose = new EventEmitter<void>();
+  @Output() public readonly onAuthorAdded = new EventEmitter<AuthorFragment>();
 
   public readonly error$ = new BehaviorSubject<Error | undefined>(undefined);
 
@@ -35,6 +36,7 @@ export class NewAuthorComponent {
     const author: AuthorInput = this.form.value;
     this.error$.next(undefined);
     this.apollo.mutate(new AddAuthorMutation({ author })).subscribe({
+      next: result => this.onAuthorAdded.next(result.data?.addAuthor as AuthorFragment),
       error: (error: Error) => this.error$.next(error)
     });
   }

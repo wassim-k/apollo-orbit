@@ -1,6 +1,6 @@
-import { Component, InjectionToken } from '@angular/core';
+import { Component, Injectable, InjectionToken, NgZone } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, MutationUpdate, Resolve, ResolverContext, apolloFactory, modifyQuery } from '@apollo-orbit/angular';
+import { Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, MutationUpdate, Resolve, ResolverContext, State, apolloFactory } from '@apollo-orbit/angular';
 import { ApolloCache } from '@apollo/client/core';
 import { take } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -18,6 +18,7 @@ sharedCache.writeQuery({ ...new AuthorsQuery(), data: { authors: [] } });
 const APOLLO_BOOK_OPTIONS = new InjectionToken<ApolloOptions>('Apollo Book');
 class ApolloBook extends Apollo { }
 
+@Injectable()
 @State({
   clientId: 'book'
 })
@@ -37,7 +38,7 @@ class BookState {
   public addBook(cache: ApolloCache<any>, result: AddBookMutationInfo): void {
     if (result.data) {
       const { addBook } = result.data;
-      modifyQuery(cache, new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
+      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
     }
   }
 }
@@ -48,6 +49,7 @@ class BookState {
 const APOLLO_AUTHOR_OPTIONS = new InjectionToken<ApolloOptions>('Apollo Author');
 class ApolloAuthor extends Apollo { }
 
+@Injectable()
 @State({
   clientId: 'author'
 })
@@ -66,15 +68,15 @@ class AuthorState {
   public addAuthor(cache: ApolloCache<any>, result: AddAuthorMutationInfo): void {
     if (result.data) {
       const { addAuthor } = result.data;
-      modifyQuery(cache, new AuthorsQuery(), query => query ? { authors: [...query.authors, addAuthor] } : query);
+      cache.updateQuery(new AuthorsQuery(), query => query ? { authors: [...query.authors, addAuthor] } : query);
     }
   }
 }
 
 @Component({
   template: `
-    <div id="books" *ngIf="booksQuery | async as booksResult">{{ booksResult.data.books[0].name }}</div>
-    <div id="authors" *ngIf="authorsQuery | async as authorsResult">{{ authorsResult.data.authors[0].name }}</div>
+    <div id="books" *ngIf="booksQuery | async as booksResult">{{ booksResult.data.books[0]?.name }}</div>
+    <div id="authors" *ngIf="authorsQuery | async as authorsResult">{{ authorsResult.data.authors[0]?.name }}</div>
   `
 })
 class TestComponent {
@@ -96,8 +98,6 @@ class TestComponent {
 }
 
 describe('Multi', () => {
-  beforeEach(() => TestBed.resetTestingModule());
-
   it('should render component with result', async () => {
     TestBed.configureTestingModule({
       imports: [ApolloOrbitModule.forRoot([BookState, AuthorState])],
@@ -110,16 +110,17 @@ describe('Multi', () => {
       ]
     });
     const fixture = TestBed.createComponent(TestComponent);
-    fixture.componentInstance.addAuthor({ name: 'New Author' });
-    await fixture.whenStable();
-    fixture.detectChanges();
-    fixture.componentInstance.authorsQuery.pipe(take(1)).subscribe(author => {
-      if (author.data) {
-        fixture.componentInstance.addBook({ name: 'New Book', authorId: author.data.authors[0].id });
-      }
+    fixture.autoDetectChanges();
+    // why is wrapping the following in zone required after ng13 upgrade?
+    TestBed.inject(NgZone).run(() => {
+      fixture.componentInstance.addAuthor({ name: 'New Author' });
+      fixture.componentInstance.authorsQuery.pipe(take(2)).subscribe(author => {
+        if (author.data && author.data.authors.length > 0) {
+          fixture.componentInstance.addBook({ name: 'New Book', authorId: author.data.authors[0].id });
+        }
+      });
     });
     await fixture.whenStable();
-    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#authors').textContent).toEqual('New Author');
     expect(fixture.nativeElement.querySelector('#books').textContent).toEqual('New Book');
   });

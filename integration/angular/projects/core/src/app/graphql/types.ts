@@ -1,5 +1,6 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
+export type InputMaybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -14,30 +15,30 @@ export type Scalars = {
 
 export type Author = {
   __typename?: 'Author';
-  id: Scalars['ID'];
-  name: Scalars['String'];
   age: Maybe<Scalars['Int']>;
   books: Array<Book>;
+  id: Scalars['ID'];
+  name: Scalars['String'];
 };
 
 export type AuthorInput = {
+  age?: InputMaybe<Scalars['Int']>;
   name: Scalars['String'];
-  age?: Maybe<Scalars['Int']>;
 };
 
 export type Book = {
   __typename?: 'Book';
-  id: Scalars['ID'];
-  name: Scalars['String'];
-  genre: Maybe<Scalars['String']>;
   author: Author;
   authorId: Scalars['ID'];
+  genre: Maybe<Scalars['String']>;
+  id: Scalars['ID'];
+  name: Scalars['String'];
 };
 
 export type BookInput = {
-  name: Scalars['String'];
-  genre?: Maybe<Scalars['String']>;
   authorId: Scalars['ID'];
+  genre?: InputMaybe<Scalars['String']>;
+  name: Scalars['String'];
 };
 
 export type Mutation = {
@@ -58,15 +59,10 @@ export type MutationAddBookArgs = {
 
 export type Query = {
   __typename?: 'Query';
-  book: Book;
   author: Author;
   authors: Array<Author>;
+  book: Book;
   books: Array<Book>;
-};
-
-
-export type QueryBookArgs = {
-  id: Scalars['ID'];
 };
 
 
@@ -75,19 +71,24 @@ export type QueryAuthorArgs = {
 };
 
 
+export type QueryBookArgs = {
+  id: Scalars['ID'];
+};
+
+
 export type QueryBooksArgs = {
-  name?: Maybe<Scalars['String']>;
-  genre?: Maybe<Scalars['String']>;
-  authorId?: Maybe<Scalars['ID']>;
+  authorId?: InputMaybe<Scalars['ID']>;
+  genre?: InputMaybe<Scalars['String']>;
+  name?: InputMaybe<Scalars['String']>;
 };
 
 export type Subscription = {
   __typename?: 'Subscription';
-  newBook: Book;
   newAuthor: Author;
+  newBook: Book;
 };
 
 
 export type SubscriptionNewBookArgs = {
-  authorId?: Maybe<Scalars['ID']>;
+  authorId?: InputMaybe<Scalars['ID']>;
 };

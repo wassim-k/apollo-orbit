@@ -2,13 +2,7 @@
   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
   "lib": {
     "entryFile": "./src/index.ts",
-    "flatModuleFile": "apollo-orbit.react",
-    "umdModuleIds": {
-      "@apollo/client": "apollo",
-      "@apollo-orbit/core": "apollo-orbit.core",
-      "react": "React",
-      "react-dom": "ReactDOM"
-    }
+    "flatModuleFile": "apollo-orbit.react"
   },
   "allowedNonPeerDependencies": [
     "@apollo-orbit/core"

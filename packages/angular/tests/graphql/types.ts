@@ -2,6 +2,7 @@
 import gql from 'graphql-tag';
 import { Context, MutationInfo, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable } from '@apollo-orbit/angular';
 export type Maybe<T> = T | null;
+export type InputMaybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -16,39 +17,34 @@ export type Scalars = {
 
 export type Author = {
   __typename?: 'Author';
+  books: Maybe<Array<Book>>;
   id: Scalars['ID'];
   name: Scalars['String'];
-  books: Maybe<Array<Book>>;
 };
 
 export type AuthorInput = {
+  age?: InputMaybe<Scalars['Int']>;
   name: Scalars['String'];
-  age?: Maybe<Scalars['Int']>;
 };
 
 export type Book = {
   __typename?: 'Book';
+  authorId: Scalars['ID'];
+  genre: Maybe<Scalars['String']>;
   id: Scalars['ID'];
   name: Scalars['String'];
-  genre: Maybe<Scalars['String']>;
-  authorId: Scalars['ID'];
 };
 
 export type BookInput = {
-  name: Scalars['String'];
-  genre?: Maybe<Scalars['String']>;
   authorId: Scalars['ID'];
+  genre?: InputMaybe<Scalars['String']>;
+  name: Scalars['String'];
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
-  addBook: Book;
   addAuthor: Author;
-};
-
-
-export type MutationAddBookArgs = {
-  book: BookInput;
+  addBook: Book;
 };
 
 
@@ -56,10 +52,15 @@ export type MutationAddAuthorArgs = {
   author: AuthorInput;
 };
 
+
+export type MutationAddBookArgs = {
+  book: BookInput;
+};
+
 export type Query = {
   __typename?: 'Query';
-  authors: Array<Author>;
   author: Author;
+  authors: Array<Author>;
   book: Book;
   books: Array<Book>;
 };
@@ -76,7 +77,7 @@ export type QueryBookArgs = {
 
 
 export type QueryBooksArgs = {
-  genre?: Maybe<Scalars['String']>;
+  genre?: InputMaybe<Scalars['String']>;
 };
 
 export type Subscription = {
@@ -86,61 +87,85 @@ export type Subscription = {
 
 
 export type SubscriptionNewBookArgs = {
-  authorId?: Maybe<Scalars['ID']>;
+  authorId?: InputMaybe<Scalars['ID']>;
 };
 
 export type AuthorFragment = { __typename: 'Author', id: string, name: string };
 
-export type AuthorWithBooksFragment = { __typename: 'Author', id: string, name: string, books: Maybe<Array<{ __typename: 'Book', id: string, name: string, genre: Maybe<string>, authorId: string }>> };
+export type AuthorWithBooksFragment = { __typename: 'Author', id: string, name: string, books: Array<(
+    { __typename?: 'Book' }
+    & BookFragment
+  )> | null };
 
 export type AuthorsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type AuthorsQueryData = { __typename?: 'Query', authors: Array<{ __typename: 'Author', id: string, name: string }> };
+export type AuthorsQueryData = { __typename?: 'Query', authors: Array<(
+    { __typename?: 'Author' }
+    & AuthorFragment
+  )> };
 
 export type AuthorQueryVariables = Exact<{
   id: Scalars['ID'];
 }>;
 
 
-export type AuthorQueryData = { __typename?: 'Query', author: { __typename: 'Author', id: string, name: string } };
+export type AuthorQueryData = { __typename?: 'Query', author: (
+    { __typename?: 'Author' }
+    & AuthorFragment
+  ) };
 
 export type AddAuthorMutationVariables = Exact<{
   author: AuthorInput;
 }>;
 
 
-export type AddAuthorMutationData = { __typename?: 'Mutation', addAuthor: { __typename: 'Author', id: string, name: string } };
+export type AddAuthorMutationData = { __typename?: 'Mutation', addAuthor: (
+    { __typename?: 'Author' }
+    & AuthorFragment
+  ) };
 
-export type BookFragment = { __typename: 'Book', id: string, name: string, genre: Maybe<string>, authorId: string };
+export type BookFragment = { __typename: 'Book', id: string, name: string, genre: string | null, authorId: string };
 
 export type BookQueryVariables = Exact<{
   id: Scalars['ID'];
 }>;
 
 
-export type BookQueryData = { __typename?: 'Query', book: { __typename: 'Book', id: string, name: string, genre: Maybe<string>, authorId: string } };
+export type BookQueryData = { __typename?: 'Query', book: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
 
 export type BooksQueryVariables = Exact<{
-  genre?: Maybe<Scalars['String']>;
+  genre?: InputMaybe<Scalars['String']>;
 }>;
 
 
-export type BooksQueryData = { __typename?: 'Query', books: Array<{ __typename: 'Book', id: string, name: string, genre: Maybe<string>, authorId: string }> };
+export type BooksQueryData = { __typename?: 'Query', books: Array<(
+    { __typename?: 'Book' }
+    & BookFragment
+  )> };
 
 export type AddBookMutationVariables = Exact<{
   book: BookInput;
 }>;
 
 
-export type AddBookMutationData = { __typename?: 'Mutation', addBook: { __typename: 'Book', id: string, name: string, genre: Maybe<string>, authorId: string } };
+export type AddBookMutationData = { __typename?: 'Mutation', addBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
 
 export type NewBookByAuthorSubscriptionVariables = Exact<{
-  id?: Maybe<Scalars['ID']>;
+  id?: InputMaybe<Scalars['ID']>;
 }>;
 
 
-export type NewBookByAuthorSubscriptionData = { __typename?: 'Subscription', newBook: { __typename: 'Book', id: string, name: string, genre: Maybe<string>, authorId: string } };
+export type NewBookByAuthorSubscriptionData = { __typename?: 'Subscription', newBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
 
 export const AuthorFragmentDoc = gql`
     fragment AuthorFragment on Author {

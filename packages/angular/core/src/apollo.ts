@@ -1,13 +1,12 @@
 /* eslint-disable max-len */
 import { MutationManager } from '@apollo-orbit/core';
-import { MutationResult, SubscriptionResult, toMutationResult, toQueryResult, toSubscriptionResult } from '@apollo-orbit/core/common';
-import { ApolloCache, ApolloClient, ApolloError, MutationOptions, NetworkStatus, Observable as ZenObservable, OperationVariables as Variables, SubscriptionOptions } from '@apollo/client/core';
+import { ApolloCache, ApolloClient, ApolloError, MutationOptions, NetworkStatus, OperationVariables as Variables, SubscriptionOptions } from '@apollo/client/core';
 import { defer, Observable, of } from 'rxjs';
 import { catchError, map, startWith, tap } from 'rxjs/operators';
 import { QueryObservable } from './queryObservable';
-import { DefaultOptions, QueryOptions, QueryResult, WatchQueryOptions } from './types';
-
-const fromZenObservable = <T>(source: ZenObservable<T>): Observable<T> => new Observable(source.subscribe.bind(source));
+import { toMutationResult, toQueryResult, toSubscriptionResult } from './result';
+import { DefaultOptions, MutationResult, QueryOptions, QueryResult, SubscriptionResult, WatchQueryOptions } from './types';
+import { fromZenObservable } from './utils';
 
 export class Apollo<TCacheShape = any> {
   /**
@@ -49,10 +48,10 @@ export class Apollo<TCacheShape = any> {
     )).pipe(
       map(result => toMutationResult(result)),
       (source => manager !== undefined
-        ? source.pipe(tap(
-          result => manager.runEffects(options, result, undefined),
-          error => manager.runEffects(options, undefined, error)
-        ))
+        ? source.pipe(tap({
+          next: result => manager.runEffects(options, result, undefined),
+          error: error => manager.runEffects(options, undefined, error)
+        }))
         : source)
     );
   }

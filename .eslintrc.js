@@ -410,7 +410,7 @@ module.exports = {
     '@typescript-eslint/func-call-spacing': 'error',
     '@typescript-eslint/member-delimiter-style': 'error',
     '@typescript-eslint/member-ordering': ['error', {
-      default: defaultOrder.filter(rule => rule.indexOf('decorated') < 0)
+      default: defaultOrder.filter(rule => rule.indexOf('decorated') < 0 && rule.indexOf('get') < 0 && rule.indexOf('set') < 0)
     }],
     '@typescript-eslint/no-dupe-class-members': 'error',
     '@typescript-eslint/no-extra-non-null-assertion': 'error',

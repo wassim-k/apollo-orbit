@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { ApolloOrbitProvider, InMemoryCache, modifyQuery, state, StateDefinition, useLazyQuery, useMutation, useQuery } from '@apollo-orbit/react';
+import { ApolloOrbitProvider, InMemoryCache, state, StateDefinition, useLazyQuery, useMutation, useQuery } from '@apollo-orbit/react';
 import { Mutation as MutationComponent } from '@apollo-orbit/react/components';
 import { ApolloClient, ApolloProvider, MutationFunction } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
@@ -59,7 +59,7 @@ const createTestState = () => state(descriptor => descriptor
   .mutationUpdate(AddBookDocument, (cache, result) => {
     if (!result.data) return;
     const { addBook } = result.data;
-    modifyQuery(cache, { query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
+    cache.updateQuery({ query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
   })
 
   .effect(AddAuthorDocument, result => {
@@ -143,7 +143,7 @@ describe('State', () => {
     ));
   });
 
-  it('should merge mutation variables & context from mutationOptions and mutationFunctionOptions', async () => {
+  it('should merge mutation variables from mutationOptions and mutationFunctionOptions', async () => {
     const TestChild = () => {
       const [addAuthor] = useMutation(AddAuthorDocument, { variables: { name: 'Brandon Sanderson' }, context: { context: 'old', context1: '1' } });
       useEffect(() => void addAuthor({ variables: { age: 44 } as AddAuthorMutationVariables, context: { context: 'new', context2: '2' } }), []);
@@ -162,7 +162,7 @@ describe('State', () => {
     ));
 
     expect(mutateSpy.mock.calls[0][0].variables).toEqual({ name: 'Brandon Sanderson', age: 44 });
-    expect(mutateSpy.mock.calls[0][0].context).toEqual({ context: 'new', context1: '1', context2: '2' });
+    expect(mutateSpy.mock.calls[0][0].context).toEqual({ context: 'new', context2: '2' });
   });
 
   it('should call effect with onError', async () => {

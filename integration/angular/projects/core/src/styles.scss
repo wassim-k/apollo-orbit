@@ -39,7 +39,7 @@ code {
     margin-top: 1em;
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    gap: 1em;
 
     button {
         width: 6em;

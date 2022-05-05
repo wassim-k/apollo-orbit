@@ -1,5 +1,4 @@
 fragment AuthorFragment on Author {
-  __typename
   id
   name
   age

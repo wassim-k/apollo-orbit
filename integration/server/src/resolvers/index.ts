@@ -59,18 +59,24 @@ export const resolvers: Resolvers = {
   },
   Subscription: {
     newBook: {
-      subscribe: withFilter(
-        (_parent, _args, _context, _info) => {
-          return pubsub.asyncIterator([NEW_BOOK]);
-        },
-        (payload: Book, variables: SubscriptionNewBookArgs) => {
-          return typeof variables.authorId !== 'string' || payload.authorId === variables.authorId;
-        }
-      )
+      subscribe: (parent, args, context, info) => {
+        return {
+          [Symbol.asyncIterator]: () => withFilter(
+            (_parent, _args, _context, _info) => {
+              return pubsub.asyncIterator([NEW_BOOK]);
+            },
+            (payload: Book, variables: SubscriptionNewBookArgs) => {
+              return typeof variables.authorId !== 'string' || payload.authorId === variables.authorId;
+            }
+          )(parent, args, context, info)
+        };
+      }
     },
     newAuthor: {
       subscribe: (_parent, _args, _context, _info) => {
-        return pubsub.asyncIterator([NEW_AUTHOR]);
+        return {
+          [Symbol.asyncIterator]: () => pubsub.asyncIterator([NEW_AUTHOR])
+        };
       }
     }
   }

@@ -1,7 +1,6 @@
-import { MutationResult, SubscriptionResult } from '@apollo-orbit/core/common';
 import { Observable, OperatorFunction } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { QueryResult } from './types';
+import { MutationResult, QueryResult, SubscriptionResult } from './types';
 
 export function mapQuery<T, R>(fn: (data: T) => R | undefined): OperatorFunction<QueryResult<T>, QueryResult<R>> {
     return (observable: Observable<QueryResult<T>>) => observable.pipe(

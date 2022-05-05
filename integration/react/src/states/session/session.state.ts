@@ -1,4 +1,4 @@
-import { modifyQuery, state } from '@apollo-orbit/react';
+import { state } from '@apollo-orbit/react';
 import gql from 'graphql-tag';
 import { Mutation, Query } from '../../graphql/types';
 import { RefreshUserTokenDocument, SessionDocument, SessionQuery } from './gql/session';
@@ -50,7 +50,7 @@ export const sessionState = state(descriptor => descriptor
 
   .mutationUpdate(RefreshUserTokenDocument, (cache, { data }): void => {
     if (!data) return;
-    modifyQuery(cache, { query: SessionDocument }, query => query ? { session: { ...query.session, currentUserToken: data.refreshUserToken } } : query);
+    cache.updateQuery({ query: SessionDocument }, query => query ? { session: { ...query.session, currentUserToken: data.refreshUserToken } } : query);
   })
 
   .effect(RefreshUserTokenDocument, result => {

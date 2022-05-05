@@ -1,5 +1,5 @@
 import { useLazyQuery, useMutation } from '@apollo-orbit/react';
-import React, { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { AuthorsDocument } from './gql/author';
 import { AddBookDocument } from './gql/book';
 
@@ -52,8 +52,8 @@ export function NewBook({
           </select>
         </div>}
         <br />
-        <button style={{ margin: '0 0.25em' }} onClick={() => onClose()}>Close</button>
         <input style={{ margin: '0 0.25em' }} type="submit" value="Submit" disabled={!name || !authorId} />
+        <button style={{ margin: '0 0.25em' }} onClick={() => onClose()}>Close</button>
       </form>
     </>
   );

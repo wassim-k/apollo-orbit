@@ -2,14 +2,15 @@ import { NgModule } from '@angular/core';
 import { ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache } from '@apollo-orbit/angular';
 import { HttpLinkFactory, HttpLinkModule } from '@apollo-orbit/angular/http';
 import { split } from '@apollo/client/core';
-import { WebSocketLink } from '@apollo/client/link/ws';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { createClient } from 'graphql-ws';
 import { AppConfig } from '../config';
 import { SessionState } from '../states/session/session.state';
 
 export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, appConfig: AppConfig, cache: InMemoryCache): ApolloOptions {
   const httpLink = httpLinkFactory.create({ uri: appConfig.graphqlApiEndpoint });
-  const wsLink = new WebSocketLink({ uri: appConfig.graphqlSubscriptionEndpoint, options: { reconnect: true } });
+  const wsLink = new GraphQLWsLink(createClient({ url: appConfig.graphqlSubscriptionEndpoint }));
 
   const link = split(
     ({ query }) => {

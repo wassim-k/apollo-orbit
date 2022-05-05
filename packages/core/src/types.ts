@@ -1,6 +1,9 @@
-import { Context, MutationResult, PureQueryOptions } from '@apollo-orbit/core/common';
-import { ApolloCache, ApolloClient, NormalizedCacheObject, OperationVariables as Variables, QueryOptions, StoreObject } from '@apollo/client/core';
+import { ApolloCache, ApolloClient, ApolloError, MutationOptions, NormalizedCacheObject, OperationVariables as Variables, PureQueryOptions, QueryOptions, StoreObject } from '@apollo/client/core';
 import { FieldNode, FragmentDefinitionNode } from 'graphql';
+
+export interface Context extends Record<string, any> { }
+
+export type PureMutationOptions<T = any, V = Variables, C = Context> = Pick<MutationOptions<T, V, C>, 'mutation' | 'variables' | 'context'>;
 
 export type Type<T> = new (...args: Array<any>) => T;
 
@@ -20,8 +23,12 @@ export type OptimisticResponseFn<T, V, C = Context> = (variables: V, context?: C
 
 export type TypeField = readonly [string, string];
 
-export interface MutationInfo<T = any, V = Variables, C = Context> extends MutationResult<T, C> {
+export interface MutationInfo<T = any, V = Variables, C = Context> {
   variables?: V;
+  data?: T;
+  error?: ApolloError;
+  context?: C;
+  extensions?: Record<string, any>;
 }
 
 export interface ResolverContext {

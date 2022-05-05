@@ -4,7 +4,7 @@
 <ng-container *ngIf="booksQuery | async as booksResult">
   <ng-container *ngIf="booksResult.loading">Loading...</ng-container>
   <ng-container *ngIf="booksResult.error">{{ booksResult.error.message }}</ng-container>
-  <ng-container *ngIf="(booksResult.data || booksResult.previousData)?.books  as books">
+  <ng-container *ngIf="(booksResult.data || booksResult.previousData)?.books as books">
     <div *ngFor="let book of books">
       <span>{{ book.name + (book.genre ? ' (' + book.genre + ')' : '') }}</span>
     </div>
@@ -17,10 +17,9 @@
 </ng-container>
 
 <div *ngIf="isAddingBook" class="form-container">
-  <app-new-book (onClose)="cancelAddBook()"></app-new-book>
+  <app-new-book (onClose)="cancelAddBook()" (onBookAdded)="refetch()"></app-new-book>
 </div>
 
 <div *ngIf="isAddingAuthor" class="form-container">
-  <app-new-author (onClose)="cancelAddAuthor()">
-  </app-new-author>
+  <app-new-author (onClose)="cancelAddAuthor()" (onAuthorAddded)="refetch()"></app-new-author>
 </div>

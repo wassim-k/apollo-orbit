@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, Injectable } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
 import { Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
-import { modifyQuery, ResolverContext, ResolverInfo } from '@apollo-orbit/core';
+import { ResolverContext, ResolverInfo } from '@apollo-orbit/core';
 import { Observable, timer } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -23,6 +23,7 @@ class TestComponent {
   ) { }
 }
 
+@Injectable()
 @State({
   typePolicies: {
     Query: {
@@ -71,7 +72,7 @@ class TestState {
   public addBook(cache: ApolloCache<any>, result: AddBookMutationInfo): void {
     if (result.data) {
       const { addBook } = result.data;
-      modifyQuery(cache, new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
+      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
     }
   }
 }
