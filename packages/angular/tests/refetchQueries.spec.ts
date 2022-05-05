@@ -7,8 +7,8 @@ import { AddBookMutation, AddBookMutationInfo, BookInput, BooksQuery } from './g
 const authorId = shortid.generate();
 const MOCK_TOKEN = new InjectionToken('mock');
 
-@State()
 @Injectable()
+@State()
 class TestState {
   public constructor(
     @Inject(MOCK_TOKEN) private readonly mock: jest.Mock

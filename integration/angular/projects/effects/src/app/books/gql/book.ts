@@ -3,46 +3,60 @@ import * as _ from '../../graphql/types';
 
 import gql from 'graphql-tag';
 import { Context, MutationInfo, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable } from '@apollo-orbit/angular';
-export type BookFragment = { __typename: 'Book', id: string, name: string, genre: _.Maybe<string>, displayName: string };
+export type BookFragment = { __typename?: 'Book', id: string, name: string, genre: string | null, displayName: string };
 
 export type BooksQueryVariables = _.Exact<{
-  name?: _.Maybe<_.Scalars['String']>;
-  genre?: _.Maybe<_.Scalars['String']>;
-  authorId?: _.Maybe<_.Scalars['ID']>;
+  name?: _.InputMaybe<_.Scalars['String']>;
+  genre?: _.InputMaybe<_.Scalars['String']>;
+  authorId?: _.InputMaybe<_.Scalars['ID']>;
 }>;
 
 
-export type BooksQueryData = { __typename?: 'Query', books: Array<{ __typename: 'Book', id: string, name: string, genre: _.Maybe<string>, displayName: string }> };
+export type BooksQueryData = { __typename?: 'Query', books: Array<(
+    { __typename?: 'Book' }
+    & BookFragment
+  )> };
 
 export type BookQueryVariables = _.Exact<{
   id: _.Scalars['ID'];
 }>;
 
 
-export type BookQueryData = { __typename?: 'Query', book: { __typename: 'Book', id: string, name: string, genre: _.Maybe<string>, displayName: string } };
+export type BookQueryData = { __typename?: 'Query', book: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
 
 export type AddBookMutationVariables = _.Exact<{
   book: _.BookInput;
 }>;
 
 
-export type AddBookMutationData = { __typename?: 'Mutation', addBook: _.Maybe<{ __typename: 'Book', id: string, name: string, genre: _.Maybe<string>, displayName: string }> };
+export type AddBookMutationData = { __typename?: 'Mutation', addBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) | null };
 
 export type NewBookSubscriptionVariables = _.Exact<{ [key: string]: never; }>;
 
 
-export type NewBookSubscriptionData = { __typename?: 'Subscription', newBook: { __typename: 'Book', id: string, name: string, genre: _.Maybe<string>, displayName: string } };
+export type NewBookSubscriptionData = { __typename?: 'Subscription', newBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
 
 export type NewBookByAuthorSubscriptionVariables = _.Exact<{
-  id?: _.Maybe<_.Scalars['ID']>;
+  id?: _.InputMaybe<_.Scalars['ID']>;
 }>;
 
 
-export type NewBookByAuthorSubscriptionData = { __typename?: 'Subscription', newBook: { __typename: 'Book', id: string, name: string, genre: _.Maybe<string>, displayName: string } };
+export type NewBookByAuthorSubscriptionData = { __typename?: 'Subscription', newBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
 
 export const BookFragmentDoc = gql`
     fragment BookFragment on Book {
-  __typename
   id
   name
   genre

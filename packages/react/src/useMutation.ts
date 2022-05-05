@@ -1,8 +1,12 @@
 /* eslint-disable no-restricted-imports */
-import { ApolloError, BaseMutationOptions, MutationFunctionOptions, MutationHookOptions, MutationTuple, OperationVariables as Variables, TypedDocumentNode, useMutation as useMutationCore } from '@apollo/client';
+import { ApolloError, BaseMutationOptions, mergeOptions, MutationFunctionOptions, MutationHookOptions, MutationTuple, OperationVariables as Variables, TypedDocumentNode, useMutation as useMutationCore } from '@apollo/client';
 import { DocumentNode } from 'graphql';
 import { useContext } from 'react';
 import { ApolloOrbitContext } from './context';
+
+interface MutationOptions<TData = any, TVariables = Variables> extends BaseMutationOptions<TData, TVariables> {
+  mutation: DocumentNode;
+}
 
 export function useMutation<TData = any, TVariables = Variables>(
   mutation: DocumentNode | TypedDocumentNode<TData, TVariables>,
@@ -21,11 +25,13 @@ export function useMutation<TData = any, TVariables = Variables>(
   return [
     (mutationFunctionOptions: MutationFunctionOptions<TData, TVariables> = {}) => {
       const mutationOptions = { mutation, ...options };
-      const newMutationFunctionOptions = mutationManager.wrapMutationOptions<TData, TVariables>(
-        mergeMutationOptions<TData, TVariables>(mutationOptions, mutationFunctionOptions)
-      ) as MutationFunctionOptions<TData, TVariables>;
 
-      return mutationFn(newMutationFunctionOptions)
+      return mutationFn({
+        ...mutationFunctionOptions,
+        ...mutationManager.withMutationOptions(
+          mergeOptions(mutationOptions, mutationFunctionOptions as MutationOptions<TData, TVariables>)
+        )
+      })
         .then(result => {
           // If onError is set then the effect is handled above by onError
           if (!onError) {
@@ -40,20 +46,4 @@ export function useMutation<TData = any, TVariables = Variables>(
     },
     mutationResult
   ];
-}
-
-interface MutationOptions<TData = any, TVariables = Variables> extends BaseMutationOptions<TData, TVariables> {
-  mutation: DocumentNode;
-}
-
-function mergeMutationOptions<TData = any, TVariables = Variables>(
-  mutationOptions: MutationOptions<TData, TVariables>,
-  mutationFunctionOptions: MutationFunctionOptions<TData, TVariables>
-): MutationOptions<TData, TVariables> {
-  return {
-    ...mutationOptions,
-    ...mutationFunctionOptions,
-    context: { ...mutationOptions.context ?? {}, ...mutationFunctionOptions.context ?? {} },
-    variables: { ...mutationOptions.variables ?? {}, ...mutationFunctionOptions.variables ?? {} } as TVariables
-  } as MutationOptions<TData, TVariables>;
 }

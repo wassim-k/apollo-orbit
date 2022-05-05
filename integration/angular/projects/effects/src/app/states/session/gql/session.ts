@@ -9,7 +9,7 @@ export type SessionQueryVariables = _.Exact<{ [key: string]: never; }>;
 export type SessionQueryData = { __typename?: 'Query', session: { __typename?: 'Session', theme: _.Theme, toggles: number } };
 
 export type ToggleThemeMutationVariables = _.Exact<{
-  force?: _.Maybe<_.Theme>;
+  force?: _.InputMaybe<_.Theme>;
 }>;
 
 

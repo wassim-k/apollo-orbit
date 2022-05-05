@@ -1,5 +1,6 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
+export type InputMaybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -14,15 +15,15 @@ export type Scalars = {
 
 export type Author = {
   __typename?: 'Author';
-  id: Scalars['ID'];
-  name: Scalars['String'];
   age: Maybe<Scalars['Int']>;
   books: Array<Book>;
+  id: Scalars['ID'];
+  name: Scalars['String'];
 };
 
 export type AuthorInput = {
+  age?: InputMaybe<Scalars['Int']>;
   name: Scalars['String'];
-  age?: Maybe<Scalars['Int']>;
 };
 
 export type Book = {
@@ -36,9 +37,9 @@ export type Book = {
 };
 
 export type BookInput = {
-  name: Scalars['String'];
-  genre?: Maybe<Scalars['String']>;
   authorId: Scalars['ID'];
+  genre?: InputMaybe<Scalars['String']>;
+  name: Scalars['String'];
 };
 
 export type Mutation = {
@@ -60,7 +61,7 @@ export type MutationAddBookArgs = {
 
 
 export type MutationToggleThemeArgs = {
-  force?: Maybe<Theme>;
+  force?: InputMaybe<Theme>;
 };
 
 export type Query = {
@@ -85,9 +86,9 @@ export type QueryBookArgs = {
 
 
 export type QueryBooksArgs = {
-  name?: Maybe<Scalars['String']>;
-  genre?: Maybe<Scalars['String']>;
-  authorId?: Maybe<Scalars['ID']>;
+  authorId?: InputMaybe<Scalars['ID']>;
+  genre?: InputMaybe<Scalars['String']>;
+  name?: InputMaybe<Scalars['String']>;
 };
 
 export type Session = {
@@ -98,13 +99,13 @@ export type Session = {
 
 export type Subscription = {
   __typename?: 'Subscription';
-  newBook: Book;
   newAuthor: Author;
+  newBook: Book;
 };
 
 
 export type SubscriptionNewBookArgs = {
-  authorId?: Maybe<Scalars['ID']>;
+  authorId?: InputMaybe<Scalars['ID']>;
 };
 
 export enum Theme {

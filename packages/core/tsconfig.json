@@ -1,11 +1,6 @@
 {
   "extends": "./tsconfig.lib.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@apollo-orbit/core/common": [
-        "./common/src/index.ts"
-      ]
-    }
+    "baseUrl": "."
   }
 }

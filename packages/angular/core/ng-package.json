@@ -2,10 +2,6 @@
   "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
   "lib": {
     "entryFile": "./src/index.ts",
-    "flatModuleFile": "apollo-orbit.angular.core",
-    "umdModuleIds": {
-      "@apollo/client/core": "apollo",
-      "@apollo-orbit/core/common": "apollo-orbit.core.common"
-    }
+    "flatModuleFile": "apollo-orbit.angular.core"
   }
 }

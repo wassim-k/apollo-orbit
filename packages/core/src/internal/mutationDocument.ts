@@ -1,7 +1,6 @@
-import { PureMutationOptions, PureQueryOptions, PureSubscriptionOptions } from '@apollo-orbit/core/common';
 import { DocumentNode, OperationDefinitionNode } from 'graphql';
 import { MutationIdentifier } from '../state';
-import { Type } from '../types';
+import { PureMutationOptions, Type } from '../types';
 
 const isDocument = (doc: any): doc is DocumentNode => doc?.kind === 'Document';
 const isMutationDocument = (def: any): def is OperationDefinitionNode => def.kind === 'OperationDefinition' && def.operation === 'mutation';
@@ -18,11 +17,9 @@ export function nameOfMutation(mutation: MutationIdentifier<any, any>): string {
   }
 }
 
-export function documentOfOptionsType(DataType: Type<PureQueryOptions<any, any>> | Type<PureMutationOptions<any, any>> | Type<PureSubscriptionOptions<any>>): DocumentNode {
+export function documentOfOptionsType(DataType: Type<PureMutationOptions<any, any>>): DocumentNode {
   const instance = new DataType();
-  return 'query' in instance
-    ? instance.query
-    : instance.mutation;
+  return instance.mutation;
 }
 
 export function nameOfMutationDocument(document: DocumentNode): string {

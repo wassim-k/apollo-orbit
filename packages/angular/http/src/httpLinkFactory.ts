@@ -28,7 +28,7 @@ export class HttpLinkFactory {
         }).pipe(
             map(response => this.getResponse(response)),
             catchError(error => of(this.getErrorResponse(error)))
-        ).toPromise();
+        ).toPromise() as Promise<Response>;
     }
 
     protected getErrorResponse(errorResponse: HttpErrorResponse): Response {
