@@ -1,11 +1,11 @@
 import { Injectable, Injector } from '@angular/core';
-import { Apollo, Effect, InMemoryCache, modifyQuery, OnInitState, State } from '@apollo-orbit/angular';
+import { Apollo, InMemoryCache, OnInitState, State } from '@apollo-orbit/angular';
 import { FetchResult } from '@apollo/client/core';
 import { Toastify } from '../../services/toastify.service';
-import { AddAuthorMutation, AddAuthorMutationInfo, AuthorsQuery, NewAuthorSubscription, NewAuthorSubscriptionData } from '../gql/author';
+import { AuthorsQuery, NewAuthorSubscription, NewAuthorSubscriptionData } from '../gql/author';
 
-@State()
 @Injectable()
+@State()
 export class AuthorState implements OnInitState {
   public constructor(
     private readonly injector: Injector,
@@ -21,13 +21,8 @@ export class AuthorState implements OnInitState {
 
   public onNewAuthor({ data }: FetchResult<NewAuthorSubscriptionData>): void {
     if (!data) return;
-    modifyQuery(this.cache, new AuthorsQuery(), query => query ? { authors: [...query.authors, data.newAuthor] } : query);
-  }
-
-  @Effect(AddAuthorMutation)
-  public addAuthorEffect(result: AddAuthorMutationInfo): void {
-    if (!result.data?.addAuthor) return;
-    this.toastify.success(`New author '${result.data.addAuthor.name}' was added.`);
+    this.cache.updateQuery(new AuthorsQuery(), query => query ? { authors: [...query.authors, data.newAuthor] } : query);
+    this.toastify.success(`New author '${data.newAuthor.name}' was added.`);
   }
 
   private get apollo(): Apollo {

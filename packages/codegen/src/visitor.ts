@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { Types } from '@graphql-codegen/plugin-helpers';
 import { ClientSideBaseVisitor, DocumentMode, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
+import autoBind from 'auto-bind';
 import { GraphQLSchema, Kind, OperationDefinitionNode } from 'graphql';
 import { ApolloOrbitPluginConfig, ApolloOrbitRawPluginConfig } from './config';
-
-const autoBind = require('auto-bind');
 
 export type OperationType = 'Query' | 'Mutation' | 'Subscription';
 
@@ -28,6 +27,10 @@ export abstract class ApolloOrbitBaseVisitor<
   ) {
     super(schema, fragments, rawConfig, additionalConfig, documents);
     autoBind(this);
+  }
+
+  private get defaultImportFrom(): string {
+    return `@apollo-orbit/${this.importPath}`;
   }
 
   public getImports(): Array<string> {
@@ -123,9 +126,5 @@ export class ${className} extends ${baseClassName}<${operationResultType}, ${ope
       Subscription: subscriptionSuffix
     };
     return suffixByOperation[operationType] ?? 'Options';
-  }
-
-  private get defaultImportFrom(): string {
-    return `@apollo-orbit/${this.importPath}`;
   }
 }

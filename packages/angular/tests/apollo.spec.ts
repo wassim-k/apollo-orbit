@@ -1,6 +1,6 @@
 import { fakeAsync, tick, waitForAsync } from '@angular/core/testing';
 import { ApolloError, gql } from '@apollo/client/core';
-import { MockSubscriptionLink } from '@apollo/client/testing';
+import { MockSubscriptionLink } from '@apollo/client/testing/core';
 import { GraphQLError } from 'graphql';
 import { mockApollo } from './helpers';
 

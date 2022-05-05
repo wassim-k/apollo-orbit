@@ -25,10 +25,10 @@ First run integration server: `yarn workspace @integration/server run start`
 
 ### Core
 ```bash
-yarn workspace @apollo-orbit/angular build; yarn workspace @integration/angular run ngcc -t @apollo-orbit/angular/core; yarn workspace @integration/angular run ngcc -t @apollo-orbit/angular/http; yarn workspace @integration/angular run start:core
+yarn workspace @apollo-orbit/angular build; yarn workspace @integration/angular run start:core
 ```
 
 ### Effects
 ```bash
-yarn workspace @apollo-orbit/angular build; yarn workspace @integration/angular run ngcc -t @apollo-orbit/angular; yarn workspace @integration/angular run ngcc -t @apollo-orbit/angular/http; yarn workspace @integration/angular run start:effects
+yarn workspace @apollo-orbit/angular build; yarn workspace @integration/angular run start:effects
 ```

@@ -1,9 +1,12 @@
 import { Injectable } from '@angular/core';
 import { ɵManagerFactory as ManagerFactory } from '@apollo-orbit/angular/core';
 import { addStateToCache, addStateToClient, MutationManager, StateDefinition } from '@apollo-orbit/core';
-import { ApolloClient } from '@apollo/client/core';
+import { ApolloClient, ApolloError } from '@apollo/client/core';
+import { GraphQLError } from 'graphql';
 import { transformNgResolver as transformResolver } from './resolver';
 import { partition } from './utils/array';
+
+const apolloErrorFactory = (graphQLErrors: ReadonlyArray<GraphQLError>): ApolloError => new ApolloError({ graphQLErrors });
 
 interface Clients {
   [id: string]: {
@@ -24,7 +27,7 @@ export class StateManager implements ManagerFactory {
    */
   public createManager(clientId: string, client: ApolloClient<any>): MutationManager {
     if (this.clients[clientId] !== undefined) throw new Error(`Apollo clients with duplicate options.id: '${clientId}'`);
-    const manager = new MutationManager();
+    const manager = new MutationManager(apolloErrorFactory);
     this.clients[clientId] = { client, manager };
     const [current, pending] = partition(this.pending, state => state.clientId === clientId);
     this.pending = pending;

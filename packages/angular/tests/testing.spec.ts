@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { Apollo } from '@apollo-orbit/angular';
-import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
+import { MockLink, MockSubscriptionLink } from '@apollo/client/testing/core';
 import { GraphQLError } from 'graphql';
 import { BookQuery, BookQueryData, NewBookByAuthorSubscription, NewBookByAuthorSubscriptionData } from './graphql';
 import { ApolloMockModule } from './helpers';

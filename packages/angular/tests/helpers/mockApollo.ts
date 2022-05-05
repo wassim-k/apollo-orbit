@@ -1,6 +1,6 @@
 import { Apollo } from '@apollo-orbit/angular';
 import { ApolloClient, ApolloLink, InMemoryCache } from '@apollo/client/core';
-import { MockedResponse, MockLink } from '@apollo/client/testing';
+import { MockedResponse, MockLink } from '@apollo/client/testing/core';
 
 export function mockApollo(mockedResponses: ReadonlyArray<MockedResponse>, addTypename?: boolean): Apollo;
 export function mockApollo(mockLink: ApolloLink): Apollo;

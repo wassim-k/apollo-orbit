@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "@apollo-orbit/react": "*",
-    "toastify-js": "^1.11.1"
+    "toastify-js": "^1.11.2"
   },
   "devDependencies": {
     "@apollo-orbit/codegen": "*",
-    "@graphql-codegen/typed-document-node": "^2.1.0",
-    "graphql-tag": "^2.12.5"
+    "@graphql-codegen/typed-document-node": "^2.2.9",
+    "graphql-tag": "^2.12.6"
   },
   "browserslist": {
     "production": [

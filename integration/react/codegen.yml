@@ -8,6 +8,8 @@ config:
   documentNodeImport: '@apollo/client#TypedDocumentNode'
   dedupeOperationSuffix: true
   preResolveTypes: true
+  inlineFragmentTypes: combine
+  maybeValue: T | null
   avoidOptionals:
     field: true
 generates:

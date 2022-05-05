@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import { ApolloCache, Effect, modifyQuery, MutationUpdate, Resolve, ResolverContext, ResolverInfo, State } from '@apollo-orbit/angular';
+import { ApolloCache, Effect, MutationUpdate, Resolve, ResolverContext, ResolverInfo, State } from '@apollo-orbit/angular';
 import gql from 'graphql-tag';
 import { Mutation, MutationToggleThemeArgs, Query, Theme } from '../../graphql/types';
 import { Toastify } from '../../services/toastify.service';
 import { SessionQuery, SessionQueryData, ToggleThemeMutation, ToggleThemeMutationInfo } from './gql/session';
 
+@Injectable()
 @State({
   typeDefs: gql`
     type Session {
@@ -25,7 +26,6 @@ import { SessionQuery, SessionQueryData, ToggleThemeMutation, ToggleThemeMutatio
       toggleTheme(force: Theme): Theme!
     }`
 })
-@Injectable()
 export class SessionState {
   private readonly MAXIMUM_TOGGLES = 5;
 
@@ -58,7 +58,7 @@ export class SessionState {
   @MutationUpdate(ToggleThemeMutation)
   public toggleTheme(cache: ApolloCache<any>, { data }: ToggleThemeMutationInfo): void {
     if (!data) return;
-    modifyQuery(cache, new SessionQuery(), query => query ? { session: { ...query.session, theme: data.toggleTheme } } : query);
+    cache.updateQuery(new SessionQuery(), query => query ? { session: { ...query.session, theme: data.toggleTheme } } : query);
   }
 
   @Effect(ToggleThemeMutation)

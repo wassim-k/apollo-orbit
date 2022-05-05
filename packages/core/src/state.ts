@@ -1,7 +1,6 @@
-import { PureMutationOptions } from '@apollo-orbit/core/common';
 import { DocumentNode, OperationVariables as Variables, PossibleTypesMap, TypedDocumentNode, TypePolicies } from '@apollo/client/core';
 import { nameOfMutation } from './internal';
-import { EffectFn, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, Resolver, Type, TypeField } from './types';
+import { EffectFn, MutationUpdateFn, OptimisticResponseFn, PureMutationOptions, RefetchQueriesFn, Resolver, Type, TypeField } from './types';
 import { createSymbol } from './utils/symbol';
 
 export type MutationIdentifier<T, V = Variables> = Type<PureMutationOptions<T, V>> | TypedDocumentNode<T, V> | DocumentNode | string;

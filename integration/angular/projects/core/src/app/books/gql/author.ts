@@ -3,28 +3,36 @@ import * as _ from '../../graphql/types';
 
 import gql from 'graphql-tag';
 import { Context, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable } from '@apollo-orbit/angular/core';
-export type AuthorFragment = { __typename: 'Author', id: string, name: string, age: _.Maybe<number> };
+export type AuthorFragment = { __typename?: 'Author', id: string, name: string, age: number | null };
 
 export type AuthorsQueryVariables = _.Exact<{ [key: string]: never; }>;
 
 
-export type AuthorsQueryData = { __typename?: 'Query', authors: Array<{ __typename: 'Author', id: string, name: string, age: _.Maybe<number> }> };
+export type AuthorsQueryData = { __typename?: 'Query', authors: Array<(
+    { __typename?: 'Author' }
+    & AuthorFragment
+  )> };
 
 export type AddAuthorMutationVariables = _.Exact<{
   author: _.AuthorInput;
 }>;
 
 
-export type AddAuthorMutationData = { __typename?: 'Mutation', addAuthor: _.Maybe<{ __typename: 'Author', id: string, name: string, age: _.Maybe<number> }> };
+export type AddAuthorMutationData = { __typename?: 'Mutation', addAuthor: (
+    { __typename?: 'Author' }
+    & AuthorFragment
+  ) | null };
 
 export type NewAuthorSubscriptionVariables = _.Exact<{ [key: string]: never; }>;
 
 
-export type NewAuthorSubscriptionData = { __typename?: 'Subscription', newAuthor: { __typename: 'Author', id: string, name: string, age: _.Maybe<number> } };
+export type NewAuthorSubscriptionData = { __typename?: 'Subscription', newAuthor: (
+    { __typename?: 'Author' }
+    & AuthorFragment
+  ) };
 
 export const AuthorFragmentDoc = gql`
     fragment AuthorFragment on Author {
-  __typename
   id
   name
   age

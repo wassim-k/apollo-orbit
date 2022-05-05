@@ -9,7 +9,7 @@ import { LazyQuery } from './states/lazy/gql/lazy';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LazyComponent {
-  public lazy$ = this.apollo.watchQuery(new LazyQuery());
+  public lazyQuery = this.apollo.watchQuery(new LazyQuery());
 
   public constructor(
     private readonly apollo: Apollo

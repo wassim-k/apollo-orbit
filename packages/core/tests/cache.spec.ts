@@ -1,4 +1,3 @@
-import { modifyFragment, modifyQuery } from '@apollo-orbit/core';
 import { gql, InMemoryCache } from '@apollo/client/core';
 
 export const BookFragmentDoc = gql`
@@ -59,7 +58,7 @@ describe('Cache', () => {
       const id = cache.identify(object) as string;
       cache.writeFragment({ id, fragment: AuthorFragmentDoc, data: object });
 
-      modifyFragment(cache, { id, fragment: AuthorFragmentDoc }, (current: any) => ({
+      cache.updateFragment({ id, fragment: AuthorFragmentDoc }, (current: any) => ({
         ...current,
         name: 'new'
       }));
@@ -90,7 +89,7 @@ describe('Cache', () => {
       const fragmentName = 'AuthorWithBooksFragment';
       cache.writeFragment({ id, fragment: AuthorWithBooksFragmentDoc, fragmentName, data });
 
-      modifyFragment(cache, { id, fragment: AuthorWithBooksFragmentDoc, fragmentName }, (current: any) => ({
+      cache.updateFragment({ id, fragment: AuthorWithBooksFragmentDoc, fragmentName }, (current: any) => ({
         ...current,
         name: 'new'
       }));
@@ -110,7 +109,7 @@ describe('Cache', () => {
       const id = cache.identify(object) as string;
       cache.writeFragment({ id, fragment: AuthorFragmentDoc, data: object });
       const writeFragmentSpy = jest.spyOn(cache, 'writeFragment');
-      modifyFragment(cache, { id, fragment: AuthorFragmentDoc }, (current: any) => void 0);
+      cache.updateFragment({ id, fragment: AuthorFragmentDoc }, (current: any) => void 0);
       expect(writeFragmentSpy).toBeCalledTimes(0);
     });
   });
@@ -131,7 +130,7 @@ describe('Cache', () => {
     it('should modify non-existent query', () => {
       const cache = new InMemoryCache();
       const query = gql`{ value }`;
-      modifyQuery(cache, { query }, current => ({ value: 'new' }));
+      cache.updateQuery({ query }, current => ({ value: 'new' }));
       expect(cache.readQuery({ query })).toEqual({ value: 'new' });
     });
 
@@ -146,7 +145,7 @@ describe('Cache', () => {
         }
       });
 
-      modifyQuery(cache, { query }, current => ({ value: 'new' }));
+      cache.updateQuery({ query }, current => ({ value: 'new' }));
       expect(cache.readQuery({ query })).toEqual({ value: 'new' });
     });
 
@@ -162,7 +161,7 @@ describe('Cache', () => {
       });
 
       const writeQuerySpy = jest.spyOn(cache, 'writeQuery');
-      modifyQuery(cache, { query }, current => void 0);
+      cache.updateQuery({ query }, current => void 0);
 
       expect(writeQuerySpy).toBeCalledTimes(0);
     });

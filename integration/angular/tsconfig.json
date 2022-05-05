@@ -28,6 +28,9 @@
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictTemplates": true,
-    "strictAttributeTypes": false
+    "strictAttributeTypes": false,
+    "types": [
+      "node"
+    ]
   }
 }

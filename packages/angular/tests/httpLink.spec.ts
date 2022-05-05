@@ -110,7 +110,7 @@ describe('HttpLink', () => {
       error: error => expect(error.message).toEqual('Failed to fetch')
     });
     const req = httpTestingController.expectOne(uri);
-    req.error(new ErrorEvent('Network Error'));
+    req.error(new ProgressEvent('Network Error'));
     httpTestingController.verify();
   }));
 });

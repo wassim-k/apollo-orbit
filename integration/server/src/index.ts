@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { ApolloServerPluginLandingPageLocalDefault, ApolloServerPluginLandingPageProductionDefault } from 'apollo-server-core';
+import { ApolloServerPluginDrainHttpServer, ApolloServerPluginLandingPageLocalDefault, ApolloServerPluginLandingPageProductionDefault } from 'apollo-server-core';
 import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import fs from 'fs';
-import { execute, subscribe } from 'graphql';
 import { PubSub } from 'graphql-subscriptions';
+import { useServer } from 'graphql-ws/lib/use/ws';
 import { createServer } from 'http';
 import path from 'path';
-import { SubscriptionServer } from 'subscriptions-transport-ws';
+import { WebSocketServer } from 'ws';
 import { dbContext } from './db';
 import { resolvers } from './resolvers';
 
@@ -23,6 +23,13 @@ const typeDefs: string = fs.readFileSync(schemaPath, 'utf8');
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
+  const wsServer = new WebSocketServer({
+    server: httpServer,
+    path: '/graphql'
+  });
+
+  const serverCleanup = useServer({ schema }, wsServer);
+
   const server = new ApolloServer({
     schema,
     introspection: true,
@@ -30,16 +37,26 @@ const typeDefs: string = fs.readFileSync(schemaPath, 'utf8');
     plugins: [
       process.env.NODE_ENV === 'production'
         ? ApolloServerPluginLandingPageProductionDefault({ footer: false })
-        : ApolloServerPluginLandingPageLocalDefault({ footer: false })
+        : ApolloServerPluginLandingPageLocalDefault({ footer: false }),
+
+      // Proper shutdown for the HTTP server.
+      ApolloServerPluginDrainHttpServer({ httpServer }),
+
+      // Proper shutdown for the WebSocket server.
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              await serverCleanup.dispose();
+            }
+          };
+        }
+      }
     ]
   });
+
   await server.start();
   server.applyMiddleware({ app: app as any });
-
-  SubscriptionServer.create(
-    { schema, execute, subscribe },
-    { server: httpServer, path: server.graphqlPath }
-  );
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 Query endpoint ready at http://localhost:${PORT}${server.graphqlPath}`);
