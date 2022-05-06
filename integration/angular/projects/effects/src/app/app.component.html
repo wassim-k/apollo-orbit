@@ -1,8 +1,10 @@
-<div *ngIf="theme$ | async as theme" [class]="['container', theme]">
+<div *ngIf="theme$ | async as theme" [class]="['main', theme]">
 
-  <app-theme-toggler></app-theme-toggler>
+  <div>
+    <app-theme></app-theme>
+  </div>
 
-  <div class=" main">
+  <div>
     <app-books></app-books>
   </div>
 

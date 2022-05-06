@@ -6,12 +6,12 @@ import { AppComponent } from './app.component';
 import { BooksModule } from './books/books.module';
 import { ConfigModule } from './config/config.module';
 import { GraphQLModule } from './graphql/graphql.module';
-import { ThemeTogglerComponent } from './theme-toggler/theme-toggler.component';
+import { ThemeComponent } from './theme/theme.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    ThemeTogglerComponent
+    ThemeComponent
   ],
   imports: [
     AppRoutingModule,

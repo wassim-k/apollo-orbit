@@ -1,9 +1,7 @@
-import { DocumentNode, OperationVariables as Variables, PossibleTypesMap, TypedDocumentNode, TypePolicies } from '@apollo/client/core';
+import { DocumentNode, OperationVariables as Variables, PossibleTypesMap, TypePolicies } from '@apollo/client/core';
 import { nameOfMutation } from './internal';
-import { EffectFn, MutationUpdateFn, OptimisticResponseFn, PureMutationOptions, RefetchQueriesFn, Resolver, Type, TypeField } from './types';
+import { Action, ActionFn, ActionType, EffectFn, MutationIdentifier, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, Resolver, TypeField } from './types';
 import { createSymbol } from './utils/symbol';
-
-export type MutationIdentifier<T, V = Variables> = Type<PureMutationOptions<T, V>> | TypedDocumentNode<T, V> | DocumentNode | string;
 
 export interface StateDefinition {
   clientId: string;
@@ -14,6 +12,7 @@ export interface StateDefinition {
   mutationUpdates: Array<[string, MutationUpdateFn<any, any>]>;
   refetchQueries: Array<[string, RefetchQueriesFn<any, any>]>;
   optimisticResponses: Array<[string, OptimisticResponseFn<any, any>]>;
+  actions: Array<[string, ActionFn<any>]>;
   effects: Array<[string, EffectFn<any, any>]>;
   onInit?: () => void;
 }
@@ -89,6 +88,13 @@ export class StateDescriptor {
     this.definition.effects.push([nameOfMutation(mutation), effect]);
     return this;
   }
+
+  public action<T = any>(action: ActionType<T>, actionFn: ActionFn<T>): this;
+  public action<TAction extends Action>(type: TAction['type'], actionFn: ActionFn<TAction>): this;
+  public action<T = any>(actionType: ActionType<T> | string, actionFn: ActionFn<T>): this {
+    this.definition.actions.push([typeof actionType === 'string' ? actionType : actionType.type, actionFn]);
+    return this;
+  }
 }
 
 function createDefaultStateDefinition(): StateDefinition {
@@ -96,6 +102,7 @@ function createDefaultStateDefinition(): StateDefinition {
     clientId: 'default',
     resolvers: [],
     mutationUpdates: [],
+    actions: [],
     effects: [],
     refetchQueries: [],
     optimisticResponses: [],

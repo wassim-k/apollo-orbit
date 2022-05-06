@@ -1,8 +1,6 @@
-import { addStateToCache, addStateToClient, createSymbol, MutationManager, StateDefinition } from '@apollo-orbit/core';
+import { addStateToCache, addStateToClient, MutationManager, StateDefinition } from '@apollo-orbit/core';
 import { ApolloClient, ApolloError } from '@apollo/client';
 import { GraphQLError } from 'graphql';
-
-const instantiatedSymbol: symbol = createSymbol('instantiated');
 
 const apolloErrorFactory = (graphQLErrors: ReadonlyArray<GraphQLError>): ApolloError => new ApolloError({ graphQLErrors });
 
@@ -13,13 +11,12 @@ export class StateManager {
         const manager = this.ensureMutationManager(client);
         const addToClient = addStateToClient(client);
         const addToCache = addStateToCache(client.cache);
-        this.filterStateDefinitions(states)
-            .forEach(state => {
-                manager.addState(state);
-                addToClient(state);
-                addToCache(state);
-                state.onInit?.();
-            });
+        states.forEach(state => {
+            manager.addState(state);
+            addToClient(state);
+            addToCache(state);
+            state.onInit?.();
+        });
         return manager;
     }
 
@@ -30,15 +27,5 @@ export class StateManager {
             this.clients.push(pair);
         }
         return pair[1];
-    }
-
-    private filterStateDefinitions(states: Array<StateDefinition>): Array<StateDefinition> {
-        return states
-            .filter(state => !Object.prototype.hasOwnProperty.call(state, instantiatedSymbol))
-            .map(state => {
-                // This is necessary to avoid issues with duplicate calls to useMemo in React's StrictMode
-                Object.defineProperty(state, instantiatedSymbol, {});
-                return state;
-            });
     }
 }

@@ -4,12 +4,16 @@
   height: 100%;
 }
 
-.container {
+.main {
   width: 100%;
   height: 100%;
-  padding: 0.5em;
+  padding: 1em;
   box-sizing: border-box;
   overflow: auto;
+
+  & > * {
+    margin-bottom: 1em;
+  }
 
   &.dark_theme {
     background-color: #333;
@@ -19,10 +23,6 @@
       color: pink;
     }
   }
-}
-
-.main {
-  margin: 0.5em 0;
 }
 
 .router-link {

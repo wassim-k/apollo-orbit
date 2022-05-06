@@ -1,11 +1,14 @@
-import { Inject, inject, InjectFlags, ModuleWithProviders, NgModule, Optional, SkipSelf } from '@angular/core';
+import { Inject, inject, ModuleWithProviders, NgModule, Optional, SkipSelf } from '@angular/core';
+import { ApolloClient } from '@apollo/client/core';
 import { Apollo } from './apollo';
 import { apolloClientFactory, APOLLO_CLIENT_FACTORY } from './clientFactory';
-import { APOLLO_MULTI_ROOT, APOLLO_OPTIONS, APOLLO_OPTIONS_INTERNAL, MANAGER_FACTORY } from './tokens';
-import { ApolloOptions } from './types';
+import { ApolloInstanceFactory } from './instanceFactory';
+import { APOLLO_INSTANCE_FACTORY, APOLLO_MULTI_ROOT, APOLLO_OPTIONS, APOLLO_OPTIONS_INTERNAL } from './tokens';
+import { ApolloOptions, DefaultOptions } from './types';
 
 @NgModule({
   providers: [
+    { provide: APOLLO_INSTANCE_FACTORY, useFactory: apolloInstanceFactory },
     { provide: APOLLO_CLIENT_FACTORY, useValue: apolloClientFactory },
     { provide: APOLLO_OPTIONS_INTERNAL, useFactory: apolloOptionsFactory, deps: [[new Optional(), APOLLO_OPTIONS]] },
     { provide: Apollo, useFactory: apolloFactory, deps: [APOLLO_OPTIONS_INTERNAL] }
@@ -37,7 +40,9 @@ export function apolloFactory(options: ApolloOptions): Apollo {
   const { id = 'default', cache, defaultOptions, ...rest } = options;
   const createClient = inject(APOLLO_CLIENT_FACTORY);
   const client = createClient({ cache, defaultOptions, ...rest });
-  const managerFactory = inject(MANAGER_FACTORY, InjectFlags.Optional);
-  const manager = managerFactory?.createManager(id, client);
-  return new Apollo(client, defaultOptions, manager);
+  return inject(APOLLO_INSTANCE_FACTORY)(id, client, defaultOptions);
+}
+
+export function apolloInstanceFactory(): ApolloInstanceFactory {
+  return (_clientId: string, client: ApolloClient<any>, defaultOptions?: DefaultOptions): Apollo => new Apollo(client, defaultOptions);
 }

@@ -11,10 +11,11 @@ export function updateStateDefinition(stateClass: StateClass, configure: (descri
 }
 
 export function bindStateDefinition(stateClass: StateClass, instance: any): StateDefinition {
-  const { effects, mutationUpdates, optimisticResponses, refetchQueries, resolvers, onInit, ...rest } = stateClass[stateDefinitionSymbol] as StateDefinition;
+  const { actions, effects, mutationUpdates, optimisticResponses, refetchQueries, resolvers, onInit, ...rest } = stateClass[stateDefinitionSymbol] as StateDefinition;
   return {
     ...rest,
     onInit: onInit?.bind(instance),
+    actions: actions.map(([type, fn]) => [type, fn.bind(instance)]),
     effects: effects.map(([identifier, fn]) => [identifier, fn.bind(instance)]),
     mutationUpdates: mutationUpdates.map(([identifier, fn]) => [identifier, fn.bind(instance)]),
     optimisticResponses: optimisticResponses.map(([identifier, fn]) => [identifier, fn.bind(instance)]),

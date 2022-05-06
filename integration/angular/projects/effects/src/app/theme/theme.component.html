@@ -1,0 +1,5 @@
+<div class="container" *ngIf="themeQuery | async as themeResult">
+    <span>Current theme:</span>
+    <b>{{ themeResult.data?.theme?.displayName }}</b>
+    <button (click)="toggleTheme()">Toggle theme</button>
+</div>

@@ -43,14 +43,10 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
               const { previousData } = this;
               subscriber.next({ ...currentResult, previousData });
               this.previousData = currentResult.data ?? previousData;
-              const lastError = observableQuery.getLastError();
-              const lastResult = observableQuery.getLastResult();
+              const last = observableQuery['last']; // eslint-disable-line dot-notation
               observableQuery.resetLastResults();
               subscribeToObservableQuery(false);
-              Object.assign(observableQuery, {
-                lastError,
-                lastResult
-              });
+              observableQuery['last'] = last; // eslint-disable-line dot-notation
             }
           },
           complete: () => {

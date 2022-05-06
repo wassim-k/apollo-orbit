@@ -10,9 +10,7 @@ config:
   mutationSuffix: Mutation
   subscriptionSuffix: Subscription
   dedupeOperationSuffix: true
-  preResolveTypes: true
   inlineFragmentTypes: combine
-  maybeValue: T | null
   avoidOptionals:
     field: true
 generates:

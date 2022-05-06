@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
-import { ɵManagerFactory as ManagerFactory } from '@apollo-orbit/angular/core';
-import { addStateToCache, addStateToClient, MutationManager, StateDefinition } from '@apollo-orbit/core';
+import { addStateToCache, addStateToClient, MutationManager, partition, StateDefinition } from '@apollo-orbit/core';
 import { ApolloClient, ApolloError } from '@apollo/client/core';
 import { GraphQLError } from 'graphql';
-import { transformNgResolver as transformResolver } from './resolver';
-import { partition } from './utils/array';
 
 const apolloErrorFactory = (graphQLErrors: ReadonlyArray<GraphQLError>): ApolloError => new ApolloError({ graphQLErrors });
 
@@ -16,7 +13,7 @@ interface Clients {
 }
 
 @Injectable()
-export class StateManager implements ManagerFactory {
+export class StateManager {
   private readonly clients: Clients = {};
   private initiated: ReadonlyArray<StateDefinition> = [];
   private pending: ReadonlyArray<StateDefinition> = [];
@@ -59,7 +56,7 @@ export class StateManager implements ManagerFactory {
 
   private addState(client: ApolloClient<any>, manager: MutationManager, ...states: Array<StateDefinition>): void {
     this.initiated = [...this.initiated, ...states];
-    const addToClient = addStateToClient(client, { transformResolver });
+    const addToClient = addStateToClient(client);
     const addToCache = addStateToCache(client.cache);
     states.forEach(state => {
       addToClient(state);
