@@ -1,6 +1,5 @@
 import { DocumentNode, OperationDefinitionNode } from 'graphql';
-import { MutationIdentifier } from '../state';
-import { PureMutationOptions, Type } from '../types';
+import { MutationIdentifier, PureMutationOptions, Type } from '../types';
 
 const isDocument = (doc: any): doc is DocumentNode => doc?.kind === 'Document';
 const isMutationDocument = (def: any): def is OperationDefinitionNode => def.kind === 'OperationDefinition' && def.operation === 'mutation';

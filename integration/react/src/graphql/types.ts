@@ -1,6 +1,6 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
-export type InputMaybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -46,7 +46,6 @@ export type Mutation = {
   __typename?: 'Mutation';
   addAuthor: Maybe<Author>;
   addBook: Maybe<Book>;
-  refreshUserToken: Scalars['Int'];
 };
 
 
@@ -66,7 +65,7 @@ export type Query = {
   book: Book;
   books: Array<Book>;
   lazy: Scalars['String'];
-  session: Session;
+  theme: Theme;
 };
 
 
@@ -86,12 +85,6 @@ export type QueryBooksArgs = {
   name?: InputMaybe<Scalars['String']>;
 };
 
-export type Session = {
-  __typename?: 'Session';
-  currentUserToken: Scalars['Int'];
-  refreshes: Scalars['Int'];
-};
-
 export type Subscription = {
   __typename?: 'Subscription';
   newAuthor: Author;
@@ -102,3 +95,15 @@ export type Subscription = {
 export type SubscriptionNewBookArgs = {
   authorId?: InputMaybe<Scalars['ID']>;
 };
+
+export type Theme = {
+  __typename?: 'Theme';
+  displayName: Scalars['String'];
+  name: ThemeName;
+  toggles: Scalars['Int'];
+};
+
+export enum ThemeName {
+  DarkTheme = 'DARK_THEME',
+  LightTheme = 'LIGHT_THEME'
+}

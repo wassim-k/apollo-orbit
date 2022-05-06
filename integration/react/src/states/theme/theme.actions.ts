@@ -1,0 +1,11 @@
+import { ThemeName } from '../../graphql/types';
+
+export interface ToggleThemeAction {
+    type: 'TOGGLE_THEME';
+    force?: ThemeName;
+}
+
+export interface ToggleThemeSuccessAction {
+    type: 'TOGGLE_THEME_SUCCESS';
+    toggles: number;
+}

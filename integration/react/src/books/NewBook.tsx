@@ -12,11 +12,11 @@ export function NewBook({
   const [getAuthors, { data: authorsData, loading: loadingAuthors }] = useLazyQuery(AuthorsDocument);
   const [name, setName] = useState<string | undefined>();
   const [genre, setGenre] = useState<string | undefined>();
-  const [authorId, setAutohrId] = useState<string | undefined>();
+  const [authorId, setAuthorId] = useState<string | undefined>();
 
   useEffect(() => {
     if (authorsData && authorsData.authors.length > 0 && !authorId) {
-      setAutohrId(authorsData.authors[0].id);
+      setAuthorId(authorsData.authors[0].id);
     }
   }, [authorId, authorsData]);
 
@@ -47,7 +47,7 @@ export function NewBook({
         {loadingAuthors && <div>Loading authors...</div>}
         {authorsData && <div>
           <label>Author:&nbsp;</label>
-          <select onChange={event => setAutohrId(event.target.value)}>
+          <select onChange={event => setAuthorId(event.target.value)}>
             {authorsData.authors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}
           </select>
         </div>}

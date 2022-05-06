@@ -1,11 +1,13 @@
 import { ApolloCache, ApolloError, FetchResult, MutationOptions, OperationVariables as Variables, QueryOptions, RefetchQueryDescriptor } from '@apollo/client/core';
 import { ExecutionResult, GraphQLError } from 'graphql';
-import { nameOfMutationDocument, ValuesByKey } from './internal';
+import { invokeActionFns, nameOfMutationDocument, ValuesByKey } from './internal';
 import { StateDefinition } from './state';
-import { Context, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { Action, ActionContextInternal, ActionFn, ActionInstance, Context, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { getActionType } from './utils/action';
 
 export class MutationManager {
   private readonly mutationUpdates = new ValuesByKey<[string, MutationUpdateFn<any, any>]>(([mutation]) => mutation);
+  private readonly actions = new ValuesByKey<[string, ActionFn<any>]>(([type]) => type);
   private readonly effects = new ValuesByKey<[string, EffectFn<any, any>]>(([mutation]) => mutation);
   private readonly refetchQueries = new ValuesByKey<[string, RefetchQueriesFn<any, any>]>(([mutation]) => mutation);
   private readonly optimisticResponses = new ValuesByKey<[string, OptimisticResponseFn<any, any>]>(([mutation]) => mutation);
@@ -14,11 +16,19 @@ export class MutationManager {
     private readonly apolloErrorFactory: (graphQLErrors: ReadonlyArray<GraphQLError>) => ApolloError
   ) { }
 
-  public addState(definition: Pick<StateDefinition, 'mutationUpdates' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
+  public addState(definition: Pick<StateDefinition, 'mutationUpdates' | 'actions' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
     this.mutationUpdates.add(...definition.mutationUpdates);
     this.refetchQueries.add(...definition.refetchQueries);
     this.optimisticResponses.add(...definition.optimisticResponses);
     this.effects.add(...definition.effects);
+    this.actions.add(...definition.actions);
+  }
+
+  public dispatch<TAction extends Action | ActionInstance>(context: ActionContextInternal, action: TAction): Promise<Array<DispatchResult>> {
+    const actionFn = this.actions.get(getActionType(action))?.map(([, fn]) => [fn, action] as const) ?? [];
+    return invokeActionFns(actionFn, context)
+      // let apollo client's deferred watchers notification execute first.
+      .then(results => new Promise(resolve => setTimeout(() => resolve(results), 0)));
   }
 
   public runEffects(

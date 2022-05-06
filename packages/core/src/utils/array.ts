@@ -1,5 +1,5 @@
-export function flatten<T>(array: Array<Array<T>>): Array<T> {
-  return ([] as Array<T>).concat(...array);
+export function flatten<T>(array: ReadonlyArray<ReadonlyArray<T>>): ReadonlyArray<T> {
+  return ([] as ReadonlyArray<T>).concat(...array);
 }
 
 export function partition<T>(array: ReadonlyArray<T>, condition: (item: T) => boolean): [Array<T>, Array<T>] {
