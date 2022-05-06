@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/angular",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Angular client for Apollo GraphQL",
   "license": "MIT",
   "sideEffects": false,
@@ -32,7 +32,7 @@
     "rxjs": ">=6.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.3.0",
+    "@apollo-orbit/core": "^0.4.0",
     "tslib": "^2.4.0"
   },
   "devDependencies": {

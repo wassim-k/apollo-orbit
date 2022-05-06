@@ -1,4 +1,5 @@
-export { EffectFn, FragmentMap, MutationIdentifier, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, RefetchQueryDescriptor, Resolver, ResolverContext, ResolverInfo, TypeField } from '@apollo-orbit/core';
+export { ActionFn, ActionType, EffectFn, FragmentMap, MutationIdentifier, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, RefetchQueryDescriptor, Resolver, ResolverContext, ResolverInfo, TypeField } from '@apollo-orbit/core';
+export * from './apollo';
 export * from './decorators';
 export { ApolloOrbitEffectsChildModule, ApolloOrbitEffectsModule, ApolloOrbitEffectsRootModule } from './module';
 export * from './types';

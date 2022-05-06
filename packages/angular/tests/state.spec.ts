@@ -1,6 +1,6 @@
 import { Component, Injectable } from '@angular/core';
-import { TestBed, waitForAsync } from '@angular/core/testing';
-import { Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
+import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
+import { Action, Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
 import { ResolverContext, ResolverInfo } from '@apollo-orbit/core';
 import { Observable, timer } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
@@ -9,6 +9,14 @@ import { AddBookMutation, AddBookMutationInfo, AuthorQuery, AuthorsQuery, BookIn
 
 const author1Id = shortid.generate();
 const author2Id = shortid.generate();
+
+class AddBookAction {
+  public static readonly type = '[Test] AddBook';
+
+  public constructor(
+    public readonly book: BookInput
+  ) { }
+}
 
 @Component({
   template: `
@@ -75,6 +83,15 @@ class TestState {
       cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
     }
   }
+
+  @Action(AddBookAction)
+  public addBookAction(action: AddBookAction, cache: ApolloCache<any>): void {
+    timer(10).pipe(
+      map(() => ({ __typename: 'Book' as const, id: shortid.generate(), ...action.book, genre: null }))
+    ).subscribe(book => {
+      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query);
+    });
+  }
 }
 
 function apolloOptionsFactory(): ApolloOptions {
@@ -126,6 +143,16 @@ describe('State', () => {
       apollo.mutate(new AddBookMutation({ book })).pipe(
         mergeMap(() => apollo.query(new BooksQuery()))
       ).subscribe(({ data }) => {
+        expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
+      });
+    }));
+
+    it('should call update method and update cache (action)', fakeAsync(() => {
+      const apollo = TestBed.inject(Apollo);
+      const book: BookInput = { name: 'New Book', authorId: author1Id };
+      apollo.dispatch(new AddBookAction(book));
+      tick(10);
+      apollo.query(new BooksQuery()).subscribe(({ data }) => {
         expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
       });
     }));

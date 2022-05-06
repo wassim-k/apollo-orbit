@@ -2,10 +2,11 @@ import { ApolloCache, ApolloError, FetchResult, MutationOptions, OperationVariab
 import { ExecutionResult, GraphQLError } from 'graphql';
 import { nameOfMutationDocument, ValuesByKey } from './internal';
 import { StateDefinition } from './state';
-import { Context, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { ActionFn, Context, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
 
 export class MutationManager {
   private readonly mutationUpdates = new ValuesByKey<[string, MutationUpdateFn<any, any>]>(([mutation]) => mutation);
+  private readonly actions = new ValuesByKey<[string, ActionFn<any>]>(([type]) => type);
   private readonly effects = new ValuesByKey<[string, EffectFn<any, any>]>(([mutation]) => mutation);
   private readonly refetchQueries = new ValuesByKey<[string, RefetchQueriesFn<any, any>]>(([mutation]) => mutation);
   private readonly optimisticResponses = new ValuesByKey<[string, OptimisticResponseFn<any, any>]>(([mutation]) => mutation);
@@ -14,11 +15,22 @@ export class MutationManager {
     private readonly apolloErrorFactory: (graphQLErrors: ReadonlyArray<GraphQLError>) => ApolloError
   ) { }
 
-  public addState(definition: Pick<StateDefinition, 'mutationUpdates' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
+  public addState(definition: Pick<StateDefinition, 'mutationUpdates' | 'actions' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
     this.mutationUpdates.add(...definition.mutationUpdates);
     this.refetchQueries.add(...definition.refetchQueries);
     this.optimisticResponses.add(...definition.optimisticResponses);
     this.effects.add(...definition.effects);
+    this.actions.add(...definition.actions);
+  }
+
+  public dispatch<T>(cache: ApolloCache<any>, action: T): Promise<void> {
+    const type = (action as any)?.constructor?.type ?? (action as any)?.type;
+    if (typeof type !== 'string') throw new Error('Failed to determine type of action');
+    const actions = this.actions.get(type);
+    if (actions) {
+      return Promise.all(actions.map(([, fn]) => fn(action, cache))).then(() => void 0);
+    }
+    return Promise.resolve();
   }
 
   public runEffects(

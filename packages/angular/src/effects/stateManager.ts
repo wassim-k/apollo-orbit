@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { ɵManagerFactory as ManagerFactory } from '@apollo-orbit/angular/core';
 import { addStateToCache, addStateToClient, MutationManager, StateDefinition } from '@apollo-orbit/core';
 import { ApolloClient, ApolloError } from '@apollo/client/core';
 import { GraphQLError } from 'graphql';
@@ -16,7 +15,7 @@ interface Clients {
 }
 
 @Injectable()
-export class StateManager implements ManagerFactory {
+export class StateManager {
   private readonly clients: Clients = {};
   private initiated: ReadonlyArray<StateDefinition> = [];
   private pending: ReadonlyArray<StateDefinition> = [];

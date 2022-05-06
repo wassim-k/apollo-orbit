@@ -1,4 +1,4 @@
-import { ApolloCache, ApolloClient, ApolloError, MutationOptions, NormalizedCacheObject, OperationVariables as Variables, PureQueryOptions, QueryOptions, StoreObject } from '@apollo/client/core';
+import { ApolloCache, ApolloClient, ApolloError, DocumentNode, MutationOptions, NormalizedCacheObject, OperationVariables as Variables, PureQueryOptions, QueryOptions, StoreObject, TypedDocumentNode } from '@apollo/client/core';
 import { FieldNode, FragmentDefinitionNode } from 'graphql';
 
 export interface Context extends Record<string, any> { }
@@ -17,11 +17,24 @@ export type MutationUpdateFn<T, V> = (cache: ApolloCache<any>, result: MutationI
 
 export type EffectFn<T, V> = (result: MutationInfo<T, V>) => void;
 
+export type ActionFn<T> = (action: T, cache: ApolloCache<any>) => void;
+
 export type RefetchQueriesFn<T, V> = (result: MutationInfo<T, V>) => RefetchQueryDescriptor;
 
 export type OptimisticResponseFn<T, V, C = Context> = (variables: V, context?: C) => T;
 
 export type TypeField = readonly [string, string];
+
+export type MutationIdentifier<T, V = Variables> = Type<PureMutationOptions<T, V>> | TypedDocumentNode<T, V> | DocumentNode | string;
+
+export interface ActionType<T> {
+  type: string;
+  new(...args: Array<any>): T;
+}
+
+export interface Action {
+  type: string;
+}
 
 export interface MutationInfo<T = any, V = Variables, C = Context> {
   variables?: V;

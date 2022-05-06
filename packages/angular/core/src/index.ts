@@ -1,10 +1,10 @@
 export { ApolloCache, ApolloClient, ApolloError, ApolloQueryResult, Cache, DataProxy, DocumentNode, FetchMoreOptions, FetchMoreQueryOptions, gql, InMemoryCache, MutationOptions, NetworkStatus, NormalizedCache, NormalizedCacheObject, OperationVariables as Variables, StoreObject, SubscriptionOptions, UpdateQueryOptions } from '@apollo/client/core';
 export { Apollo } from './apollo';
 export { ApolloClientFactory, APOLLO_CLIENT_FACTORY } from './clientFactory';
-export { ManagerFactory as ɵManagerFactory } from './managerFactory';
+export { ApolloInstanceFactory as ɵApolloInstanceFactory } from './instanceFactory';
 export { mapMutation, mapQuery, mapSubscription } from './map';
 export { apolloFactory, ApolloOrbitModule } from './module';
 export { QueryObservable } from './queryObservable';
 export { toMutationResult } from './result';
-export { APOLLO_MULTI_ROOT, APOLLO_OPTIONS, MANAGER_FACTORY as ɵMANAGER_FACTORY } from './tokens';
+export { APOLLO_INSTANCE_FACTORY as ɵAPOLLO_INSTANCE_FACTORY, APOLLO_MULTI_ROOT, APOLLO_OPTIONS } from './tokens';
 export * from './types';

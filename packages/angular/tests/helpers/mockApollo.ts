@@ -1,5 +1,6 @@
 import { Apollo } from '@apollo-orbit/angular';
-import { ApolloClient, ApolloLink, InMemoryCache } from '@apollo/client/core';
+import { MutationManager } from '@apollo-orbit/core';
+import { ApolloClient, ApolloError, ApolloLink, InMemoryCache } from '@apollo/client/core';
 import { MockedResponse, MockLink } from '@apollo/client/testing/core';
 
 export function mockApollo(mockedResponses: ReadonlyArray<MockedResponse>, addTypename?: boolean): Apollo;
@@ -9,5 +10,5 @@ export function mockApollo(mockedResponsesOrLink: ReadonlyArray<MockedResponse> 
     cache: new InMemoryCache(),
     link: mockedResponsesOrLink instanceof ApolloLink ? mockedResponsesOrLink : new MockLink(mockedResponsesOrLink, addTypename)
   });
-  return new Apollo(client);
+  return new Apollo(client, new MutationManager(graphQLErrors => new ApolloError({ graphQLErrors })));
 }

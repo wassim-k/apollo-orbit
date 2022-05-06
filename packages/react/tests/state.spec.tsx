@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { ApolloOrbitProvider, InMemoryCache, state, StateDefinition, useLazyQuery, useMutation, useQuery } from '@apollo-orbit/react';
+import { ApolloOrbitProvider, InMemoryCache, state, StateDefinition, useDispatch, useLazyQuery, useMutation, useQuery } from '@apollo-orbit/react';
 import { Mutation as MutationComponent } from '@apollo-orbit/react/components';
 import { ApolloClient, ApolloProvider, MutationFunction } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
@@ -12,6 +12,12 @@ import { AddAuthorDocument, AddAuthorMutationVariables, AddBookDocument, AuthorD
 const author1Id = `${Math.random()}`;
 const author2Id = `${Math.random()}`;
 let effectMock: jest.Mock;
+let actionMock: jest.Mock;
+
+interface AddAuthorAction {
+  type: 'add-author';
+  author: AddAuthorMutationVariables;
+}
 
 const createTestState = () => state(descriptor => descriptor
   .typePolicies({
@@ -65,6 +71,10 @@ const createTestState = () => state(descriptor => descriptor
   .effect(AddAuthorDocument, result => {
     effectMock(result);
   })
+
+  .action<AddAuthorAction>('add-author', action => {
+    actionMock(action);
+  })
 );
 
 const cache = new InMemoryCache();
@@ -73,6 +83,7 @@ describe('State', () => {
   let testState: StateDefinition;
   beforeEach(() => {
     effectMock = jest.fn();
+    actionMock = jest.fn();
     testState = createTestState();
   });
   afterEach(() => cache.restore({}));
@@ -163,6 +174,29 @@ describe('State', () => {
 
     expect(mutateSpy.mock.calls[0][0].variables).toEqual({ name: 'Brandon Sanderson', age: 44 });
     expect(mutateSpy.mock.calls[0][0].context).toEqual({ context: 'new', context2: '2' });
+  });
+
+  it('should call action', async () => {
+    const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
+    const action: AddAuthorAction = { type: 'add-author', author: variables };
+    const TestChild = () => {
+      const dispatch = useDispatch();
+      useEffect(() => void dispatch(action), []);
+      return null;
+    };
+
+    await act(async () => void render(
+      <MockedProvider cache={cache}>
+        <ApolloOrbitProvider states={[testState]}>
+          <TestChild />
+        </ApolloOrbitProvider>
+      </MockedProvider>
+    ));
+
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+    expect(actionMock).toBeCalledTimes(1);
+    expect(actionMock).toBeCalledWith(action);
   });
 
   it('should call effect with onError', async () => {
