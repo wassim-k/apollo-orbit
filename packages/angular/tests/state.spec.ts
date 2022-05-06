@@ -1,14 +1,22 @@
 import { Component, Injectable } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
-import { Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
+import { Action, ActionContext, Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
 import { ResolverContext, ResolverInfo } from '@apollo-orbit/core';
 import { Observable, timer } from 'rxjs';
-import { map, mergeMap } from 'rxjs/operators';
+import { map, mergeMap, tap } from 'rxjs/operators';
 import shortid from 'shortid';
 import { AddBookMutation, AddBookMutationInfo, AuthorQuery, AuthorsQuery, BookInput, BooksQuery, Mutation, MutationAddBookArgs, Query } from './graphql';
 
 const author1Id = shortid.generate();
 const author2Id = shortid.generate();
+
+class AddBook {
+  public static readonly type = '[Test] AddBook';
+
+  public constructor(
+    public readonly book: BookInput
+  ) { }
+}
 
 @Component({
   template: `
@@ -74,6 +82,14 @@ class TestState {
       const { addBook } = result.data;
       cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
     }
+  }
+
+  @Action(AddBook)
+  public addBookAction(action: AddBook, { cache }: ActionContext): Observable<any> {
+    return timer(10).pipe(
+      map(() => ({ __typename: 'Book' as const, id: shortid.generate(), ...action.book, genre: null })),
+      tap(book => cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query))
+    );
   }
 }
 

@@ -1,20 +1,13 @@
 import { Policies } from '@apollo/client/cache/inmemory/policies';
 import { ApolloCache, ApolloClient, Resolvers } from '@apollo/client/core';
 import { StateDefinition } from './state';
-import { TransformResolver } from './types';
 
-export const addStateToClient = (
-  client: ApolloClient<any>,
-  options?: {
-    transformResolver?: TransformResolver;
-  }
-) =>
+export const addStateToClient = (client: ApolloClient<any>) =>
   (definition: Pick<StateDefinition, 'resolvers' | 'typeDefs'>): void => {
-    const transform = options?.transformResolver ?? (fn => fn);
     client.addResolvers(definition.resolvers.reduce<Resolvers>(
       (resolvers, [[type, field], resolver]) => {
         resolvers[type] ??= {};
-        resolvers[type][field] = transform(resolver);
+        resolvers[type][field] = resolver;
         return resolvers;
       },
       {}));

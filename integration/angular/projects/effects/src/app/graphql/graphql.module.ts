@@ -6,7 +6,7 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
 import { AppConfig } from '../config';
-import { SessionState } from '../states/session/session.state';
+import { ThemeState } from '../states/theme/theme.state';
 
 export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, appConfig: AppConfig, cache: InMemoryCache): ApolloOptions {
   const httpLink = httpLinkFactory.create({ uri: appConfig.graphqlApiEndpoint });
@@ -29,7 +29,7 @@ export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, appConfig
 
 @NgModule({
   imports: [
-    ApolloOrbitModule.forRoot([SessionState]),
+    ApolloOrbitModule.forRoot([ThemeState]),
     HttpLinkModule
   ],
   providers: [

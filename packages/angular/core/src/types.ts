@@ -18,7 +18,7 @@ export interface QueryOptions<V = Variables, T = any> extends CoreQueryOptions<V
 
 export interface ExtraWatchQueryOptions {
   /**
-   * Emit the observable's current result (including emitInitial loading status) on subscription.
+   * Emit the observable's current result (including initial loading status) on subscription.
    * @default true
    */
   emitInitial?: boolean;
@@ -32,7 +32,7 @@ export interface ExtraWatchQueryOptions {
 
 export interface ExtraQueryOptions {
   /**
-   * Emit the observable's current result (including emitInitial loading status) on subscription.
+   * Emit the observable's current result (including initial loading status) on subscription.
    * @default false
    */
   emitInitial?: boolean;

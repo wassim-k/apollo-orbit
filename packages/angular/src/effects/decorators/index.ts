@@ -1,3 +1,4 @@
+export * from './action';
 export * from './effect';
 export * from './mutationUpdate';
 export * from './optimisticResponse';
