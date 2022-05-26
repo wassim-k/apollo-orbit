@@ -1,10 +1,15 @@
-import { Action } from '@apollo-orbit/core';
+import { Action, resolveDispatchResults } from '@apollo-orbit/core';
 import { useApolloClient } from '@apollo/client';
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { ApolloOrbitContext } from './context';
 
-export function useDispatch(): <TAction extends Action>(action: TAction) => void {
-  const client = useApolloClient();
+export function useDispatch(): <TActions extends Array<Action>>(...actions: TActions) => Promise<void> {
+  const { cache } = useApolloClient();
   const { mutationManager } = useContext(ApolloOrbitContext);
-  return mutationManager.dispatch.bind(mutationManager, client.cache);
+  const dispatch = useCallback(
+    (...actions: Array<Action>) => mutationManager.dispatch({ cache, dispatch }, ...actions).then(resolveDispatchResults),
+    [cache, mutationManager]
+  );
+
+  return dispatch;
 }

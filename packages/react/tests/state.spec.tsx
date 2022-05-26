@@ -13,10 +13,15 @@ const author1Id = `${Math.random()}`;
 const author2Id = `${Math.random()}`;
 let effectMock: jest.Mock;
 let actionMock: jest.Mock;
+let nestedActionMock: jest.Mock;
 
-interface AddAuthorAction {
+interface AddAuthor {
   type: 'add-author';
   author: AddAuthorMutationVariables;
+}
+
+interface AddAuthorSuccess {
+  type: 'add-author-success';
 }
 
 const createTestState = () => state(descriptor => descriptor
@@ -72,8 +77,13 @@ const createTestState = () => state(descriptor => descriptor
     effectMock(result);
   })
 
-  .action<AddAuthorAction>('add-author', action => {
+  .action<AddAuthor>('add-author', (action, { dispatch }) => {
     actionMock(action);
+    dispatch<[AddAuthorSuccess]>({ type: 'add-author-success' });
+  })
+
+  .action<AddAuthorSuccess>('add-author-success', action => {
+    nestedActionMock(action);
   })
 );
 
@@ -81,11 +91,14 @@ const cache = new InMemoryCache();
 
 describe('State', () => {
   let testState: StateDefinition;
+
   beforeEach(() => {
     effectMock = jest.fn();
     actionMock = jest.fn();
+    nestedActionMock = jest.fn();
     testState = createTestState();
   });
+
   afterEach(() => cache.restore({}));
 
   it('should run client resolvers', () => {
@@ -178,7 +191,7 @@ describe('State', () => {
 
   it('should call action', async () => {
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
-    const action: AddAuthorAction = { type: 'add-author', author: variables };
+    const action: AddAuthor = { type: 'add-author', author: variables };
     const TestChild = () => {
       const dispatch = useDispatch();
       useEffect(() => void dispatch(action), []);
@@ -197,6 +210,9 @@ describe('State', () => {
 
     expect(actionMock).toBeCalledTimes(1);
     expect(actionMock).toBeCalledWith(action);
+
+    expect(nestedActionMock).toBeCalledTimes(1);
+    expect(nestedActionMock).toBeCalledWith({ type: 'add-author-success' });
   });
 
   it('should call effect with onError', async () => {

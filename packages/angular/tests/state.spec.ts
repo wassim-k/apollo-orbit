@@ -1,16 +1,16 @@
 import { Component, Injectable } from '@angular/core';
-import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Action, Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
+import { TestBed, waitForAsync } from '@angular/core/testing';
+import { Action, ActionContext, Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
 import { ResolverContext, ResolverInfo } from '@apollo-orbit/core';
 import { Observable, timer } from 'rxjs';
-import { map, mergeMap } from 'rxjs/operators';
+import { map, mergeMap, tap } from 'rxjs/operators';
 import shortid from 'shortid';
 import { AddBookMutation, AddBookMutationInfo, AuthorQuery, AuthorsQuery, BookInput, BooksQuery, Mutation, MutationAddBookArgs, Query } from './graphql';
 
 const author1Id = shortid.generate();
 const author2Id = shortid.generate();
 
-class AddBookAction {
+class AddBook {
   public static readonly type = '[Test] AddBook';
 
   public constructor(
@@ -84,13 +84,12 @@ class TestState {
     }
   }
 
-  @Action(AddBookAction)
-  public addBookAction(action: AddBookAction, cache: ApolloCache<any>): void {
-    timer(10).pipe(
-      map(() => ({ __typename: 'Book' as const, id: shortid.generate(), ...action.book, genre: null }))
-    ).subscribe(book => {
-      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query);
-    });
+  @Action(AddBook)
+  public addBookAction(action: AddBook, { cache }: ActionContext): Observable<any> {
+    return timer(10).pipe(
+      map(() => ({ __typename: 'Book' as const, id: shortid.generate(), ...action.book, genre: null })),
+      tap(book => cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query))
+    );
   }
 }
 
@@ -143,16 +142,6 @@ describe('State', () => {
       apollo.mutate(new AddBookMutation({ book })).pipe(
         mergeMap(() => apollo.query(new BooksQuery()))
       ).subscribe(({ data }) => {
-        expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
-      });
-    }));
-
-    it('should call update method and update cache (action)', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
-      const book: BookInput = { name: 'New Book', authorId: author1Id };
-      apollo.dispatch(new AddBookAction(book));
-      tick(10);
-      apollo.query(new BooksQuery()).subscribe(({ data }) => {
         expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
       });
     }));

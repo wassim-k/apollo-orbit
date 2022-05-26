@@ -1,12 +1,11 @@
 import { ComponentRef, Inject, Injector, ModuleWithProviders, NgModule, ProviderToken } from '@angular/core';
 import { Apollo as ApolloBase, ApolloClient, DefaultOptions, ɵApolloInstanceFactory as ApolloInstanceFactory, ɵAPOLLO_INSTANCE_FACTORY as APOLLO_INSTANCE_FACTORY } from '@apollo-orbit/angular/core';
-import { StateDefinition, Type } from '@apollo-orbit/core';
+import { flatten, StateDefinition, Type } from '@apollo-orbit/core';
 import { Apollo } from './apollo';
 import { BootstrapModule, RootBootstrapListener, ROOT_BOOTSTRAP_LISTENER } from './bootstrap.module';
 import { bindStateDefinition, StateClass } from './decorators/internal';
 import { StateManager } from './stateManager';
 import { CHILD_STATES, ROOT_STATES } from './tokens';
-import { flatten } from './utils/array';
 
 @NgModule({
   imports: [BootstrapModule]

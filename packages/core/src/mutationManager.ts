@@ -1,8 +1,10 @@
 import { ApolloCache, ApolloError, FetchResult, MutationOptions, OperationVariables as Variables, QueryOptions, RefetchQueryDescriptor } from '@apollo/client/core';
 import { ExecutionResult, GraphQLError } from 'graphql';
-import { nameOfMutationDocument, ValuesByKey } from './internal';
+import { invokeActionFns, nameOfMutationDocument, ValuesByKey } from './internal';
 import { StateDefinition } from './state';
-import { ActionFn, Context, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { ActionContext, ActionFn, Context, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { getActionType } from './utils/action';
+import { flatten } from './utils/array';
 
 export class MutationManager {
   private readonly mutationUpdates = new ValuesByKey<[string, MutationUpdateFn<any, any>]>(([mutation]) => mutation);
@@ -23,14 +25,11 @@ export class MutationManager {
     this.actions.add(...definition.actions);
   }
 
-  public dispatch<T>(cache: ApolloCache<any>, action: T): Promise<void> {
-    const type = (action as any)?.constructor?.type ?? (action as any)?.type;
-    if (typeof type !== 'string') throw new Error('Failed to determine type of action');
-    const actions = this.actions.get(type);
-    if (actions) {
-      return Promise.all(actions.map(([, fn]) => fn(action, cache))).then(() => void 0);
-    }
-    return Promise.resolve();
+  public dispatch<TActions extends Array<any>>(context: ActionContext, ...actions: TActions): Promise<Array<DispatchResult>> {
+    const actionFns = flatten(actions.map(action => this.actions.get(getActionType(action))?.map(([, fn]) => [fn, action] as const) ?? []));
+    return invokeActionFns(actionFns, context)
+      // let apollo client's deferred watchers notification execute first.
+      .then(results => new Promise(resolve => setTimeout(() => resolve(results), 0)));
   }
 
   public runEffects(

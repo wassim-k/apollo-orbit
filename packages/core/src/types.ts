@@ -7,8 +7,6 @@ export type PureMutationOptions<T = any, V = Variables, C = Context> = Pick<Muta
 
 export type Type<T> = new (...args: Array<any>) => T;
 
-export type TransformResolver = (resolver: Resolver) => Resolver;
-
 export type RefetchQueryDescriptor = Array<string | PureQueryOptions | QueryOptions> | 'all' | 'active';
 
 export type Resolver = (rootValue: any, args: any, context: ResolverContext, info?: ResolverInfo) => any;
@@ -17,7 +15,7 @@ export type MutationUpdateFn<T, V> = (cache: ApolloCache<any>, result: MutationI
 
 export type EffectFn<T, V> = (result: MutationInfo<T, V>) => void;
 
-export type ActionFn<T> = (action: T, cache: ApolloCache<any>) => void;
+export type ActionFn<T> = (action: T, context: ActionContext) => void | Promise<any>;
 
 export type RefetchQueriesFn<T, V> = (result: MutationInfo<T, V>) => RefetchQueryDescriptor;
 
@@ -34,6 +32,17 @@ export interface ActionType<T> {
 
 export interface Action {
   type: string;
+}
+
+export interface ActionContext<TCacheShape = any> {
+  cache: ApolloCache<TCacheShape>;
+  dispatch<TActions extends Array<Action | any>>(...action: TActions): Promise<void>;
+}
+
+export interface DispatchResult {
+  status: 'success' | 'error';
+  action: any;
+  error?: any;
 }
 
 export interface MutationInfo<T = any, V = Variables, C = Context> {

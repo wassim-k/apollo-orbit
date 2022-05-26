@@ -1,15 +1,21 @@
 import { Apollo as ApolloBase, DefaultOptions, MutationResult } from '@apollo-orbit/angular/core';
-import { MutationManager } from '@apollo-orbit/core';
+import { ActionContext, MutationManager, resolveDispatchResults } from '@apollo-orbit/core';
 import { ApolloClient, MutationOptions, OperationVariables as Variables } from '@apollo/client/core';
-import { Observable } from 'rxjs';
+import { from, Observable, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { ActionExecution } from './actions';
 
 export class Apollo<TCacheShape = any> extends ApolloBase<TCacheShape> {
+    public readonly actions$: Observable<ActionExecution>;
+
     private readonly manager: MutationManager;
+    private readonly _actions$: Subject<ActionExecution>;
 
     public constructor(client: ApolloClient<TCacheShape>, manager: MutationManager, defaultOptions?: DefaultOptions) {
         super(client, defaultOptions);
         this.manager = manager;
+        this._actions$ = new Subject<ActionExecution>();
+        this.actions$ = this._actions$.asObservable();
     }
 
     public mutate<T = any, V = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {
@@ -20,7 +26,15 @@ export class Apollo<TCacheShape = any> extends ApolloBase<TCacheShape> {
         }));
     }
 
-    public dispatch<T>(action: T): Promise<void> {
-        return this.manager.dispatch(this.cache, action);
+    public dispatch<TActions extends Array<any>>(...actions: TActions): Observable<void> {
+        actions.forEach(action => this._actions$.next({ action, status: 'dispatched' }));
+        return from(
+            this.manager
+                .dispatch({ cache: this.cache, dispatch: this.dispatch.bind(this) as unknown as ActionContext['dispatch'] }, ...actions)
+                .then(results => {
+                    results.forEach(result => this._actions$.next(result));
+                    return resolveDispatchResults(results);
+                })
+        );
     }
 }
