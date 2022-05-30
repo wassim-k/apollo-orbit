@@ -1,3 +1,4 @@
+import { Action, ActionInstance } from '@apollo-orbit/core';
 import { ApolloCache } from '@apollo/client/core';
 import { Observable } from 'rxjs';
 
@@ -12,7 +13,7 @@ export interface OnInitState {
 
 export interface ActionContext<TCacheShape = any> {
   cache: ApolloCache<TCacheShape>;
-  dispatch<TActions extends Array<any>>(...action: TActions): Observable<void>;
+  dispatch<TActions extends Array<Action | ActionInstance>>(...action: TActions): Observable<void>;
 }
 
 export type ActionFn<T> = (action: T, context: ActionContext) => any | Promise<any> | Observable<any>;

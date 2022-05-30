@@ -30,13 +30,19 @@ export interface ActionType<T> {
   new(...args: Array<any>): T;
 }
 
+export type ActionInstance = InstanceType<ActionType<any>>;
+
 export interface Action {
   type: string;
 }
 
 export interface ActionContext<TCacheShape = any> {
   cache: ApolloCache<TCacheShape>;
-  dispatch<TActions extends Array<Action | any>>(...action: TActions): Promise<void>;
+  dispatch<TActions extends Array<Action | ActionInstance>>(...action: TActions): Promise<void>;
+}
+
+export interface ActionContextInternal<TCacheShape = any> extends ActionContext<TCacheShape> {
+  dispatch<TActions extends Array<Action | ActionInstance>>(...action: TActions): any;
 }
 
 export interface DispatchResult {

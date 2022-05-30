@@ -2,7 +2,7 @@ import { ApolloCache, ApolloError, FetchResult, MutationOptions, OperationVariab
 import { ExecutionResult, GraphQLError } from 'graphql';
 import { invokeActionFns, nameOfMutationDocument, ValuesByKey } from './internal';
 import { StateDefinition } from './state';
-import { ActionContext, ActionFn, Context, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { Action, ActionContextInternal, ActionFn, ActionInstance, Context, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
 import { getActionType } from './utils/action';
 import { flatten } from './utils/array';
 
@@ -25,7 +25,7 @@ export class MutationManager {
     this.actions.add(...definition.actions);
   }
 
-  public dispatch<TActions extends Array<any>>(context: ActionContext, ...actions: TActions): Promise<Array<DispatchResult>> {
+  public dispatch<TActions extends Array<Action | ActionInstance>>(context: ActionContextInternal, ...actions: TActions): Promise<Array<DispatchResult>> {
     const actionFns = flatten(actions.map(action => this.actions.get(getActionType(action))?.map(([, fn]) => [fn, action] as const) ?? []));
     return invokeActionFns(actionFns, context)
       // let apollo client's deferred watchers notification execute first.

@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { ActionContext, ActionFn } from '../types';
 import { updateStateDefinition } from './internal';
 
-export function Action<T = any>(action: ActionType<T>) {
+export function Action<T = any>(action: ActionType<T> | string) {
   return function (target: any, name: string, _descriptor: TypedPropertyDescriptor<ActionFn<T>>): void {
     updateStateDefinition(
       target.constructor,
