@@ -1,4 +1,4 @@
-export { ApolloCache, ApolloClient, ApolloError, ApolloQueryResult, Cache, DataProxy, DocumentNode, FetchMoreOptions, FetchMoreQueryOptions, gql, InMemoryCache, MutationOptions, NetworkStatus, NormalizedCache, NormalizedCacheObject, OperationVariables as Variables, StoreObject, SubscriptionOptions, UpdateQueryOptions } from '@apollo/client/core';
+export { ApolloCache, ApolloClient, ApolloError, ApolloQueryResult, Cache, DataProxy, DocumentNode, FetchMoreOptions, FetchMoreQueryOptions, gql, InMemoryCache, MutationOptions, NetworkStatus, NormalizedCache, NormalizedCacheObject, OperationVariables as Variables, StoreObject, SubscriptionOptions, TypedDocumentNode, UpdateQueryOptions } from '@apollo/client/core';
 export { Apollo } from './apollo';
 export { ApolloClientFactory, APOLLO_CLIENT_FACTORY } from './clientFactory';
 export { ApolloInstanceFactory as ɵApolloInstanceFactory } from './instanceFactory';

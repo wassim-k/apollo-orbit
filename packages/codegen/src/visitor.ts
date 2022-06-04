@@ -1,22 +1,18 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { Types } from '@graphql-codegen/plugin-helpers';
-import { ClientSideBaseVisitor, DocumentMode, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
+import { ClientSideBaseVisitor, DocumentMode, getConfigValue, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
 import autoBind from 'auto-bind';
-import { GraphQLSchema, Kind, OperationDefinitionNode } from 'graphql';
+import { FragmentDefinitionNode, GraphQLSchema, Kind, OperationDefinitionNode } from 'graphql';
 import { ApolloOrbitPluginConfig, ApolloOrbitRawPluginConfig } from './config';
+import { Importer } from './importer';
 
 export type OperationType = 'Query' | 'Mutation' | 'Subscription';
-
-const alphabetically = (a: string, b: string): number => a.localeCompare(b);
 
 export abstract class ApolloOrbitBaseVisitor<
   TRawConfig extends ApolloOrbitRawPluginConfig = ApolloOrbitRawPluginConfig,
   TPluginConfig extends ApolloOrbitPluginConfig = ApolloOrbitPluginConfig
   > extends ClientSideBaseVisitor<TRawConfig, TPluginConfig> {
-  private readonly imports: { [from: string]: Set<string> | undefined } = {};
-
-  protected abstract readonly supportsMutationInfo: boolean;
-  protected abstract readonly importPath: string;
+  private readonly importer = new Importer();
 
   public constructor(
     schema: GraphQLSchema,
@@ -25,24 +21,35 @@ export abstract class ApolloOrbitBaseVisitor<
     additionalConfig: TPluginConfig,
     documents?: Array<Types.DocumentFile>
   ) {
-    super(schema, fragments, rawConfig, additionalConfig, documents);
-    autoBind(this);
-  }
+    super(
+      schema,
+      fragments,
+      {
+        gqlImport: `${additionalConfig.importPath}#gql`,
+        documentNodeImport: `${additionalConfig.importPath}#TypedDocumentNode`,
+        ...rawConfig
+      },
+      {
+        ...additionalConfig,
+        querySuffix: getConfigValue(rawConfig.querySuffix, 'Options'),
+        mutationSuffix: getConfigValue(rawConfig.mutationSuffix, 'Options'),
+        subscriptionSuffix: getConfigValue(rawConfig.subscriptionSuffix, 'Options'),
+        mutationInfo: getConfigValue(rawConfig.mutationInfo, true)
+      },
+      documents);
 
-  private get defaultImportFrom(): string {
-    return `@apollo-orbit/${this.importPath}`;
+    autoBind(this);
+
+    if (this.config.documentMode === undefined || this.config.documentMode === DocumentMode.graphQLTag) {
+      const documentNodeImport = this._parseImport(this.config.documentNodeImport || 'graphql#DocumentNode');
+      this.registerImport(documentNodeImport.propName, documentNodeImport.moduleName as string, 'DocumentNode');
+    }
   }
 
   public getImports(): Array<string> {
     return [
       ...super.getImports(),
-      ...Object
-        .keys(this.imports)
-        .sort(alphabetically)
-        .map(from => {
-          const imports = [...this.imports[from]?.values() ?? []];
-          return `import { ${imports.sort(alphabetically).join(', ')} } from '${from}';`;
-        })
+      ...this.importer.getImports()
     ];
   }
 
@@ -53,7 +60,6 @@ export abstract class ApolloOrbitBaseVisitor<
     operationResultType: string,
     operationVariablesTypes: string
   ): string {
-    const { mutationInfo } = this.config;
     const className = this.convertName(node, { suffix: this.operationSuffix(operationType) });
     const documentNodeVariable = this.getDocumentNodeVariable(node, documentVariableName);
     const hasContext = operationType !== 'Subscription';
@@ -84,7 +90,7 @@ export class ${className} extends ${baseClassName}<${operationResultType}, ${ope
 }`);
     }
 
-    if (this.supportsMutationInfo && mutationInfo === true && operationType === 'Mutation') {
+    if (this.config.supportsMutationInfo && this.config.mutationInfo === true && operationType === 'Mutation') {
       content.push('');
       content.push(this.getMutationInfoExport(node, operationType, operationResultType, operationVariablesTypes));
     }
@@ -93,9 +99,20 @@ export class ${className} extends ${baseClassName}<${operationResultType}, ${ope
     return content.join('\n');
   }
 
-  protected registerImport(identifier: string, from: string = this.defaultImportFrom): void {
-    this.imports[from] = this.imports[from] ?? new Set<string>();
-    this.imports[from]?.add(identifier);
+  protected getDocumentNodeSignature(resultType: string, variablesTypes: string, node: FragmentDefinitionNode | OperationDefinitionNode): string {
+    if (
+      this.config.documentMode === DocumentMode.documentNode ||
+      this.config.documentMode === DocumentMode.documentNodeImportFragments ||
+      this.config.documentMode === DocumentMode.graphQLTag
+    ) {
+      return ` as DocumentNode<${resultType}, ${variablesTypes}>`;
+    }
+
+    return super.getDocumentNodeSignature(resultType, variablesTypes, node);
+  }
+
+  protected registerImport(identifier: string, from?: string, as?: string): void {
+    this.importer.registerImport(identifier, from ?? this.config.importPath, as);
   }
 
   private hasVariables(node: OperationDefinitionNode): boolean {
@@ -125,6 +142,6 @@ export class ${className} extends ${baseClassName}<${operationResultType}, ${ope
       Mutation: mutationSuffix,
       Subscription: subscriptionSuffix
     };
-    return suffixByOperation[operationType] ?? 'Options';
+    return suffixByOperation[operationType];
   }
 }
