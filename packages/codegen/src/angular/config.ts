@@ -1,7 +1,6 @@
 import { ApolloOrbitPluginConfig, ApolloOrbitRawPluginConfig } from '../config';
 
 export interface ApolloOrbitAngularConfig extends ApolloOrbitPluginConfig {
-    importFromCore?: boolean;
     queryObservable?: boolean;
 }
 
