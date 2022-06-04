@@ -1,12 +1,12 @@
 import { ClientSideBasePluginConfig, RawClientSideBasePluginConfig } from '@graphql-codegen/visitor-plugin-common';
 
-export type ApolloOrbitFramework = 'angular' | 'angular/core' | 'react';
-
 export interface ApolloOrbitPluginConfig extends ClientSideBasePluginConfig {
-  querySuffix?: string;
-  mutationSuffix?: string;
-  subscriptionSuffix?: string;
+  querySuffix: string;
+  mutationSuffix: string;
+  subscriptionSuffix: string;
   mutationInfo?: boolean;
+  importPath: string;
+  supportsMutationInfo?: boolean;
 }
 
 export interface ApolloOrbitRawPluginConfig extends RawClientSideBasePluginConfig {
