@@ -33,6 +33,7 @@
             "optimization": false,
             "namedChunks": true,
             "allowedCommonJsDependencies": [
+              "decorator-cache-getter",
               "graphql-tag",
               "subscriptions-transport-ws"
             ]
@@ -109,7 +110,9 @@
               "sourceMap": false,
               "optimization": true
             },
-            "development": {}
+            "development": {
+              "vendorChunk": true
+            }
           },
           "defaultConfiguration": "development"
         },
@@ -176,6 +179,7 @@
             "optimization": false,
             "namedChunks": true,
             "allowedCommonJsDependencies": [
+              "decorator-cache-getter",
               "graphql-tag",
               "subscriptions-transport-ws"
             ]
@@ -233,9 +237,9 @@
       }
     }
   },
-  "defaultProject": "core",
   "cli": {
-    "packageManager": "yarn"
+    "packageManager": "yarn",
+    "analytics": false
   },
   "schematics": {
     "@schematics/angular:component": {

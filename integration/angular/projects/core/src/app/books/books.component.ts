@@ -13,7 +13,7 @@ import { BooksQuery } from './gql/book';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BooksComponent implements OnInit {
-  public readonly nameControl = new FormControl();
+  public readonly nameControl = new FormControl<string | null>(null);
   public readonly booksQuery = this.apollo.watchQuery({ ...new BooksQuery(), notifyOnNetworkStatusChange: true });
   public isAddingBook = false;
   public isAddingAuthor = false;
@@ -26,7 +26,7 @@ export class BooksComponent implements OnInit {
     this.nameControl.valueChanges.pipe(
       debounceTime(500),
       untilDestroyed(this)
-    ).subscribe(name => this.booksQuery.refetch({ name: name.length > 0 ? name : undefined }));
+    ).subscribe(name => this.booksQuery.refetch({ name: name !== null && name.length > 0 ? name : undefined }));
   }
 
   public refetch(): void {

@@ -16,13 +16,12 @@
       "name": "Test File",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
-        "--testMatch=\"**/${relativeFile}\"",
-        "--runInBand",
+        "--test-match=\"**/${relativeFile}\"",
+        "--run-in-band",
         "--no-cache"
       ],
       "console": "externalTerminal",
       "internalConsoleOptions": "neverOpen",
-      "disableOptimisticBPs": true,
       "windows": {
         "program": "${workspaceFolder}/node_modules/jest/bin/jest",
       }

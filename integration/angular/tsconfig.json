@@ -18,7 +18,8 @@
     "noFallthroughCasesInSwitch": true,
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
-    "target": "es2015",
+    "target": "ES2022",
+    "useDefineForClassFields": false,
     "lib": [
       "es2018",
       "dom"

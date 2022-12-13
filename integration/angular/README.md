@@ -21,7 +21,10 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 
 ## Run integration projects
 
-First run integration server: `yarn workspace @integration/server run start`
+First run integration server
+```bash
+yarn workspace @integration/server run start
+```
 
 ### Core
 ```bash

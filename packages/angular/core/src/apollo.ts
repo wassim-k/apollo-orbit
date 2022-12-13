@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+import { Injectable } from '@angular/core';
 import { ApolloCache, ApolloClient, ApolloError, MutationOptions, NetworkStatus, OperationVariables as Variables, SubscriptionOptions } from '@apollo/client/core';
 import { defer, Observable, of } from 'rxjs';
 import { catchError, map, startWith } from 'rxjs/operators';
@@ -7,6 +8,7 @@ import { toMutationResult, toQueryResult, toSubscriptionResult } from './result'
 import type { DefaultOptions, MutationResult, QueryOptions, QueryResult, SubscriptionResult, WatchQueryOptions } from './types';
 import { fromZenObservable } from './utils';
 
+@Injectable()
 export class Apollo<TCacheShape = any> {
   /**
    * Instance of ApolloClient
@@ -21,10 +23,10 @@ export class Apollo<TCacheShape = any> {
   }
 
   public query<T = any, V = Variables>(options: QueryOptions<V, T>): Observable<QueryResult<T>> {
-    const { emitInitial = false, throwError = true } = { ...this.defaultOptions?.query, ...options };
+    const { notifyOnLoading = false, throwError = true } = { ...this.defaultOptions?.query, ...options };
     return defer(() => this.client.query<T, V>(options)).pipe(
       map(result => toQueryResult(result)),
-      (source => emitInitial
+      (source => notifyOnLoading
         ? source.pipe(startWith<QueryResult<T>>({ loading: true, networkStatus: NetworkStatus.loading }))
         : source),
       (source => !throwError
@@ -34,8 +36,8 @@ export class Apollo<TCacheShape = any> {
   }
 
   public watchQuery<T = any, V = Variables>(options: WatchQueryOptions<V, T>): QueryObservable<T, V> {
-    const { emitInitial, throwError } = { ...this.defaultOptions?.watchQuery, ...options };
-    return new QueryObservable(this.client.watchQuery<T, V>(options), { emitInitial, throwError });
+    const { notifyOnLoading, throwError } = { ...this.defaultOptions?.watchQuery, ...options };
+    return new QueryObservable(this.client.watchQuery<T, V>(options), { notifyOnLoading, throwError });
   }
 
   public mutate<T = any, V = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {
@@ -45,7 +47,7 @@ export class Apollo<TCacheShape = any> {
   }
 
   public subscribe<T = any, V = Variables>(options: SubscriptionOptions<V, T>): Observable<SubscriptionResult<T>> {
-    return fromZenObservable(this.client.subscribe<T, V>(options)).pipe(
+    return defer(() => fromZenObservable(this.client.subscribe<T, V>(options))).pipe(
       map(result => toSubscriptionResult(result))
     );
   }

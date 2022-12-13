@@ -18,10 +18,10 @@ export interface QueryOptions<V = Variables, T = any> extends CoreQueryOptions<V
 
 export interface ExtraWatchQueryOptions {
   /**
-   * Emit the observable's current result (including initial loading status) on subscription.
+   * Whether or not observers should receive initial network loading status when subscribing to this observable.
    * @default true
    */
-  emitInitial?: boolean;
+  notifyOnLoading?: boolean;
 
   /**
    * Throw errors on the observable's error stream instead of assigning them to the error property of the result object.
@@ -32,10 +32,10 @@ export interface ExtraWatchQueryOptions {
 
 export interface ExtraQueryOptions {
   /**
-   * Emit the observable's current result (including initial loading status) on subscription.
+   * Whether or not observers should receive initial network loading status when subscribing to this observable.
    * @default false
    */
-  emitInitial?: boolean;
+  notifyOnLoading?: boolean;
 
   /**
    * Throw errors on the observable's error stream instead of assigning them to the error property of the result object.
@@ -48,7 +48,7 @@ export interface SubscribeToMoreOptions<
   TData = any,
   TSubscriptionVariables = Variables,
   TSubscriptionData = TData
-  > extends Omit<CoreSubscribeToMoreOptions<TData, TSubscriptionVariables, TSubscriptionData>, 'document'> {
+> extends Omit<CoreSubscribeToMoreOptions<TData, TSubscriptionVariables, TSubscriptionData>, 'document'> {
   query: DocumentNode | TypedDocumentNode<TSubscriptionData, TSubscriptionVariables>;
 }
 
