@@ -9,7 +9,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
 
   public constructor(
     private readonly observableQuery: ObservableQuery<TData, TVariables>,
-    { emitInitial = true, throwError = false }: ExtraWatchQueryOptions
+    { notifyOnLoading = true, throwError = false }: ExtraWatchQueryOptions
   ) {
     super(subscriber => {
       let subscription: Subscription | undefined;
@@ -56,11 +56,9 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
         });
       };
 
-      subscribeToObservableQuery(emitInitial);
+      subscribeToObservableQuery(notifyOnLoading);
 
-      return () => {
-        subscription?.unsubscribe();
-      };
+      return () => subscription?.unsubscribe();
     });
   }
 
@@ -88,7 +86,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
     return toQueryResult(this.observableQuery.getCurrentResult());
   }
 
-  public isDifferentFromLastResult(newResult: ApolloQueryResult<TData>): boolean {
+  public isDifferentFromLastResult(newResult: ApolloQueryResult<TData>): boolean | undefined {
     return this.observableQuery.isDifferentFromLastResult(newResult);
   }
 

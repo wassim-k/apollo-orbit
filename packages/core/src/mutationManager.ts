@@ -31,9 +31,9 @@ export class MutationManager {
       .then(results => new Promise(resolve => setTimeout(() => resolve(results), 0)));
   }
 
-  public runEffects(
+  public runEffects<TData>(
     options: Pick<MutationOptions<any, any>, 'mutation' | 'variables' | 'context'>,
-    result: FetchResult | undefined,
+    result: FetchResult<TData> | undefined,
     error: ApolloError | undefined
   ): void {
     const { mutation } = options;
@@ -112,11 +112,12 @@ export class MutationManager {
 
   private toMutationInfo<T, V = Variables, C = Context>(
     options: Pick<MutationOptions<T, V>, 'variables' | 'context'>,
-    fetchResult: FetchResult<T> | undefined,
+    fetchResult: FetchResult<T> = {},
     apolloError?: ApolloError
   ): MutationInfo<T, V, C> {
     const { variables, context: optionsContext } = options;
-    const { data, errors, context: resultContext, extensions } = fetchResult ?? {};
+    const { data, errors, extensions } = fetchResult;
+    const resultContext = 'context' in fetchResult ? fetchResult.context : {};
     return {
       data: data as T | undefined,
       error: errors && errors.length > 0 ? this.apolloErrorFactory(errors) : apolloError,

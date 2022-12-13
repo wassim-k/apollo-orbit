@@ -1,7 +1,6 @@
 import { Component, Injectable } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
-import { Action, ActionContext, Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, State } from '@apollo-orbit/angular';
-import { ResolverContext, ResolverInfo } from '@apollo-orbit/core';
+import { Action, ActionContext, Apollo, ApolloCache, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, MutationUpdate, Resolve, ResolverContext, ResolverInfo, State } from '@apollo-orbit/angular';
 import { Observable, timer } from 'rxjs';
 import { map, mergeMap, tap } from 'rxjs/operators';
 import shortid from 'shortid';
