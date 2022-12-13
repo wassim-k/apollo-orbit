@@ -10,7 +10,9 @@ export function toQueryResult<T>({ errors, ...result }: ApolloQueryResult<T>): Q
 }
 
 export function toMutationResult<T, C>(fetchResult: FetchResult<T, C> | undefined, apolloError?: ApolloError): MutationResult<T, C> {
-  const { errors, data, context, extensions } = fetchResult ?? {};
+  fetchResult ??= {};
+  const { errors, data, extensions } = fetchResult;
+  const context = 'context' in fetchResult ? fetchResult.context : undefined;
   return {
     data: data ?? undefined,
     error: getApolloError(errors, apolloError),

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular';
 import { cache } from 'decorator-cache-getter';
 import { BehaviorSubject } from 'rxjs';
@@ -23,16 +23,16 @@ export class NewAuthorComponent {
   ) { }
 
   @cache
-  public get form(): FormGroup {
+  public get form() {
     return this.fb.group({
-      name: [undefined, Validators.required],
-      age: [undefined]
+      name: this.fb.control<string | null>(null, Validators.required),
+      age: this.fb.control<number | null>(null)
     });
   }
 
   public submit(): void {
     if (!this.form.valid) return;
-    const author: AuthorInput = this.form.value;
+    const author = this.form.value as AuthorInput;
     this.error$.next(undefined);
     this.apollo.mutate(new AddAuthorMutation({ author })).subscribe({
       error: (error: Error) => this.error$.next(error)

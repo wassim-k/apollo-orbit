@@ -13,10 +13,10 @@
     "apollo-server": "^3.6.7",
     "shortid": "^2.2.16",
     "graphql-subscriptions": "^2.0.0",
-    "graphql-ws": "^5.8.1"
+    "graphql-ws": "^5.11.2"
   },
   "devDependencies": {
     "@types/shortid": "^0.0.29",
-    "nodemon": "^2.0.16"
+    "nodemon": "^2.0.20"
   }
 }

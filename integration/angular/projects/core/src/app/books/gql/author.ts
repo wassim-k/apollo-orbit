@@ -1,8 +1,8 @@
 /* eslint-disable */
 import * as _ from '../../graphql/types';
 
-import gql from 'graphql-tag';
-import { Context, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable } from '@apollo-orbit/angular/core';
+import { gql } from '@apollo-orbit/angular/core';
+import { Context, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable, TypedDocumentNode as DocumentNode } from '@apollo-orbit/angular/core';
 export type AuthorFragment = { __typename?: 'Author', id: string, name: string, age: number | null };
 
 export type AuthorsQueryVariables = _.Exact<{ [key: string]: never; }>;
@@ -37,14 +37,14 @@ export const AuthorFragmentDoc = gql`
   name
   age
 }
-    `;
+    ` as DocumentNode<AuthorFragment, unknown>;
 export const AuthorsDocument = gql`
     query Authors {
   authors {
     ...AuthorFragment
   }
 }
-    ${AuthorFragmentDoc}`;
+    ${AuthorFragmentDoc}` as DocumentNode<AuthorsQueryData, AuthorsQueryVariables>;
 
 export class AuthorsQuery extends PureQueryOptions<AuthorsQueryData, AuthorsQueryVariables> {
   public constructor(context?: Context) {
@@ -60,7 +60,7 @@ export const AddAuthorDocument = gql`
     ...AuthorFragment
   }
 }
-    ${AuthorFragmentDoc}`;
+    ${AuthorFragmentDoc}` as DocumentNode<AddAuthorMutationData, AddAuthorMutationVariables>;
 
 export class AddAuthorMutation extends PureMutationOptions<AddAuthorMutationData, AddAuthorMutationVariables> {
   public constructor(variables: AddAuthorMutationVariables, context?: Context) {
@@ -74,7 +74,7 @@ export const NewAuthorDocument = gql`
     ...AuthorFragment
   }
 }
-    ${AuthorFragmentDoc}`;
+    ${AuthorFragmentDoc}` as DocumentNode<NewAuthorSubscriptionData, NewAuthorSubscriptionVariables>;
 
 export class NewAuthorSubscription extends PureSubscriptionOptions<NewAuthorSubscriptionData, NewAuthorSubscriptionVariables> {
   public constructor() {

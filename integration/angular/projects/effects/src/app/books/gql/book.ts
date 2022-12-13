@@ -1,8 +1,8 @@
 /* eslint-disable */
 import * as _ from '../../graphql/types';
 
-import gql from 'graphql-tag';
-import { Context, MutationInfo, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable } from '@apollo-orbit/angular';
+import { gql } from '@apollo-orbit/angular';
+import { Context, MutationInfo, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable, TypedDocumentNode as DocumentNode } from '@apollo-orbit/angular';
 export type BookFragment = { __typename?: 'Book', id: string, name: string, genre: string | null, displayName: string };
 
 export type BooksQueryVariables = _.Exact<{
@@ -62,14 +62,14 @@ export const BookFragmentDoc = gql`
   genre
   displayName @client
 }
-    `;
+    ` as DocumentNode<BookFragment, unknown>;
 export const BooksDocument = gql`
     query Books($name: String, $genre: String, $authorId: ID) {
   books(name: $name, genre: $genre, authorId: $authorId) {
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}`;
+    ${BookFragmentDoc}` as DocumentNode<BooksQueryData, BooksQueryVariables>;
 
 export class BooksQuery extends PureQueryOptions<BooksQueryData, BooksQueryVariables> {
   public constructor(variables?: BooksQueryVariables, context?: Context) {
@@ -85,7 +85,7 @@ export const BookDocument = gql`
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}`;
+    ${BookFragmentDoc}` as DocumentNode<BookQueryData, BookQueryVariables>;
 
 export class BookQuery extends PureQueryOptions<BookQueryData, BookQueryVariables> {
   public constructor(variables: BookQueryVariables, context?: Context) {
@@ -101,7 +101,7 @@ export const AddBookDocument = gql`
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}`;
+    ${BookFragmentDoc}` as DocumentNode<AddBookMutationData, AddBookMutationVariables>;
 
 export class AddBookMutation extends PureMutationOptions<AddBookMutationData, AddBookMutationVariables> {
   public constructor(variables: AddBookMutationVariables, context?: Context) {
@@ -117,7 +117,7 @@ export const NewBookDocument = gql`
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}`;
+    ${BookFragmentDoc}` as DocumentNode<NewBookSubscriptionData, NewBookSubscriptionVariables>;
 
 export class NewBookSubscription extends PureSubscriptionOptions<NewBookSubscriptionData, NewBookSubscriptionVariables> {
   public constructor() {
@@ -131,7 +131,7 @@ export const NewBookByAuthorDocument = gql`
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}`;
+    ${BookFragmentDoc}` as DocumentNode<NewBookByAuthorSubscriptionData, NewBookByAuthorSubscriptionVariables>;
 
 export class NewBookByAuthorSubscription extends PureSubscriptionOptions<NewBookByAuthorSubscriptionData, NewBookByAuthorSubscriptionVariables> {
   public constructor(variables?: NewBookByAuthorSubscriptionVariables) {

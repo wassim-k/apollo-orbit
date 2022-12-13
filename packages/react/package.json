@@ -35,10 +35,10 @@
     "react": ">=16.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.6.0",
-    "tslib": "^2.4.0"
+    "@apollo-orbit/core": "^0.7.0",
+    "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@testing-library/react": "^13.2.0"
+    "@testing-library/react": "^13.4.0"
   }
 }

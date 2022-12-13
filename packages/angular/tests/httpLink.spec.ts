@@ -47,7 +47,7 @@ describe('HttpLink', () => {
     const req = httpTestingController.expectOne(uri);
     expect(req.request).toMatchObject({
       method: 'POST',
-      body: '{"operationName":"Books","variables":{},"query":"query Books {\\n  books {\\n    id\\n    __typename\\n  }\\n}\\n"}'
+      body: '{"operationName":"Books","variables":{},"query":"query Books {\\n  books {\\n    id\\n    __typename\\n  }\\n}"}'
     });
     req.flush({ data: { books: [{ __typename: 'Book', id: 1 }] } });
     httpTestingController.verify();
@@ -66,7 +66,7 @@ describe('HttpLink', () => {
     const httpTestingController = TestBed.inject(HttpTestingController);
     const apollo = TestBed.inject(Apollo);
     apollo.query({ query }).subscribe(result => expect(result.data).toEqual({ books: [{ __typename: 'Book', id: 1 }] }));
-    const req = httpTestingController.expectOne('http://localhost?query=query%20Books%20%7B%0A%20%20books%20%7B%0A%20%20%20%20id%0A%20%20%20%20__typename%0A%20%20%7D%0A%7D%0A&operationName=Books&variables=%7B%7D');
+    const req = httpTestingController.expectOne('http://localhost?query=query%20Books%20%7B%0A%20%20books%20%7B%0A%20%20%20%20id%0A%20%20%20%20__typename%0A%20%20%7D%0A%7D&operationName=Books&variables=%7B%7D');
     expect(req.request).toMatchObject({
       method: 'GET',
       body: null

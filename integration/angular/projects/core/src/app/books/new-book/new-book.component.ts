@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
 import { BehaviorSubject } from 'rxjs';
@@ -26,17 +26,17 @@ export class NewBookComponent {
   ) { }
 
   @cache
-  public get form(): FormGroup {
+  public get form() {
     return this.fb.group({
-      name: [undefined, Validators.required],
-      genre: [undefined],
-      authorId: [undefined, Validators.required]
+      name: this.fb.control<string | null>(null, Validators.required),
+      genre: this.fb.control<string | null>(null),
+      authorId: this.fb.control<string | null>(null, Validators.required)
     });
   }
 
   public submit(): void {
     if (!this.form.valid) return;
-    const book: BookInput = this.form.value;
+    const book = this.form.value as BookInput;
     this.error$.next(undefined);
     this.apollo.mutate(new AddBookMutation({ book })).subscribe({
       next: result => this.onBookAdded.next(result.data?.addBook as BookFragment),

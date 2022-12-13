@@ -17,7 +17,7 @@ export function useMutation<TData = any, TVariables = Variables>(
   if (onError) {
     options.onError = (error: ApolloError): void => {
       onError(error);
-      mutationManager.runEffects({ mutation, ...options }, undefined, error);
+      mutationManager.runEffects<TData>({ mutation, ...options }, undefined, error);
     };
   }
 
@@ -35,12 +35,12 @@ export function useMutation<TData = any, TVariables = Variables>(
         .then(result => {
           // If onError is set then the effect is handled above by onError
           if (!onError) {
-            mutationManager.runEffects(mutationOptions, result, undefined);
+            mutationManager.runEffects<TData>(mutationOptions, result, undefined);
           }
           return result;
         })
         .catch((error: ApolloError) => {
-          mutationManager.runEffects(mutationOptions, undefined, error);
+          mutationManager.runEffects<TData>(mutationOptions, undefined, error);
           throw error;
         });
     },
