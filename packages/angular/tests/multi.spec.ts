@@ -1,6 +1,6 @@
 import { Component, Injectable, InjectionToken, NgZone } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Apollo, apolloFactory, ApolloOptions, ApolloOrbitModule, InMemoryCache, MutationUpdate, Resolve, ResolverContext, State } from '@apollo-orbit/angular';
+import { Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, MutationUpdate, Resolve, ResolverContext, State, apolloFactory } from '@apollo-orbit/angular';
 import { ApolloCache } from '@apollo/client/core';
 import { take } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -35,9 +35,9 @@ class BookState {
   }
 
   @MutationUpdate(AddBookMutation)
-  public addBook(cache: ApolloCache<any>, result: AddBookMutationInfo): void {
-    if (result.data) {
-      const { addBook } = result.data;
+  public addBook(cache: ApolloCache<any>, info: AddBookMutationInfo): void {
+    if (info.data) {
+      const { addBook } = info.data;
       cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
     }
   }
@@ -65,9 +65,9 @@ class AuthorState {
   }
 
   @MutationUpdate(AddAuthorMutation)
-  public addAuthor(cache: ApolloCache<any>, result: AddAuthorMutationInfo): void {
-    if (result.data) {
-      const { addAuthor } = result.data;
+  public addAuthor(cache: ApolloCache<any>, info: AddAuthorMutationInfo): void {
+    if (info.data) {
+      const { addAuthor } = info.data;
       cache.updateQuery(new AuthorsQuery(), query => query ? { authors: [...query.authors, addAuthor] } : query);
     }
   }

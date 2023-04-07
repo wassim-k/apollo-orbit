@@ -1,3 +1,4 @@
+import { BaseContext } from '@apollo/server';
 import { Author, AuthorInput, Book, BookInput, QueryBooksArgs } from './types';
 
 export interface BookContext {
@@ -12,7 +13,7 @@ export interface AuthorContext {
   addAuthor(author: AuthorInput): Author;
 }
 
-export interface Context {
+export interface Context extends BaseContext {
   authors: AuthorContext;
   books: BookContext;
 }

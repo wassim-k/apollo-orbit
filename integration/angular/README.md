@@ -28,10 +28,12 @@ yarn workspace @integration/server run start
 
 ### Core
 ```bash
-yarn workspace @apollo-orbit/angular build; yarn workspace @integration/angular run start:core
+yarn workspace @apollo-orbit/angular build
+yarn workspace @integration/angular run start:core
 ```
 
 ### Effects
 ```bash
-yarn workspace @apollo-orbit/angular build; yarn workspace @integration/angular run start:effects
+yarn workspace @apollo-orbit/angular build
+yarn workspace @integration/angular run start:effects
 ```

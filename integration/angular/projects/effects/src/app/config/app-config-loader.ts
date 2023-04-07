@@ -1,5 +1,6 @@
 import { HttpHeaders, HttpRequest, HttpResponse, HttpXhrBackend } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { lastValueFrom } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { AppConfig } from './app-config';
 
@@ -20,10 +21,10 @@ export class AppConfigLoader {
 
   public async load(): Promise<void> {
     const request = this.createJsonRequest<AppConfig>(`${window.location.origin}/app-config.json`);
-    this._config = await this.httpClient.handle(request).pipe(
+    this._config = await lastValueFrom(this.httpClient.handle(request).pipe(
       filter((event): event is HttpResponse<AppConfig> => event instanceof HttpResponse),
       map((response: HttpResponse<AppConfig>) => response.body as AppConfig)
-    ).toPromise();
+    ));
   }
 
   private createJsonRequest<T>(url: string): HttpRequest<T> {

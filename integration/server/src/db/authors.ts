@@ -1,8 +1,8 @@
 import shortid from 'shortid';
-import { AuthorContext } from '../context';
-import { Author, AuthorInput } from '../types';
-import { AuthorData, data } from './data';
-import { applyFilters } from './utils/filter';
+import { AuthorContext } from '../context.js';
+import { Author, AuthorInput } from '../types.js';
+import { AuthorData, data } from './data.js';
+import { applyFilters } from './utils/filter.js';
 
 export const authorsContext: AuthorContext = {
   addAuthor: (input: AuthorInput): Author => {

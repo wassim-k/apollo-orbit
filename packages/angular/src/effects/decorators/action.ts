@@ -1,5 +1,5 @@
 import { ActionFn as ActionFnCore, ActionType } from '@apollo-orbit/core';
-import { Observable } from 'rxjs';
+import { Observable, lastValueFrom } from 'rxjs';
 import { ActionContext, ActionFn } from '../types';
 import { updateStateDefinition } from './internal';
 
@@ -17,7 +17,7 @@ export function transformActionFn(fn: ActionFn<any>): ActionFnCore<any> {
   return function (this: any, action, context) {
     const result = fn.call(this, action, context as unknown as ActionContext);
     return result instanceof Observable
-      ? result.toPromise()
+      ? lastValueFrom(result)
       : result;
   };
 }

@@ -2,13 +2,12 @@ import { ApolloOrbitProvider } from '@apollo-orbit/react';
 import { Query } from '@apollo-orbit/react/components';
 import { ApolloProvider } from '@apollo/client';
 import './App.scss';
-import { Books } from './books/Books';
-import { authorState } from './books/states/author.state';
-import { bookState } from './books/states/book.state';
-import { client } from './graphql';
-import { themeState } from './states/theme';
-import { ThemeDocument } from './states/theme/gql/theme';
 import { Theme } from './Theme';
+import { ThemeDocument, client } from './graphql';
+import { Library } from './library/Library';
+import { authorState } from './library/states/author.state';
+import { bookState } from './library/states/book.state';
+import { themeState } from './states/theme';
 
 function App() {
   return (
@@ -18,7 +17,7 @@ function App() {
           {result =>
             <div className={`main ${result.data?.theme.name.toLowerCase()}`}>
               <Theme></Theme>
-              <Books></Books>
+              <Library></Library>
             </div>
           }
         </Query>

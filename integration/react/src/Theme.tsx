@@ -1,5 +1,5 @@
 import { useDispatch, useQuery } from '@apollo-orbit/react';
-import { ThemeDocument } from './states/theme/gql/theme';
+import { ThemeDocument } from './graphql';
 import { ToggleThemeAction } from './states/theme/theme.actions';
 
 export function Theme() {

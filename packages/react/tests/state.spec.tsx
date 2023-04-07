@@ -67,9 +67,9 @@ const createTestState = () => state(descriptor => descriptor
       return { __typename: 'Book', id: `${Math.random()}`, ...book, genre: null };
     })
 
-  .mutationUpdate(AddBookDocument, (cache, result) => {
-    if (!result.data) return;
-    const { addBook } = result.data;
+  .mutationUpdate(AddBookDocument, (cache, info) => {
+    if (!info.data) return;
+    const { addBook } = info.data;
     cache.updateQuery({ query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
   })
 

@@ -3,9 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
 import { BehaviorSubject } from 'rxjs';
-import { BookInput } from '../../graphql/types';
-import { AuthorsQuery } from '../gql/author';
-import { AddBookMutation, BookFragment } from '../gql/book';
+import { AddBookMutation, AuthorsQuery, BookFragment, BookInput } from '../../graphql';
 
 @Component({
   selector: 'app-new-book',

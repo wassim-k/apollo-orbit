@@ -6,7 +6,7 @@ export const addStateToClient = (client: ApolloClient<any>) =>
   (definition: Pick<StateDefinition, 'resolvers' | 'typeDefs'>): void => {
     client.addResolvers(definition.resolvers.reduce<Resolvers>(
       (resolvers, [[type, field], resolver]) => {
-        resolvers[type] ??= {};
+        resolvers[type] ??= {}; // eslint-disable-line @typescript-eslint/no-unnecessary-condition
         resolvers[type][field] = resolver;
         return resolvers;
       },

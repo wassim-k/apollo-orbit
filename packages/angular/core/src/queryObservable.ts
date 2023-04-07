@@ -1,10 +1,10 @@
-import { ApolloError, ApolloQueryResult, FetchMoreQueryOptions, ObservableQuery, OperationVariables as Variables, UpdateQueryOptions, WatchQueryOptions as CoreWatchQueryOptions } from '@apollo/client/core';
+import { ApolloError, ApolloQueryResult, WatchQueryOptions as CoreWatchQueryOptions, FetchMoreQueryOptions, ObservableQuery, UpdateQueryOptions, OperationVariables as Variables } from '@apollo/client/core';
 import { Observable, Subscription } from 'rxjs';
 import { toQueryResult } from './result';
 import { ExtraWatchQueryOptions, QueryResult, SubscribeToMoreOptions } from './types';
 import { fromZenObservable } from './utils';
 
-export class QueryObservable<TData = any, TVariables = Variables> extends Observable<QueryResult<TData>> {
+export class QueryObservable<TData = any, TVariables extends Variables = Variables> extends Observable<QueryResult<TData>> {
   private previousData: TData | undefined;
 
   public constructor(
@@ -117,7 +117,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
     return this.observableQuery.refetch(variables);
   }
 
-  public fetchMore<TFetchData = TData, TFetchVars = TVariables>(
+  public fetchMore<TFetchData = TData, TFetchVars extends Variables = TVariables>(
     fetchMoreOptions:
       & FetchMoreQueryOptions<TFetchVars, TFetchData>
       & {
@@ -132,7 +132,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
 
   public subscribeToMore<
     TSubscriptionData = TData,
-    TSubscriptionVariables = TVariables
+    TSubscriptionVariables extends Variables = TVariables
   >(
     options: SubscribeToMoreOptions<
       TData,
@@ -177,7 +177,7 @@ export class QueryObservable<TData = any, TVariables = Variables> extends Observ
     return this.observableQuery.setVariables(variables);
   }
 
-  public updateQuery<TVars = TVariables>(
+  public updateQuery<TVars extends Variables = TVariables>(
     mapFn: (
       previousQueryResult: TData,
       options: UpdateQueryOptions<TVars>,
