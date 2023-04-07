@@ -3,9 +3,9 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { BooksModule } from './books/books.module';
 import { ConfigModule } from './config/config.module';
 import { GraphQLModule } from './graphql/graphql.module';
+import { LibraryModule } from './library/library.module';
 import { ThemeComponent } from './theme/theme.component';
 
 @NgModule({
@@ -16,7 +16,7 @@ import { ThemeComponent } from './theme/theme.component';
   imports: [
     AppRoutingModule,
     BrowserModule,
-    BooksModule,
+    LibraryModule,
     ConfigModule,
     GraphQLModule,
     HttpClientModule

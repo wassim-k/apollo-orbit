@@ -1,0 +1,32 @@
+.notification {
+    background-color: #def8db;
+    margin: 1rem 1rem 1rem 0;
+    padding: 0.75rem;
+}
+
+.box {
+    background-color: rgba(#000, 0.05);
+    margin: 0.5rem 0;
+    padding: 1rem;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+.dark_theme {
+    .notification {
+        background-color: rgba(#def8db, 0.8);
+        color: black;
+    }
+
+    .box {
+        background-color: rgba(#000, 0.2);
+    }
+}
+
+h3 {
+    margin-bottom: 0.25em;
+}
+
+ul {
+    margin: 0;
+}

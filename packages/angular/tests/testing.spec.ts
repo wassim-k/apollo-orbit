@@ -73,18 +73,30 @@ describe('Testing', () => {
 
         it('should render component with subscription result', fakeAsync(() => {
             const fixture = TestBed.createComponent(TestComponent);
+
+            mockLink.addMockedResponse({
+                request: new BookQuery({ id: '1' }),
+                result: {
+                    data: {
+                        book: { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: '1' }
+                    } as BookQueryData
+                }
+            });
+
             fixture.detectChanges();
 
             mockSubscriptionLink.simulateResult({
                 result: {
                     data: {
-                        newBook: { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: '1' }
+                        newBook: { __typename: 'Book', id: '1', name: 'Book 1.1', genre: 'Fiction', authorId: '1' }
                     } as NewBookByAuthorSubscriptionData
                 }
             });
+
             tick();
             fixture.detectChanges();
-            expect(fixture.nativeElement.querySelector('#subscription-result').textContent).toEqual('Book 1');
+
+            expect(fixture.nativeElement.querySelector('#subscription-result').textContent).toEqual('Book 1.1');
 
             mockSubscriptionLink.simulateResult({
                 delay: 10,

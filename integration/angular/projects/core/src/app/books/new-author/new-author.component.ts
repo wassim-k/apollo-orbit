@@ -3,8 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
 import { BehaviorSubject } from 'rxjs';
-import { AuthorInput } from '../../graphql/types';
-import { AddAuthorMutation, AuthorFragment } from '../gql/author';
+import { AddAuthorMutation, AuthorFragment, AuthorInput } from '../../graphql';
 
 @Component({
   selector: 'app-new-author',

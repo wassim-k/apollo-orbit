@@ -1,8 +1,8 @@
 import shortid from 'shortid';
-import { BookContext } from '../context';
-import { Book, BookInput } from '../types';
-import { BookData, data } from './data';
-import { applyFilters } from './utils/filter';
+import { BookContext } from '../context.js';
+import { Book, BookInput } from '../types.js';
+import { BookData, data } from './data.js';
+import { applyFilters } from './utils/filter.js';
 
 export const booksContext: BookContext = {
   addBook: (input: BookInput): Book => {

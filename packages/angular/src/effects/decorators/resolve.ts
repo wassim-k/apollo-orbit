@@ -1,5 +1,5 @@
 import { Resolver, TypeField } from '@apollo-orbit/core';
-import { Observable } from 'rxjs';
+import { Observable, lastValueFrom } from 'rxjs';
 import { updateStateDefinition } from './internal';
 
 export function Resolve(typeField: TypeField) {
@@ -16,7 +16,7 @@ export function transformResolver(resolver: Resolver): Resolver {
   return function (this: any, ...args: Parameters<Resolver>) {
     const result = resolver.call(this, ...args);
     return result instanceof Observable
-      ? result.toPromise()
+      ? lastValueFrom(result)
       : result;
   };
 }

@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { Apollo } from '@apollo-orbit/angular';
-import { ThemeName } from '../graphql';
-import { ThemeQuery } from '../states/theme/gql/theme';
+import { ThemeName, ThemeQuery } from '../graphql';
 import { ToggleThemeAction } from '../states/theme/theme.actions';
 
 @Component({

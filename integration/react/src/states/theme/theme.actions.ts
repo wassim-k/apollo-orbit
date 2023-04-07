@@ -1,4 +1,4 @@
-import { ThemeName } from '../../graphql/types';
+import { ThemeName } from '../../graphql';
 
 export interface ToggleThemeAction {
   type: 'theme/toggle';

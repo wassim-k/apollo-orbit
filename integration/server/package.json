@@ -1,22 +1,24 @@
 {
   "name": "@integration/server",
+  "type": "module",
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "nodemon --exec ts-node --project tsconfig.json ./src/index.ts",
+    "start": "nodemon --exec ts-node --esm ./src/index.ts",
     "build": "tsc --project tsconfig.json",
-    "codegen": "graphql-codegen --config codegen.yml",
-    "codegen:inspect": "node --nolazy --inspect-brk ../../node_modules/@graphql-codegen/cli/bin.js --config codegen.yml"
+    "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
-    "apollo-server": "^3.6.7",
+    "@apollo/server": "^4.6.0",
     "shortid": "^2.2.16",
+    "graphql": "^16.6.0",
     "graphql-subscriptions": "^2.0.0",
-    "graphql-ws": "^5.11.2"
+    "graphql-ws": "^5.12.1"
   },
   "devDependencies": {
     "@types/shortid": "^0.0.29",
-    "nodemon": "^2.0.20"
+    "nodemon": "^2.0.22",
+    "@graphql-codegen/typescript-resolvers": "^3.2.0"
   }
 }

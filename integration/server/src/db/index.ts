@@ -1,6 +1,6 @@
-import { Context } from '../context';
-import { authorsContext } from './authors';
-import { booksContext } from './books';
+import { Context } from '../context.js';
+import { authorsContext } from './authors.js';
+import { booksContext } from './books.js';
 
 export const dbContext: Context = {
   books: booksContext,

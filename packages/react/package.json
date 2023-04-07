@@ -10,6 +10,7 @@
   },
   "keywords": [
     "apollo",
+    "@apollo/client",
     "orbit",
     "react",
     "graphql",
@@ -27,7 +28,7 @@
     "build": "ng-packagr --config ./tsconfig.lib.json -p ng-package.json",
     "clean": "rimraf dist",
     "prebuild": "yarn clean",
-    "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.yml"
+    "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.ts"
   },
   "peerDependencies": {
     "@apollo/client": "^3.2.0",
@@ -35,10 +36,10 @@
     "react": ">=16.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.7.0",
-    "tslib": "^2.4.1"
+    "@apollo-orbit/core": "^0.8.0",
+    "tslib": "^2.5.0"
   },
   "devDependencies": {
-    "@testing-library/react": "^13.4.0"
+    "@testing-library/react": "^14.0.0"
   }
 }

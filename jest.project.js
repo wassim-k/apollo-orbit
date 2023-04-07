@@ -9,8 +9,7 @@ module.exports = projectDir => {
     displayName: pkg.name,
     rootDir: projectDir,
     testEnvironment: 'node',
-    globals: { 'ts-jest': { tsconfig } },
-    transform: { '^.+\\.tsx?$': 'ts-jest' },
+    transform: { '^.+\\.tsx?$': ['ts-jest', { tsconfig }] },
     modulePathIgnorePatterns: ['dist'],
     testPathIgnorePatterns: ['/node_modules/', '/dist/'],
     moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: `${__dirname}/` })

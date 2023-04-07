@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { Apollo } from '@apollo-orbit/angular';
-import { LazyQuery } from './states/lazy/gql/lazy';
+import { LazyQuery } from '../graphql';
 
 @Component({
   selector: 'app-lazy',

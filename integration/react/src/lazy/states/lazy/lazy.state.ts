@@ -1,6 +1,6 @@
 import { state } from '@apollo-orbit/react';
 import { gql } from '@apollo/client';
-import { Query } from '../../../graphql/types';
+import { Query } from '../../../graphql';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

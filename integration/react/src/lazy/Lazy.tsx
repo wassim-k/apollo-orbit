@@ -1,8 +1,7 @@
 import { ApolloOrbitProvider } from '@apollo-orbit/react';
 import { Query } from '@apollo-orbit/react/components';
-import React from 'react';
+import { LazyDocument } from '../graphql';
 import { lazyState } from './states/lazy';
-import { LazyDocument } from './states/lazy/gql/lazy';
 
 export default function Lazy() {
     return (
