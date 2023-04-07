@@ -1,4 +1,6 @@
 /* eslint-disable */
+import { TypedDocumentNode as DocumentNode } from '@apollo/client';
+import gql from 'graphql-tag';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -107,3 +109,185 @@ export enum ThemeName {
   DarkTheme = 'DARK_THEME',
   LightTheme = 'LIGHT_THEME'
 }
+
+export type LazyQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type LazyQuery = { __typename?: 'Query', lazy: string };
+
+export type AuthorFragment = { __typename?: 'Author', id: string, name: string, age: number | null, books: Array<(
+    { __typename?: 'Book' }
+    & BookFragment
+  )> };
+
+export type AuthorsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AuthorsQuery = { __typename?: 'Query', authors: Array<(
+    { __typename?: 'Author' }
+    & AuthorFragment
+  )> };
+
+export type AddAuthorMutationVariables = Exact<{
+  author: AuthorInput;
+}>;
+
+
+export type AddAuthorMutation = { __typename?: 'Mutation', addAuthor: (
+    { __typename?: 'Author' }
+    & AuthorFragment
+  ) | null };
+
+export type NewAuthorSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type NewAuthorSubscription = { __typename?: 'Subscription', newAuthor: (
+    { __typename?: 'Author' }
+    & AuthorFragment
+  ) };
+
+export type BookFragment = { __typename?: 'Book', id: string, name: string, genre: string | null, displayName: string };
+
+export type BooksQueryVariables = Exact<{
+  name?: InputMaybe<Scalars['String']>;
+  genre?: InputMaybe<Scalars['String']>;
+  authorId?: InputMaybe<Scalars['ID']>;
+}>;
+
+
+export type BooksQuery = { __typename?: 'Query', books: Array<(
+    { __typename?: 'Book' }
+    & BookFragment
+  )> };
+
+export type BookQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type BookQuery = { __typename?: 'Query', book: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
+
+export type AddBookMutationVariables = Exact<{
+  book: BookInput;
+}>;
+
+
+export type AddBookMutation = { __typename?: 'Mutation', addBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) | null };
+
+export type NewBookSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type NewBookSubscription = { __typename?: 'Subscription', newBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
+
+export type NewBookByAuthorSubscriptionVariables = Exact<{
+  id?: InputMaybe<Scalars['ID']>;
+}>;
+
+
+export type NewBookByAuthorSubscription = { __typename?: 'Subscription', newBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
+
+export type ThemeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ThemeQuery = { __typename?: 'Query', theme: { __typename?: 'Theme', name: ThemeName, toggles: number, displayName: string } };
+
+export const BookFragmentDoc = gql`
+    fragment BookFragment on Book {
+  id
+  name
+  genre
+  displayName @client
+}
+    ` as unknown as DocumentNode<BookFragment, unknown>;
+export const AuthorFragmentDoc = gql`
+    fragment AuthorFragment on Author {
+  id
+  name
+  age
+  books {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as unknown as DocumentNode<AuthorFragment, unknown>;
+export const LazyDocument = gql`
+    query Lazy {
+  lazy @client
+}
+    ` as unknown as DocumentNode<LazyQuery, LazyQueryVariables>;
+export const AuthorsDocument = gql`
+    query Authors {
+  authors {
+    ...AuthorFragment
+  }
+}
+    ${AuthorFragmentDoc}` as unknown as DocumentNode<AuthorsQuery, AuthorsQueryVariables>;
+export const AddAuthorDocument = gql`
+    mutation AddAuthor($author: AuthorInput!) {
+  addAuthor(author: $author) {
+    ...AuthorFragment
+  }
+}
+    ${AuthorFragmentDoc}` as unknown as DocumentNode<AddAuthorMutation, AddAuthorMutationVariables>;
+export const NewAuthorDocument = gql`
+    subscription NewAuthor {
+  newAuthor {
+    ...AuthorFragment
+  }
+}
+    ${AuthorFragmentDoc}` as unknown as DocumentNode<NewAuthorSubscription, NewAuthorSubscriptionVariables>;
+export const BooksDocument = gql`
+    query Books($name: String, $genre: String, $authorId: ID) {
+  books(name: $name, genre: $genre, authorId: $authorId) {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as unknown as DocumentNode<BooksQuery, BooksQueryVariables>;
+export const BookDocument = gql`
+    query Book($id: ID!) {
+  book(id: $id) {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as unknown as DocumentNode<BookQuery, BookQueryVariables>;
+export const AddBookDocument = gql`
+    mutation AddBook($book: BookInput!) {
+  addBook(book: $book) {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as unknown as DocumentNode<AddBookMutation, AddBookMutationVariables>;
+export const NewBookDocument = gql`
+    subscription NewBook {
+  newBook {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as unknown as DocumentNode<NewBookSubscription, NewBookSubscriptionVariables>;
+export const NewBookByAuthorDocument = gql`
+    subscription NewBookByAuthor($id: ID) {
+  newBook(authorId: $id) {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as unknown as DocumentNode<NewBookByAuthorSubscription, NewBookByAuthorSubscriptionVariables>;
+export const ThemeDocument = gql`
+    query Theme {
+  theme @client {
+    name
+    toggles
+    displayName
+  }
+}
+    ` as unknown as DocumentNode<ThemeQuery, ThemeQueryVariables>;

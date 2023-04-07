@@ -1,7 +1,6 @@
 import { state } from '@apollo-orbit/react';
 import gql from 'graphql-tag';
-import { Theme, ThemeName } from '../../graphql/types';
-import { ThemeDocument } from './gql/theme';
+import { Theme, ThemeDocument, ThemeName } from '../../graphql';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
 
 const Toastify = require('toastify-js'); // eslint-disable-line @typescript-eslint/no-var-requires

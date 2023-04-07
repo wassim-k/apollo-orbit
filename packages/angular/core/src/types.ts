@@ -1,4 +1,4 @@
-import { ApolloClientOptions, ApolloError, DefaultOptions as CoreDefaultOptions, DocumentNode, NetworkStatus, OperationVariables as Variables, QueryOptions as CoreQueryOptions, SubscribeToMoreOptions as CoreSubscribeToMoreOptions, TypedDocumentNode, WatchQueryOptions as CoreWatchQueryOptions } from '@apollo/client/core';
+import { ApolloClientOptions, ApolloError, DefaultOptions as CoreDefaultOptions, QueryOptions as CoreQueryOptions, SubscribeToMoreOptions as CoreSubscribeToMoreOptions, WatchQueryOptions as CoreWatchQueryOptions, DocumentNode, NetworkStatus, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client/core';
 
 export interface ApolloOptions<TCacheShape = any> extends ApolloClientOptions<TCacheShape> {
   /**
@@ -13,8 +13,8 @@ export interface DefaultOptions extends CoreDefaultOptions {
   query?: Partial<QueryOptions>;
 }
 
-export interface WatchQueryOptions<V = Variables, T = any> extends CoreWatchQueryOptions<V, T>, ExtraWatchQueryOptions { }
-export interface QueryOptions<V = Variables, T = any> extends CoreQueryOptions<V, T>, ExtraQueryOptions { }
+export interface WatchQueryOptions<V extends Variables = Variables, T = any> extends CoreWatchQueryOptions<V, T>, ExtraWatchQueryOptions { }
+export interface QueryOptions<V extends Variables = Variables, T = any> extends CoreQueryOptions<V, T>, ExtraQueryOptions { }
 
 export interface ExtraWatchQueryOptions {
   /**

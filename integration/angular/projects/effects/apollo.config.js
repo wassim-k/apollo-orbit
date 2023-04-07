@@ -6,11 +6,8 @@ module.exports = {
       localSchemaFile: null
     },
     includes: [
-      `${__dirname}/**/*.state.ts`,
-      `${__dirname}/**/gql/**/*.graphql`
-    ],
-    excludes: [
-      `${__dirname}/**/gql/**/*.ts`
+      `${__dirname}/src/app/**/*.state.ts`,
+      `${__dirname}/src/app/**/*.graphql`
     ]
   }
 };

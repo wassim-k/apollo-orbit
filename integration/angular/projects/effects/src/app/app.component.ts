@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { Apollo } from '@apollo-orbit/angular';
 import { map } from 'rxjs/operators';
-import { ThemeQuery } from './states/theme/gql/theme';
+import { ThemeQuery } from './graphql';
 
 @Component({
   selector: 'app-root',

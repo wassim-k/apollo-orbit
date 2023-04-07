@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Action, ActionContext, State } from '@apollo-orbit/angular';
 import gql from 'graphql-tag';
-import { Theme, ThemeName } from '../../graphql/types';
+import { Theme, ThemeName, ThemeQuery } from '../../graphql';
 import { Toastify } from '../../services/toastify.service';
-import { ThemeQuery } from './gql/theme';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
 
 @Injectable()

@@ -1,3 +1,3 @@
-# Apollo Orbit (Core)
+# Apollo Orbit (React)
 
 Documentation coming soon...

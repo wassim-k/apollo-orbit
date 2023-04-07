@@ -3,7 +3,8 @@
 ## Codegen
 
 ```bash
-yarn codegen:clean
+yarn build
+yarn workspace @integration/server start
 yarn lerna run codegen
 yarn lerna run codegen:test
 yarn lerna run codegen:core

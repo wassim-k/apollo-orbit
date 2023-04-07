@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Apollo as ApolloBase, DefaultOptions, MutationResult } from '@apollo-orbit/angular/core';
 import { Action, ActionInstance, MutationManager, resolveDispatchResults } from '@apollo-orbit/core';
 import { ApolloClient, MutationOptions, OperationVariables as Variables } from '@apollo/client/core';
-import { from, Observable, Subject } from 'rxjs';
+import { Observable, Subject, from } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { ActionExecution } from './actions';
 
@@ -20,7 +20,7 @@ export class Apollo<TCacheShape = any> extends ApolloBase<TCacheShape> {
         this.actions$ = this._actions$.asObservable();
     }
 
-    public mutate<T = any, V = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {
+    public mutate<T = any, V extends Variables = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {
         const { manager } = this;
         return super.mutate<T, V>(manager.wrapMutationOptions(options)).pipe(tap({
             next: result => manager.runEffects<T>(options, result, undefined),

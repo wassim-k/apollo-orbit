@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime } from 'rxjs/operators';
-import { BooksQuery } from './gql/book';
+import { BooksQuery } from '../graphql';
 
 @UntilDestroy()
 @Component({

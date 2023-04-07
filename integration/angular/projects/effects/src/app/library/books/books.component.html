@@ -1,0 +1,10 @@
+<h3>Books <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
+<ng-container *ngIf="booksQuery | async as booksResult">
+  <ng-container *ngIf="booksResult.loading">Loading...</ng-container>
+  <ng-container *ngIf="booksResult.error">{{ booksResult.error.message }}</ng-container>
+  <ng-container *ngIf="(booksResult.data || booksResult.previousData)?.books  as books">
+    <div *ngFor="let book of books">
+      <span>{{ book.displayName }}</span>
+    </div>
+  </ng-container>
+</ng-container>

@@ -7,10 +7,7 @@ module.exports = {
     },
     includes: [
       `${__dirname}/src/app/**/*.state.ts`,
-      `${__dirname}/src/app/**/gql/**/*.graphql`
-    ],
-    excludes: [
-      `${__dirname}/src/app/**/gql/**/*.ts`
+      `${__dirname}/src/app/**/*.graphql`
     ]
   }
 };
