@@ -1,22 +1,26 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { BooksComponent } from './books.component';
+import { AuthorsComponent } from './authors/authors.component';
+import { BooksComponent } from './books/books.component';
+import { LibraryComponent } from './library.component';
 import { NewAuthorComponent } from './new-author/new-author.component';
 import { NewBookComponent } from './new-book/new-book.component';
 
 @NgModule({
   declarations: [
-    NewBookComponent,
+    AuthorsComponent,
+    BooksComponent,
+    LibraryComponent,
     NewAuthorComponent,
-    BooksComponent
+    NewBookComponent
   ],
   imports: [
     CommonModule,
     ReactiveFormsModule
   ],
   exports: [
-    BooksComponent
+    LibraryComponent
   ]
 })
-export class BooksModule { }
+export class LibraryModule { }

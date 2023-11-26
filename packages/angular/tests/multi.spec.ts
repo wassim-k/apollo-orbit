@@ -38,7 +38,7 @@ class BookState {
   public addBook(cache: ApolloCache<any>, info: AddBookMutationInfo): void {
     if (info.data) {
       const { addBook } = info.data;
-      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
+      cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, addBook] } : data);
     }
   }
 }
@@ -68,7 +68,7 @@ class AuthorState {
   public addAuthor(cache: ApolloCache<any>, info: AddAuthorMutationInfo): void {
     if (info.data) {
       const { addAuthor } = info.data;
-      cache.updateQuery(new AuthorsQuery(), query => query ? { authors: [...query.authors, addAuthor] } : query);
+      cache.updateQuery(new AuthorsQuery(), data => data ? { authors: [...data.authors, addAuthor] } : data);
     }
   }
 }

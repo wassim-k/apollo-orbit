@@ -53,6 +53,6 @@ await server.start();
 app.use('/graphql', cors<cors.CorsRequest>(), bodyParser.json(), expressMiddleware(server, { context: async _ctx => dbContext }));
 
 httpServer.listen(port, () => {
-    console.log(`🚀 Query endpoint ready at http://localhost:${port}/graphql`);
-    console.log(`🚀 Subscription endpoint ready at ws://localhost:${port}/graphql`);
+    console.log(`🚀 Query endpoint ready at http://localhost:${port}/graphql`); // eslint-disable-line no-console
+    console.log(`🚀 Subscription endpoint ready at ws://localhost:${port}/graphql`); // eslint-disable-line no-console
 });

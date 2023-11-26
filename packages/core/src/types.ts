@@ -1,29 +1,34 @@
-import { ApolloCache, ApolloClient, ApolloError, DocumentNode, MutationOptions, NormalizedCacheObject, OperationVariables as Variables, PureQueryOptions, QueryOptions, StoreObject, TypedDocumentNode } from '@apollo/client/core';
+import { ApolloCache, ApolloClient, ApolloError, DocumentNode, MutationOptions, NormalizedCacheObject, PureQueryOptions, QueryOptions, StoreObject, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client/core';
 import { FieldNode, FragmentDefinitionNode } from 'graphql';
 
 export interface Context extends Record<string, any> { }
 
-export type PureMutationOptions<T = any, V = Variables, C = Context> = Pick<MutationOptions<T, V, C>, 'mutation' | 'variables' | 'context'>;
+export type PureMutationOptions<TData = any, TVariables = Variables, TContext = Context> = Pick<MutationOptions<TData, TVariables, TContext>, 'mutation' | 'variables' | 'context'>;
 
 export type Type<T> = new (...args: Array<any>) => T;
 
-export type RefetchQueryDescriptor = Array<string | PureQueryOptions | QueryOptions> | 'all' | 'active';
+export type RefetchQueryDescriptor = Array<string | DocumentNode | PureQueryOptions | QueryOptions> | 'all' | 'active';
 
 export type Resolver = (rootValue: any, args: any, context: ResolverContext, info?: ResolverInfo) => any;
 
-export type MutationUpdateFn<T, V> = (cache: ApolloCache<any>, result: MutationInfo<T, V>) => void;
+export type MutationUpdateFn<
+  TData,
+  TVariables,
+  TContext = Context,
+  TCache extends ApolloCache<any> = ApolloCache<any>
+> = (cache: TCache, result: MutationInfo<TData, TVariables, TContext>) => void;
 
-export type EffectFn<T, V> = (result: MutationInfo<T, V>) => void;
+export type EffectFn<TData, TVariables, TContext = Context> = (result: MutationInfo<TData, TVariables, TContext>) => void;
 
 export type ActionFn<T> = (action: T, context: ActionContext) => void | Promise<any>;
 
-export type RefetchQueriesFn<T, V> = (result: MutationInfo<T, V>) => RefetchQueryDescriptor;
+export type RefetchQueriesFn<TData, TVariables, TContext = Context> = (result: MutationInfo<TData, TVariables, TContext>) => RefetchQueryDescriptor;
 
-export type OptimisticResponseFn<T, V, C = Context> = (variables: V, context?: C) => T;
+export type OptimisticResponseFn<TData, TVariables, TContext = Context> = (variables: TVariables, context?: TContext) => TData;
 
 export type TypeField = readonly [string, string];
 
-export type MutationIdentifier<T, V = Variables> = Type<PureMutationOptions<T, V>> | TypedDocumentNode<T, V> | DocumentNode | string;
+export type MutationIdentifier<TData, TVariables = Variables> = Type<PureMutationOptions<TData, TVariables>> | TypedDocumentNode<TData, TVariables> | DocumentNode | string;
 
 export interface ActionType<T> {
   type: string;

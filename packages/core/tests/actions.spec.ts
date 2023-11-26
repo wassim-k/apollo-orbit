@@ -1,5 +1,5 @@
 import { Action, ActionInstance, MutationManager, resolveDispatchResults, state } from '@apollo-orbit/core';
-import { ApolloCache, ApolloError, gql, InMemoryCache } from '@apollo/client/core';
+import { ApolloCache, ApolloError, InMemoryCache, gql } from '@apollo/client/core';
 
 interface AddAuthor {
     type: 'add-author';
@@ -71,11 +71,11 @@ describe('Actions', () => {
                 status: 'success'
             }
         ]);
-        expect(actionMock).toBeCalledTimes(2);
-        expect(actionMock).nthCalledWith(1, addAuthorAction);
-        expect(actionMock).nthCalledWith(2, addAuthorAction);
-        expect(nestedActionMock).toBeCalledTimes(1);
-        expect(nestedActionMock).toBeCalledWith({ type: 'add-author-success' });
+        expect(actionMock).toHaveBeenCalledTimes(2);
+        expect(actionMock).toHaveBeenNthCalledWith(1, addAuthorAction);
+        expect(actionMock).toHaveBeenNthCalledWith(2, addAuthorAction);
+        expect(nestedActionMock).toHaveBeenCalledTimes(1);
+        expect(nestedActionMock).toHaveBeenCalledWith({ type: 'add-author-success' });
     });
 
     it('Should execute multiple actions', async () => {
@@ -100,8 +100,8 @@ describe('Actions', () => {
 
         const dispatch = <TAction extends Action | ActionInstance>(action: TAction): Promise<void> => manager.dispatch({ cache, dispatch }, action).then(resolveDispatchResults);
         await manager.dispatch({ cache, dispatch }, { type: 'add-author' });
-        expect(cacheCallbackMock).toBeCalledTimes(2);
-        expect(cacheCallbackMock).toBeCalledWith({ test1: 1, test2: 2 });
+        expect(cacheCallbackMock).toHaveBeenCalledTimes(2);
+        expect(cacheCallbackMock).toHaveBeenCalledWith({ test1: 1, test2: 2 });
     });
 
     it('Should execute multiple actions (promises)', async () => {
@@ -136,7 +136,7 @@ describe('Actions', () => {
 
         const dispatch = <TAction extends Action | ActionInstance>(action: TAction): Promise<void> => manager.dispatch({ cache, dispatch }, action).then(resolveDispatchResults);
         await manager.dispatch({ cache, dispatch }, { type: 'add-author' });
-        expect(cacheCallbackMock).toBeCalledTimes(2);
-        expect(cacheCallbackMock).toBeCalledWith({ test1: 1, test2: 2 });
+        expect(cacheCallbackMock).toHaveBeenCalledTimes(2);
+        expect(cacheCallbackMock).toHaveBeenCalledWith({ test1: 1, test2: 2 });
     });
 });

@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache } from '@apollo-orbit/angular';
+import { APOLLO_OPTIONS, ApolloOptions, ApolloOrbitModule, InMemoryCache } from '@apollo-orbit/angular';
 import { HttpLinkFactory, HttpLinkModule } from '@apollo-orbit/angular/http';
 import { split } from '@apollo/client/core';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';

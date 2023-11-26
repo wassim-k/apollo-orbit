@@ -1,4 +1,5 @@
-import { ApolloError, ApolloQueryResult, WatchQueryOptions as CoreWatchQueryOptions, FetchMoreQueryOptions, ObservableQuery, UpdateQueryOptions, OperationVariables as Variables } from '@apollo/client/core';
+import { ApolloError, ApolloQueryResult, WatchQueryOptions as CoreWatchQueryOptions, FetchMoreQueryOptions, NetworkStatus, ObservableQuery, OperationVariables, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client/core';
+import { Concast, ObservableSubscription, Observer } from '@apollo/client/utilities';
 import { Observable, Subscription } from 'rxjs';
 import { toQueryResult } from './result';
 import { ExtraWatchQueryOptions, QueryResult, SubscribeToMoreOptions } from './types';
@@ -62,6 +63,10 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
     });
   }
 
+  public get query(): TypedDocumentNode<TData, TVariables> {
+    return this.observableQuery.query;
+  }
+
   public get variables(): TVariables | undefined {
     return this.observableQuery.variables;
   }
@@ -82,28 +87,30 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
     return this.observableQuery.result();
   }
 
-  public getCurrentResult(): QueryResult<TData> {
-    return toQueryResult(this.observableQuery.getCurrentResult());
+  public getCurrentResult(saveAsLastResult = true): QueryResult<TData> {
+    return toQueryResult(this.observableQuery.getCurrentResult(saveAsLastResult));
   }
 
-  public isDifferentFromLastResult(newResult: ApolloQueryResult<TData>): boolean | undefined {
-    return this.observableQuery.isDifferentFromLastResult(newResult);
+  // Compares newResult to the snapshot we took of this.lastResult when it was
+  // first received.
+  public isDifferentFromLastResult(newResult: ApolloQueryResult<TData>, variables?: TVariables): boolean | undefined {
+    return this.observableQuery.isDifferentFromLastResult(newResult, variables);
   }
 
-  public getLastResult(): ApolloQueryResult<TData> | undefined {
-    return this.observableQuery.getLastResult();
+  public getLastResult(variablesMustMatch?: boolean): ApolloQueryResult<TData> | undefined {
+    return this.observableQuery.getLastResult(variablesMustMatch);
   }
 
-  public getLastError(): ApolloError | undefined {
-    return this.observableQuery.getLastError();
+  public getLastError(variablesMustMatch?: boolean): ApolloError | undefined {
+    return this.observableQuery.getLastError(variablesMustMatch);
   }
 
   public resetLastResults(): void {
-    return this.observableQuery.resetLastResults();
+    this.observableQuery.resetLastResults();
   }
 
   public resetQueryStoreErrors(): void {
-    return this.observableQuery.resetQueryStoreErrors();
+    this.observableQuery.resetQueryStoreErrors();
   }
 
   /**
@@ -117,14 +124,20 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
     return this.observableQuery.refetch(variables);
   }
 
-  public fetchMore<TFetchData = TData, TFetchVars extends Variables = TVariables>(
+  public fetchMore<
+    TFetchData = TData,
+    TFetchVars extends OperationVariables = TVariables,
+  >(
     fetchMoreOptions:
       & FetchMoreQueryOptions<TFetchVars, TFetchData>
       & {
-        updateQuery?: (previousQueryResult: TData, options: {
-          fetchMoreResult: TFetchData;
-          variables: TFetchVars;
-        }) => TData;
+        updateQuery?: (
+          previousQueryResult: TData,
+          options: {
+            fetchMoreResult: TFetchData;
+            variables: TFetchVars;
+          }
+        ) => TData;
       }
   ): Promise<ApolloQueryResult<TFetchData>> {
     return this.observableQuery.fetchMore(fetchMoreOptions);
@@ -144,16 +157,19 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
     return this.observableQuery.subscribeToMore({ document, ...rest });
   }
 
-  public setOptions(newOptions: Partial<CoreWatchQueryOptions<TVariables>>): Promise<ApolloQueryResult<TData>> {
+  public setOptions(newOptions: Partial<CoreWatchQueryOptions<TVariables, TData>>): Promise<ApolloQueryResult<TData>> {
     return this.observableQuery.setOptions(newOptions);
   }
 
+  public silentSetOptions(newOptions: Partial<CoreWatchQueryOptions<TVariables, TData>>): void {
+    this.observableQuery.silentSetOptions(newOptions);
+  }
+
   /**
-   * This is for *internal* use only. Most users should instead use `refetch`
-   * in order to be properly notified of results even when they come from cache.
-   *
    * Update the variables of this observable query, and fetch the new results
-   * if they've changed. If you want to force new results, use `refetch`.
+   * if they've changed. Most users should prefer `refetch` instead of
+   * `setVariables` in order to to be properly notified of results even when
+   * they come from the cache.
    *
    * Note: the `next` callback will *not* fire if the variables have not changed
    * or if the result is coming from cache.
@@ -168,10 +184,6 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
    *
    * @param variables: The new set of variables. If there are missing variables,
    * the previous values of those variables will be used.
-   *
-   * @param tryFetch: Try and fetch new results even if the variables haven't
-   * changed (we may still just hit the store, but if there's nothing in there
-   * this will refetch)
    */
   public setVariables(variables: TVariables): Promise<ApolloQueryResult<TData> | void> {
     return this.observableQuery.setVariables(variables);
@@ -180,26 +192,49 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
   public updateQuery<TVars extends Variables = TVariables>(
     mapFn: (
       previousQueryResult: TData,
-      options: UpdateQueryOptions<TVars>,
+      options: Pick<CoreWatchQueryOptions<TVars, TData>, 'variables'>
     ) => TData
   ): void {
     return this.observableQuery.updateQuery(mapFn);
+  }
+
+  public startPolling(pollInterval: number): void {
+    this.observableQuery.startPolling(pollInterval);
   }
 
   public stopPolling(): void {
     return this.observableQuery.stopPolling();
   }
 
-  public startPolling(pollInterval: number): void {
-    return this.observableQuery.startPolling(pollInterval);
+  public reobserveAsConcast(
+    newOptions?: Partial<CoreWatchQueryOptions<TVariables, TData>>,
+    newNetworkStatus?: NetworkStatus
+  ): Concast<ApolloQueryResult<TData>> {
+    return this.observableQuery.reobserveAsConcast(newOptions, newNetworkStatus);
   }
 
-  /**
-   * Cast this QueryObservable to an Observable.
-   *
-   * Useful for async pipe in order to provide better template intellisense.
-   */
-  public asObservable(): Observable<QueryResult<TData>> {
-    return this as Observable<QueryResult<TData>>;
+  public reobserve(
+    newOptions?: Partial<CoreWatchQueryOptions<TVariables, TData>>,
+    newNetworkStatus?: NetworkStatus
+  ): Promise<ApolloQueryResult<TData>> {
+    return this.observableQuery.reobserve(newOptions, newNetworkStatus);
+  }
+
+  public resubscribeAfterError(
+    onNext: (value: ApolloQueryResult<TData>) => void,
+    onError?: (error: any) => void,
+    onComplete?: () => void
+  ): ObservableSubscription;
+
+  public resubscribeAfterError(
+    observer: Observer<ApolloQueryResult<TData>>
+  ): ObservableSubscription;
+
+  public resubscribeAfterError(...args: [any, any?, any?]): ObservableSubscription {
+    return this.observableQuery.resubscribeAfterError(...args);
+  }
+
+  public hasObservers(): boolean {
+    return this.observableQuery.hasObservers();
   }
 }

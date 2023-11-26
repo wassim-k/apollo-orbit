@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular';
 import { cache } from 'decorator-cache-getter';
-import { BehaviorSubject } from 'rxjs';
 import { AddBookMutation, AuthorsQuery, BookInput } from '../../graphql';
 
 @Component({
@@ -15,7 +14,7 @@ export class NewBookComponent {
   @Output() public readonly onClose = new EventEmitter<void>();
 
   public readonly authorsQuery = this.apollo.watchQuery({ ...new AuthorsQuery(), fetchPolicy: 'cache-and-network' });
-  public readonly error$ = new BehaviorSubject<Error | undefined>(undefined);
+  public readonly error = signal<Error | undefined>(undefined);
 
   public constructor(
     private readonly apollo: Apollo,
@@ -34,9 +33,9 @@ export class NewBookComponent {
   public submit(): void {
     if (!this.form.valid) return;
     const book = this.form.value as BookInput;
-    this.error$.next(undefined);
+    this.error.set(undefined);
     this.apollo.mutate(new AddBookMutation({ book })).subscribe({
-      error: (error: Error) => this.error$.next(error)
+      error: (error: Error) => this.error.set(error)
     });
   }
 }
