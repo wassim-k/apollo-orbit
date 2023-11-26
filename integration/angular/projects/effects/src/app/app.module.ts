@@ -1,4 +1,4 @@
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
@@ -16,10 +16,12 @@ import { ThemeComponent } from './theme/theme.component';
   imports: [
     AppRoutingModule,
     BrowserModule,
-    LibraryModule,
     ConfigModule,
     GraphQLModule,
-    HttpClientModule
+    LibraryModule
+  ],
+  providers: [
+    provideHttpClient(withFetch())
   ],
   bootstrap: [AppComponent]
 })

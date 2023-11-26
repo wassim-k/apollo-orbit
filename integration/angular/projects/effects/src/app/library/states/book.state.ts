@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
-import { ApolloCache, Effect, MutationUpdate, OptimisticResponse, Resolve, ResolverContext, ResolverInfo, State } from '@apollo-orbit/angular';
+import { ApolloCache, Effect, MutationUpdate, OptimisticResponse, Resolve, ResolverContext, ResolverInfo } from '@apollo-orbit/angular';
 import { gql } from '@apollo/client/core';
 import shortid from 'shortid';
-import { AddBookMutation, AddBookMutationData, AddBookMutationInfo, AddBookMutationVariables, Book, BooksQuery } from '../../graphql';
+import { AddBookMutation, AddBookMutationData, AddBookMutationInfo, AddBookMutationVariables, Book } from '../../graphql';
 import { Toastify } from '../../services/toastify.service';
 
-@Injectable()
 @State({
   typeDefs: gql`
   extend type Book {
     displayName: String!
   }`
 })
+@Injectable()
 export class BookState {
   public constructor(
     private readonly toastify: Toastify
@@ -32,7 +32,8 @@ export class BookState {
         id: shortid.generate(),
         displayName: this.displayName(book as Book),
         genre: book.genre ?? null,
-        name: book.name
+        name: book.name,
+        authorId: book.authorId
       }
     };
   }
@@ -41,7 +42,17 @@ export class BookState {
   public addBook(cache: ApolloCache<any>, info: AddBookMutationInfo): void {
     const addBook = info.data?.addBook;
     if (!addBook) return;
-    cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
+    cache.modify({
+      id: 'ROOT_QUERY',
+      fields: {
+        books: (books, { toReference, fieldName, storeFieldName }) => {
+          const args = JSON.parse(storeFieldName.substring(fieldName.length + 1, storeFieldName.length - 1));
+          return args.name && args.name !== addBook.name
+            ? books
+            : [...books, toReference(addBook)];
+        }
+      }
+    });
   }
 
   @Effect(AddBookMutation)

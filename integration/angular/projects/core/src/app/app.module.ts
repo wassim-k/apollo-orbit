@@ -1,22 +1,23 @@
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { NgModule } from '@angular/core';
-import { BrowserModule, BrowserTransferStateModule } from '@angular/platform-browser';
+import { BrowserModule, provideClientHydration } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
-import { BooksModule } from './books/books.module';
 import { GraphQLModule } from './graphql/graphql.module';
+import { LibraryModule } from './library/library.module';
 
 @NgModule({
   declarations: [
     AppComponent
   ],
   imports: [
-    BrowserModule.withServerTransition({ appId: 'serverApp' }),
-    BrowserTransferStateModule,
+    BrowserModule,
     GraphQLModule,
-    BooksModule,
-    HttpClientModule
+    LibraryModule
   ],
-  providers: [],
+  providers: [
+    provideHttpClient(withFetch()),
+    provideClientHydration()
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { ApolloOrbitProvider, InMemoryCache, state, StateDefinition, useDispatch, useLazyQuery, useMutation, useQuery } from '@apollo-orbit/react';
+import { ApolloOrbitProvider, state, StateDefinition, useDispatch, useMutation } from '@apollo-orbit/react';
 import { Mutation as MutationComponent } from '@apollo-orbit/react/components';
-import { ApolloClient, ApolloProvider, MutationFunction } from '@apollo/client';
+import { ApolloClient, ApolloProvider, InMemoryCache, MutationFunction, useLazyQuery, useQuery } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
 import { act, render } from '@testing-library/react';
 import { GraphQLError } from 'graphql';
@@ -70,7 +70,7 @@ const createTestState = () => state(descriptor => descriptor
   .mutationUpdate(AddBookDocument, (cache, info) => {
     if (!info.data) return;
     const { addBook } = info.data;
-    cache.updateQuery({ query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
+    cache.updateQuery({ query: BooksDocument }, data => data ? { books: [...data.books, addBook] } : data);
   })
 
   .effect(AddAuthorDocument, result => {
@@ -79,7 +79,7 @@ const createTestState = () => state(descriptor => descriptor
 
   .action<AddAuthorAction>('author/add', (action, { dispatch }) => {
     actionMock(action);
-    dispatch<AuthorAddedAction>({ type: 'author/added' });
+    return dispatch<AuthorAddedAction>({ type: 'author/added' });
   })
 
   .action<AuthorAddedAction>('author/added', action => {
@@ -169,8 +169,8 @@ describe('State', () => {
 
   it('should merge mutation variables from mutationOptions and mutationFunctionOptions', async () => {
     const TestChild = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument, { variables: { name: 'Brandon Sanderson' }, context: { context: 'old', context1: '1' } });
-      useEffect(() => void addAuthor({ variables: { age: 44 } as AddAuthorMutationVariables, context: { context: 'new', context2: '2' } }), []);
+      const [addAuthor] = useMutation(AddAuthorDocument, { variables: { name: 'Brandon Sanderson' }, context: { val1: 'old', val2: '2' } });
+      useEffect(() => void addAuthor({ variables: { age: 44 } as AddAuthorMutationVariables, context: { val1: 'new', val3: '3' } as any }), []);
       return null;
     };
 
@@ -186,7 +186,7 @@ describe('State', () => {
     ));
 
     expect(mutateSpy.mock.calls[0][0].variables).toEqual({ name: 'Brandon Sanderson', age: 44 });
-    expect(mutateSpy.mock.calls[0][0].context).toEqual({ context: 'new', context2: '2' });
+    expect(mutateSpy.mock.calls[0][0].context).toEqual({ val1: 'new', val3: '3' });
   });
 
   it('should call action', async () => {
@@ -208,18 +208,19 @@ describe('State', () => {
 
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
-    expect(actionMock).toBeCalledTimes(1);
-    expect(actionMock).toBeCalledWith(action);
+    expect(actionMock).toHaveBeenCalledTimes(1);
+    expect(actionMock).toHaveBeenCalledWith(action);
 
-    expect(nestedActionMock).toBeCalledTimes(1);
-    expect(nestedActionMock).toBeCalledWith({ type: 'author/added' });
+    expect(nestedActionMock).toHaveBeenCalledTimes(1);
+    expect(nestedActionMock).toHaveBeenCalledWith({ type: 'author/added' });
   });
 
   it('should call effect with onError', async () => {
+    const onErrorFn = jest.fn();
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
     const TestChild = () => {
       const [addAuthor] = useMutation(AddAuthorDocument, {
-        onError: () => { /* noop */ }
+        onError: onErrorFn
       });
       useEffect(() => void addAuthor({ variables }), []);
       return null;
@@ -242,8 +243,9 @@ describe('State', () => {
 
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
-    expect(effectMock).toBeCalledTimes(1);
-    expect(effectMock).toBeCalledWith(expect.objectContaining({
+    expect(onErrorFn).toHaveBeenCalledTimes(1);
+    expect(effectMock).toHaveBeenCalledTimes(1);
+    expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
       error: expect.anything()
     }));
   });
@@ -273,8 +275,8 @@ describe('State', () => {
 
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
-    expect(effectMock).toBeCalledTimes(1);
-    expect(effectMock).toBeCalledWith(expect.objectContaining({
+    expect(effectMock).toHaveBeenCalledTimes(1);
+    expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
       error: expect.anything()
     }));
   });

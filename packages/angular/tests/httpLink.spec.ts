@@ -1,7 +1,7 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { InjectionToken } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
-import { Apollo, ApolloOptions, ApolloOrbitModule, APOLLO_OPTIONS, gql, InMemoryCache } from '@apollo-orbit/angular';
+import { APOLLO_OPTIONS, Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, gql } from '@apollo-orbit/angular';
 import { HttpLinkFactory, HttpLinkModule } from '@apollo-orbit/angular/http';
 import { HttpOptions } from '@apollo/client/core';
 import 'whatwg-fetch';

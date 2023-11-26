@@ -1,4 +1,5 @@
-import { useDispatch, useQuery } from '@apollo-orbit/react';
+import { useDispatch } from '@apollo-orbit/react';
+import { useQuery } from '@apollo/client';
 import { ThemeDocument } from './graphql';
 import { ToggleThemeAction } from './states/theme/theme.actions';
 

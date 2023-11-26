@@ -10,13 +10,15 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
             "preserveSymlinks": true,
-            "outputPath": "dist/core/browser",
+            "outputPath": "dist/core",
             "index": "projects/core/src/index.html",
-            "main": "projects/core/src/main.ts",
-            "polyfills": "projects/core/src/polyfills.ts",
+            "browser": "projects/core/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "projects/core/tsconfig.app.json",
             "assets": [
               "projects/core/src/favicon.ico",
@@ -26,17 +28,19 @@
               "projects/core/src/styles.scss"
             ],
             "scripts": [],
-            "vendorChunk": true,
             "extractLicenses": false,
-            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
             "namedChunks": true,
             "allowedCommonJsDependencies": [
               "decorator-cache-getter",
-              "graphql-tag",
-              "subscriptions-transport-ws"
-            ]
+              "graphql-tag"
+            ],
+            "server": "projects/core/src/main.server.ts",
+            "prerender": true,
+            "ssr": {
+              "entry": "projects/core/server.ts"
+            }
           },
           "configurations": {
             "development": {},
@@ -52,8 +56,6 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
@@ -74,10 +76,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "core:build:production"
+              "buildTarget": "core:build:production"
             },
             "development": {
-              "browserTarget": "core:build:development"
+              "buildTarget": "core:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -85,7 +87,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "core:build"
+            "buildTarget": "core:build"
           }
         },
         "server": {
@@ -96,7 +98,8 @@
             "main": "projects/core/server.ts",
             "tsConfig": "projects/core/tsconfig.server.json",
             "sourceMap": true,
-            "optimization": false
+            "optimization": false,
+            "buildOptimizer": false
           },
           "configurations": {
             "production": {
@@ -108,39 +111,14 @@
                 }
               ],
               "sourceMap": false,
-              "optimization": true
+              "optimization": true,
+              "buildOptimizer": true
             },
             "development": {
               "vendorChunk": true
             }
           },
           "defaultConfiguration": "development"
-        },
-        "serve-ssr": {
-          "builder": "@nguniversal/builders:ssr-dev-server",
-          "options": {
-            "browserTarget": "core:build",
-            "serverTarget": "core:server"
-          },
-          "configurations": {
-            "production": {
-              "browserTarget": "core:build:production",
-              "serverTarget": "core:server:production"
-            }
-          }
-        },
-        "prerender": {
-          "builder": "@nguniversal/builders:prerender",
-          "options": {
-            "browserTarget": "core:build:production",
-            "serverTarget": "core:server:production",
-            "routes": [
-              "/"
-            ]
-          },
-          "configurations": {
-            "production": {}
-          }
         }
       }
     },
@@ -151,13 +129,15 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
             "preserveSymlinks": true,
             "outputPath": "dist/effects",
             "index": "projects/effects/src/index.html",
-            "main": "projects/effects/src/main.ts",
-            "polyfills": "projects/effects/src/polyfills.ts",
+            "browser": "projects/effects/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "projects/effects/tsconfig.app.json",
             "assets": [
               "projects/effects/src/favicon.ico",
@@ -172,16 +152,13 @@
               "projects/effects/src/styles.scss"
             ],
             "scripts": [],
-            "vendorChunk": true,
             "extractLicenses": false,
-            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
             "namedChunks": true,
             "allowedCommonJsDependencies": [
               "decorator-cache-getter",
-              "graphql-tag",
-              "subscriptions-transport-ws"
+              "graphql-tag"
             ]
           },
           "configurations": {
@@ -198,8 +175,6 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
@@ -220,10 +195,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "effects:build:production"
+              "buildTarget": "effects:build:production"
             },
             "development": {
-              "browserTarget": "effects:build:development"
+              "buildTarget": "effects:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -231,7 +206,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "effects:build"
+            "buildTarget": "effects:build"
           }
         }
       }

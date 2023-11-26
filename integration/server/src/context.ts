@@ -5,6 +5,7 @@ export interface BookContext {
   getAll(filter?: QueryBooksArgs): Array<Book>;
   getById(id: string): Book;
   addBook(book: BookInput): Book;
+  updateBook(id: string, book: BookInput): Book;
 }
 
 export interface AuthorContext {

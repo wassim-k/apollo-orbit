@@ -23,8 +23,8 @@ export class Apollo<TCacheShape = any> extends ApolloBase<TCacheShape> {
     public mutate<T = any, V extends Variables = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {
         const { manager } = this;
         return super.mutate<T, V>(manager.wrapMutationOptions(options)).pipe(tap({
-            next: result => manager.runEffects<T>(options, result, undefined),
-            error: error => manager.runEffects<T>(options, undefined, error)
+            next: result => manager.runEffects<T, V>(options, result, undefined),
+            error: error => manager.runEffects<T, V>(options, undefined, error)
         }));
     }
 

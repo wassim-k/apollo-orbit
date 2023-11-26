@@ -10,6 +10,17 @@ export const booksContext: BookContext = {
     data.books.push(newBook);
     return newBook as Book;
   },
+  updateBook: (id: string, input: BookInput): Book => {
+    const index = data.books.findIndex(b => b.id === id);
+
+    if (index === -1) {
+      throw new Error(`Book (id: ${id}) does not exist`);
+    }
+
+    data.books[index] = { id, authorId: input.authorId, genre: input.genre, name: input.name };
+
+    return data.books[index] as Book;
+  },
   getById: (id: string): Book => {
     return data.books.find(book => book.id === id) as Book;
   },

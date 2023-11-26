@@ -5,7 +5,7 @@ export const authorState = state(descriptor => descriptor
   .mutationUpdate(AddAuthorDocument, (cache, info) => {
     const addAuthor = info.data?.addAuthor;
     if (!addAuthor) return;
-    cache.updateQuery({ query: AuthorsDocument }, query => query ? { authors: [...query.authors, addAuthor] } : query);
+    cache.updateQuery({ query: AuthorsDocument }, data => data ? { authors: [...data.authors, addAuthor] } : data);
   })
   .mutationUpdate(AddBookDocument, (cache, info) => {
     const addBook = info.data?.addBook;

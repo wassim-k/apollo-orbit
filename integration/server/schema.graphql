@@ -32,8 +32,9 @@ type Query {
 }
 
 type Mutation {
-	addAuthor(author: AuthorInput!): Author
-	addBook(book: BookInput!): Book
+	addAuthor(author: AuthorInput!): Author!
+	addBook(book: BookInput!): Book!
+	updateBook(id: ID!, book: BookInput!): Book!
 }
 
 type Subscription {

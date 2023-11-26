@@ -2,21 +2,14 @@
 import { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
-  schema: [
-    'http://localhost:4000/graphql',
-    {
-      './projects/core/src/app/**/*.state.ts': {
-        noRequire: true
-      }
-    }
-  ],
+  schema: 'http://localhost:4000/graphql',
   config: {
     importFromCore: true,
-    dedupeOperationSuffix: true,
     operationResultSuffix: 'Data',
     querySuffix: 'Query',
     mutationSuffix: 'Mutation',
     subscriptionSuffix: 'Subscription',
+    dedupeOperationSuffix: true,
     inlineFragmentTypes: 'combine',
     avoidOptionals: {
       field: true

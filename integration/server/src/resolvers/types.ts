@@ -6,48 +6,51 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: string;
-  String: string;
-  Boolean: boolean;
-  Int: number;
-  Float: number;
+  ID: { input: string; output: string; }
+  String: { input: string; output: string; }
+  Boolean: { input: boolean; output: boolean; }
+  Int: { input: number; output: number; }
+  Float: { input: number; output: number; }
 };
 
 export type Author = {
   __typename?: 'Author';
-  age?: Maybe<Scalars['Int']>;
+  age?: Maybe<Scalars['Int']['output']>;
   books: Array<Book>;
-  id: Scalars['ID'];
-  name: Scalars['String'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type AuthorInput = {
-  age?: InputMaybe<Scalars['Int']>;
-  name: Scalars['String'];
+  age?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
 };
 
 export type Book = {
   __typename?: 'Book';
   author: Author;
-  authorId: Scalars['ID'];
-  genre?: Maybe<Scalars['String']>;
-  id: Scalars['ID'];
-  name: Scalars['String'];
+  authorId: Scalars['ID']['output'];
+  genre?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type BookInput = {
-  authorId: Scalars['ID'];
-  genre?: InputMaybe<Scalars['String']>;
-  name: Scalars['String'];
+  authorId: Scalars['ID']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
-  addAuthor?: Maybe<Author>;
-  addBook?: Maybe<Book>;
+  addAuthor: Author;
+  addBook: Book;
+  updateBook: Book;
 };
 
 
@@ -60,6 +63,12 @@ export type MutationAddBookArgs = {
   book: BookInput;
 };
 
+
+export type MutationUpdateBookArgs = {
+  book: BookInput;
+  id: Scalars['ID']['input'];
+};
+
 export type Query = {
   __typename?: 'Query';
   author: Author;
@@ -70,19 +79,19 @@ export type Query = {
 
 
 export type QueryAuthorArgs = {
-  id: Scalars['ID'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type QueryBookArgs = {
-  id: Scalars['ID'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type QueryBooksArgs = {
-  authorId?: InputMaybe<Scalars['ID']>;
-  genre?: InputMaybe<Scalars['String']>;
-  name?: InputMaybe<Scalars['String']>;
+  authorId?: InputMaybe<Scalars['ID']['input']>;
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type Subscription = {
@@ -93,7 +102,7 @@ export type Subscription = {
 
 
 export type SubscriptionNewBookArgs = {
-  authorId?: InputMaybe<Scalars['ID']>;
+  authorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -171,12 +180,12 @@ export type ResolversTypes = {
   AuthorInput: AuthorInput;
   Book: ResolverTypeWrapper<Book>;
   BookInput: BookInput;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
-  ID: ResolverTypeWrapper<Scalars['ID']>;
-  Int: ResolverTypeWrapper<Scalars['Int']>;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   Query: ResolverTypeWrapper<{}>;
-  String: ResolverTypeWrapper<Scalars['String']>;
+  String: ResolverTypeWrapper<Scalars['String']['output']>;
   Subscription: ResolverTypeWrapper<{}>;
 };
 
@@ -186,12 +195,12 @@ export type ResolversParentTypes = {
   AuthorInput: AuthorInput;
   Book: Book;
   BookInput: BookInput;
-  Boolean: Scalars['Boolean'];
-  ID: Scalars['ID'];
-  Int: Scalars['Int'];
+  Boolean: Scalars['Boolean']['output'];
+  ID: Scalars['ID']['output'];
+  Int: Scalars['Int']['output'];
   Mutation: {};
   Query: {};
-  String: Scalars['String'];
+  String: Scalars['String']['output'];
   Subscription: {};
 };
 
@@ -213,8 +222,9 @@ export type BookResolvers<ContextType = Context, ParentType extends ResolversPar
 };
 
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
-  addAuthor?: Resolver<Maybe<ResolversTypes['Author']>, ParentType, ContextType, RequireFields<MutationAddAuthorArgs, 'author'>>;
-  addBook?: Resolver<Maybe<ResolversTypes['Book']>, ParentType, ContextType, RequireFields<MutationAddBookArgs, 'book'>>;
+  addAuthor?: Resolver<ResolversTypes['Author'], ParentType, ContextType, RequireFields<MutationAddAuthorArgs, 'author'>>;
+  addBook?: Resolver<ResolversTypes['Book'], ParentType, ContextType, RequireFields<MutationAddBookArgs, 'book'>>;
+  updateBook?: Resolver<ResolversTypes['Book'], ParentType, ContextType, RequireFields<MutationUpdateBookArgs, 'book' | 'id'>>;
 };
 
 export type QueryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {

@@ -1,9 +1,14 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { HttpLink, HttpOptions } from '@apollo/client/core';
-import { of } from 'rxjs';
+import { lastValueFrom, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { HttpConfig } from './httpConfig';
+
+const normalizedHeaders: { [from: string]: string | undefined } = {
+    'accept': 'Accept',
+    'content-type': 'Content-Type'
+};
 
 @Injectable()
 export class HttpLinkFactory {
@@ -19,16 +24,19 @@ export class HttpLinkFactory {
     }
 
     public fetch(url: string, config: HttpConfig): Promise<Response> {
-        return this.httpClient.request(config.method, url, {
-            ...config,
-            observe: 'response',
-            responseType: 'text',
-            reportProgress: false,
-            withCredentials: config.credentials === 'include'
-        }).pipe(
-            map(response => this.getResponse(response)),
-            catchError(error => of(this.getErrorResponse(error)))
-        ).toPromise() as Promise<Response>;
+        return lastValueFrom(
+            this.httpClient.request(config.method, url, {
+                ...config,
+                headers: normalizeHeaders(config.headers),
+                observe: 'response',
+                responseType: 'text',
+                reportProgress: false,
+                withCredentials: config.credentials === 'include'
+            }).pipe(
+                map(response => this.getResponse(response)),
+                catchError(error => of(this.getErrorResponse(error)))
+            )
+        );
     }
 
     protected getErrorResponse(errorResponse: HttpErrorResponse): Response {
@@ -51,4 +59,20 @@ export class HttpLinkFactory {
     protected mapHeaders(headers: HttpHeaders): HeadersInit {
         return headers.keys().reduce((acc, key) => ({ ...acc, [key]: headers.get(key) }), {});
     }
+}
+
+// @apollo/client passes headers in a format that fails angular checks
+function normalizeHeaders(headers: Record<string, string> | undefined): Record<string, string> | undefined {
+    if (!headers) return headers;
+
+    return Object
+        .keys(headers)
+        .reduce(
+            (acc, header) => {
+                const normalizedHeader = normalizedHeaders[header];
+                return normalizedHeader !== undefined
+                    ? { ...acc, [normalizedHeader]: headers[header] }
+                    : { ...acc, [header]: headers[header] };
+            },
+            {});
 }
