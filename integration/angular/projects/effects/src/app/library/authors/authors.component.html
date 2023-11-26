@@ -1,13 +1,17 @@
 <h3>Authors <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
-<ng-container *ngIf="authorsQuery | async as authorsResult">
-    <ng-container *ngIf="authorsResult.loading">Loading...</ng-container>
-    <ng-container *ngIf="authorsResult.error">{{ authorsResult.error.message }}</ng-container>
-    <ng-container *ngIf="(authorsResult.data || authorsResult.previousData)?.authors  as authors">
-        <div *ngFor="let author of authors">
-            <span>{{ author.name }}</span>
-            <ul>
-                <li *ngFor="let book of author.books">{{ book.name }}</li>
-            </ul>
-        </div>
-    </ng-container>
-</ng-container>
+@if (authorsQuery | async; as authorsResult) {
+@if (authorsResult.loading) { Loading... }
+@if (authorsResult.error) { {{ authorsResult.error.message }} }
+@if ((authorsResult.data || authorsResult.previousData)?.authors; as authors) {
+@for (author of authors; track author.id) {
+<div>
+  <span>{{ author.name }}</span>
+  <ul>
+    @for (book of author.books; track book) {
+    <li>{{ book.name }}</li>
+    }
+  </ul>
+</div>
+}
+}
+}

@@ -31,8 +31,8 @@ module.exports = {
       rules: {
         'no-restricted-imports': ['error', {
           name: '@apollo/client',
-          importNames: ['useQuery', 'useLazyQuery', 'useMutation', 'useSubscription'],
-          message: 'Please import { useQuery, useLazyQuery, useMutation, useSubscription } from @apollo-orbit/react'
+          importNames: ['useMutation'],
+          message: 'Please import { useMutation } from @apollo-orbit/react'
         }],
         '@typescript-eslint/no-unnecessary-condition': 'error',
         '@typescript-eslint/strict-boolean-expressions': 'off',

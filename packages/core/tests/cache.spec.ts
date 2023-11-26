@@ -110,7 +110,7 @@ describe('Cache', () => {
       cache.writeFragment({ id, fragment: AuthorFragmentDoc, data: object });
       const writeFragmentSpy = jest.spyOn(cache, 'writeFragment');
       cache.updateFragment({ id, fragment: AuthorFragmentDoc }, (current: any) => void 0);
-      expect(writeFragmentSpy).toBeCalledTimes(0);
+      expect(writeFragmentSpy).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -163,7 +163,7 @@ describe('Cache', () => {
       const writeQuerySpy = jest.spyOn(cache, 'writeQuery');
       cache.updateQuery({ query }, current => void 0);
 
-      expect(writeQuerySpy).toBeCalledTimes(0);
+      expect(writeQuerySpy).toHaveBeenCalledTimes(0);
     });
   });
 });

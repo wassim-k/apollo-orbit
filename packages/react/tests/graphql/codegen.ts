@@ -4,8 +4,8 @@ import { CodegenConfig } from '@graphql-codegen/cli';
 const config: CodegenConfig = {
   schema: 'tests/graphql/schema.graphql',
   documents: [
-    'tests/graphql/books.graphql',
-    'tests/graphql/authors.graphql'
+    'tests/graphql/book.graphql',
+    'tests/graphql/author.graphql'
   ],
   config: {
     dedupeOperationSuffix: true,

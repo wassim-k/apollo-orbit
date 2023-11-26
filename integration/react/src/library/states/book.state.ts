@@ -29,14 +29,15 @@ export const bookState = state(descriptor => descriptor
       id: shortid.generate(),
       displayName: getDisplayName(book as Book),
       genre: book.genre ?? null,
-      name: book.name
+      name: book.name,
+      authorId: book.authorId
     }
   }))
 
   .mutationUpdate(AddBookDocument, (cache, info) => {
     const addBook = info.data?.addBook;
     if (!addBook) return;
-    cache.updateQuery({ query: BooksDocument }, query => query ? { books: [...query.books, addBook] } : query);
+    cache.updateQuery({ query: BooksDocument }, data => data ? { books: [...data.books, addBook] } : data);
   })
 
   .effect(AddBookDocument, info => {
@@ -44,13 +45,17 @@ export const bookState = state(descriptor => descriptor
       Toastify({
         text: `New book '${info.data.addBook.name}' was added.`,
         duration: 3000,
-        backgroundColor: 'linear-gradient(to right, #00b09b, #96c93d)'
+        style: {
+          background: 'linear-gradient(to right, #00b09b, #96c93d)'
+        }
       }).showToast();
     } else if (info.error) {
       Toastify({
         text: `Failed to add book '${info.variables?.book.name}': ${info.error.message}`,
         duration: 3000,
-        backgroundColor: 'linear-gradient(to right, #ff5f6d, #ffc371)'
+        style: {
+          background: 'linear-gradient(to right, #ff5f6d, #ffc371)'
+        }
       }).showToast();
     }
   })

@@ -1,4 +1,3 @@
-import { GraphQLError } from 'graphql';
 import { PubSub, withFilter } from 'graphql-subscriptions';
 import { Book } from '../types';
 import { Resolvers, SubscriptionNewBookArgs } from './types';
@@ -51,11 +50,12 @@ export const resolvers: Resolvers = {
       return newAuthor;
     },
     addBook: (_parent, { book }, context) => {
-      const error: boolean = false as boolean;
-      if (error) throw new GraphQLError('Failed to add book');
       const newBook = context.books.addBook(book);
       void pubsub.publish(NEW_BOOK, { newBook });
       return newBook;
+    },
+    updateBook: (_parent, { id, book }, context) => {
+      return context.books.updateBook(id, book);
     }
   },
   Subscription: {

@@ -1,18 +1,17 @@
-<div *ngIf="theme$ | async as theme" [class]="['main', theme]">
-
-  <div>
-    <app-theme></app-theme>
+@if (theme$ | async; as theme) {
+  <div [class]="['main', theme]">
+    <div>
+      <app-theme></app-theme>
+    </div>
+    <div>
+      <app-library></app-library>
+    </div>
+    <div>
+      <a class="router-link" routerLink="/lazy" routerLinkActive="is-active">go to lazy</a>
+      <a class="router-link" routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact: true}">
+        <span>go back</span>
+      </a>
+    </div>
+    <router-outlet></router-outlet>
   </div>
-
-  <div>
-    <app-library></app-library>
-  </div>
-
-  <div>
-    <a class="router-link" routerLink="/lazy" routerLinkActive="is-active">go to lazy</a>
-    <a class="router-link" routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact: true}">
-      <span>go back</span>
-    </a>
-  </div>
-  <router-outlet></router-outlet>
-</div>
+}

@@ -1,7 +1,7 @@
 <form [formGroup]="form" autocomplete="off" (ngSubmit)="submit()">
-
-  <div *ngIf="error$ | async as error" class="error-well">An error has occured: {{ error.message }}</div>
-
+  @if (error(); as error) {
+  <div class="error-well">An error has occurred: {{ error.message }}</div>
+  }
   <div class="form-group">
     <label for="name">Name *</label>
     <input name="name" type="text" formControlName="name" />

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Action, ActionContext, Apollo, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, ofActionComplete, ofActionDispatched, ofActionError, ofActionSuccess, State } from '@apollo-orbit/angular';
+import { Action, ActionContext, Apollo, APOLLO_OPTIONS, ApolloOrbitModule, InMemoryCache, ofActionComplete, ofActionDispatched, ofActionError, ofActionSuccess, State } from '@apollo-orbit/angular';
 import { forkJoin, noop, Observable, throwError, timer } from 'rxjs';
 import { map, mergeMap, tap } from 'rxjs/operators';
 import shortid from 'shortid';
@@ -61,7 +61,7 @@ class TestState {
   public addBook(action: AddBook, { cache, dispatch }: ActionContext): void {
     if (action.book.name === 'Error') throw new Error();
     const book = this.createNewBook(action.book);
-    cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query);
+    cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data);
     dispatch(new AddBookSuccess());
   }
 
@@ -75,7 +75,7 @@ class TestState {
     if (action.book.name === 'Error') return throwError(() => new Error());
     return timer(10).pipe(
       map(() => this.createNewBook(action.book)),
-      tap(book => cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query))
+      tap(book => cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data))
     );
   }
 
@@ -84,7 +84,7 @@ class TestState {
     return new Promise((resolve, reject) => setTimeout(() => {
       if (action.book.name === 'Error') reject(new Error());
       const book = this.createNewBook(action.book);
-      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query);
+      cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data);
       resolve(void 0);
     }, 10));
   }
@@ -126,7 +126,7 @@ describe('Action', () => {
 
       tick(10);
 
-      expect(errorFn).toBeCalled();
+      expect(errorFn).toHaveBeenCalled();
     }));
 
     it('should call update method and update cache (multiple success)', waitForAsync(() => {
@@ -163,7 +163,7 @@ describe('Action', () => {
 
       tick(10);
 
-      expect(errorFn).toBeCalledTimes(1);
+      expect(errorFn).toHaveBeenCalledTimes(1);
     }));
   });
 
@@ -194,7 +194,7 @@ describe('Action', () => {
 
       tick(10);
 
-      expect(dispatchedFn).toBeCalledTimes(3);
+      expect(dispatchedFn).toHaveBeenCalledTimes(3);
     }));
 
     it('ofActionSuccess', fakeAsync(() => {
@@ -223,7 +223,7 @@ describe('Action', () => {
 
       tick(10);
 
-      expect(successFn).toBeCalledTimes(3);
+      expect(successFn).toHaveBeenCalledTimes(3);
     }));
 
     it('ofActionError', fakeAsync(() => {
@@ -252,7 +252,7 @@ describe('Action', () => {
 
       tick(10);
 
-      expect(errorFn).toBeCalledTimes(3);
+      expect(errorFn).toHaveBeenCalledTimes(3);
     }));
 
     it('ofActionComplete', fakeAsync(() => {
@@ -274,27 +274,27 @@ describe('Action', () => {
 
       tick(10);
 
-      expect(completeFn).toBeCalledTimes(7);
+      expect(completeFn).toHaveBeenCalledTimes(7);
 
-      expect(completeFn).nthCalledWith(1, expect.objectContaining({ status: 'error' }));
+      expect(completeFn).toHaveBeenNthCalledWith(1, expect.objectContaining({ status: 'error' }));
       expect(completeFn.mock.calls[0][0].action).toBeInstanceOf(AddBook);
 
-      expect(completeFn).nthCalledWith(2, expect.objectContaining({ status: 'success' }));
+      expect(completeFn).toHaveBeenNthCalledWith(2, expect.objectContaining({ status: 'success' }));
       expect(completeFn.mock.calls[1][0].action).toBeInstanceOf(AddBookSuccess);
 
-      expect(completeFn).nthCalledWith(3, expect.objectContaining({ status: 'success' }));
+      expect(completeFn).toHaveBeenNthCalledWith(3, expect.objectContaining({ status: 'success' }));
       expect(completeFn.mock.calls[2][0].action).toBeInstanceOf(AddBook);
 
-      expect(completeFn).nthCalledWith(4, expect.objectContaining({ status: 'error' }));
+      expect(completeFn).toHaveBeenNthCalledWith(4, expect.objectContaining({ status: 'error' }));
       expect(completeFn.mock.calls[3][0].action).toBeInstanceOf(AddBookObservable);
 
-      expect(completeFn).nthCalledWith(5, expect.objectContaining({ status: 'error' }));
+      expect(completeFn).toHaveBeenNthCalledWith(5, expect.objectContaining({ status: 'error' }));
       expect(completeFn.mock.calls[4][0].action).toBeInstanceOf(AddBookPromise);
 
-      expect(completeFn).nthCalledWith(6, expect.objectContaining({ status: 'success' }));
+      expect(completeFn).toHaveBeenNthCalledWith(6, expect.objectContaining({ status: 'success' }));
       expect(completeFn.mock.calls[5][0].action).toBeInstanceOf(AddBookPromise);
 
-      expect(completeFn).nthCalledWith(7, expect.objectContaining({ status: 'success' }));
+      expect(completeFn).toHaveBeenNthCalledWith(7, expect.objectContaining({ status: 'success' }));
       expect(completeFn.mock.calls[6][0].action).toBeInstanceOf(AddBookObservable);
     }));
   });

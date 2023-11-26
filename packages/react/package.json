@@ -31,15 +31,14 @@
     "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.ts"
   },
   "peerDependencies": {
-    "@apollo/client": "^3.2.0",
+    "@apollo/client": "^3.8.0",
     "graphql": ">=0.11",
     "react": ">=16.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.8.0",
-    "tslib": "^2.5.0"
+    "@apollo-orbit/core": "^0.9.0"
   },
   "devDependencies": {
-    "@testing-library/react": "^14.0.0"
+    "@testing-library/react": "^14.1.2"
   }
 }

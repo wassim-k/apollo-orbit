@@ -62,7 +62,9 @@ export const themeState = state(descriptor => descriptor
       Toastify({
         text: `Theme was toggled ${action.toggles} time(s)`,
         duration: 3000,
-        backgroundColor: 'linear-gradient(to right, #00b09b, #96c93d)'
+        style: {
+          background: 'linear-gradient(to right, #00b09b, #96c93d)'
+        }
       }).showToast();
     })
 );

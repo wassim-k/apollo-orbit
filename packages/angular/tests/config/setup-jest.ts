@@ -1,4 +1,5 @@
-require('zone.js/fesm2015/zone-testing-bundle.js');
+require('zone.js');
+require('zone.js/testing');
 require('./jest-global-mocks');
 
 import { getTestBed } from '@angular/core/testing';

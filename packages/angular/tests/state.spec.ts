@@ -79,7 +79,7 @@ class TestState {
   public addBook(cache: ApolloCache<any>, info: AddBookMutationInfo): void {
     if (info.data) {
       const { addBook } = info.data;
-      cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
+      cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, addBook] } : data);
     }
   }
 
@@ -87,7 +87,7 @@ class TestState {
   public addBookAction(action: AddBook, { cache }: ActionContext): Observable<any> {
     return timer(10).pipe(
       map(() => ({ __typename: 'Book' as const, id: shortid.generate(), ...action.book, genre: null })),
-      tap(book => cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, book] } : query))
+      tap(book => cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data))
     );
   }
 }

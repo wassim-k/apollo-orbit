@@ -1,49 +1,76 @@
+/* eslint-disable no-shadow */
 /* eslint-disable no-restricted-imports */
-import { ApolloError, BaseMutationOptions, mergeOptions, MutationFunctionOptions, MutationHookOptions, MutationTuple, OperationVariables as Variables, TypedDocumentNode, useMutation as useMutationCore } from '@apollo/client';
+
+import { ApolloCache, ApolloError, BaseMutationOptions, DefaultContext, MutationFunctionOptions, MutationHookOptions, MutationTuple, NoInfer, OperationVariables, TypedDocumentNode, mergeOptions, useMutation as useMutationCore } from '@apollo/client';
 import { DocumentNode } from 'graphql';
-import { useContext } from 'react';
+import { useCallback, useContext, useRef } from 'react';
 import { ApolloOrbitContext } from './context';
 
-interface MutationOptions<TData = any, TVariables = Variables> extends BaseMutationOptions<TData, TVariables> {
+interface MutationOptions<
+  TData = any,
+  TVariables = OperationVariables,
+  TContext = DefaultContext,
+  TCache extends ApolloCache<any> = ApolloCache<any>
+> extends BaseMutationOptions<TData, TVariables, TContext, TCache> {
   mutation: DocumentNode;
 }
 
-export function useMutation<TData = any, TVariables = Variables>(
+export function useMutation<
+  TData = any,
+  TVariables = OperationVariables,
+  TContext = DefaultContext,
+  TCache extends ApolloCache<any> = ApolloCache<any>,
+>(
   mutation: DocumentNode | TypedDocumentNode<TData, TVariables>,
-  options: MutationHookOptions<TData, TVariables> = {}
-): MutationTuple<TData, TVariables> {
+  options?: MutationHookOptions<
+    NoInfer<TData>,
+    NoInfer<TVariables>,
+    TContext,
+    TCache
+  >
+): MutationTuple<TData, TVariables, TContext, TCache> {
   const { mutationManager } = useContext(ApolloOrbitContext);
-  const { onError } = options;
-  if (onError) {
-    options.onError = (error: ApolloError): void => {
-      onError(error);
-      mutationManager.runEffects<TData>({ mutation, ...options }, undefined, error);
-    };
-  }
 
-  const [mutationFn, mutationResult] = useMutationCore<TData, TVariables>(mutation, options);
-  return [
-    (mutationFunctionOptions: MutationFunctionOptions<TData, TVariables> = {}) => {
-      const mutationOptions = { mutation, ...options };
+  const [mutationFn, mutationResult] = useMutationCore(mutation, options);
 
-      return mutationFn({
-        ...mutationFunctionOptions,
-        ...mutationManager.withMutationOptions(
-          mergeOptions(mutationOptions, mutationFunctionOptions as MutationOptions<TData, TVariables>)
-        )
-      })
-        .then(result => {
-          // If onError is set then the effect is handled above by onError
-          if (!onError) {
-            mutationManager.runEffects<TData>(mutationOptions, result, undefined);
-          }
-          return result;
-        })
-        .catch((error: ApolloError) => {
-          mutationManager.runEffects<TData>(mutationOptions, undefined, error);
-          throw error;
-        });
+  const ref = useRef({
+    mutationFn,
+    mutationManager,
+    mutation,
+    options
+  });
+
+  Object.assign(ref.current, { mutationFn, mutationManager, options, mutation });
+
+  const execute = useCallback(
+    (executeOptions: MutationFunctionOptions<TData, TVariables, TContext, TCache> = {}) => {
+      const { options, mutation } = ref.current;
+      const baseOptions = { ...options, mutation };
+      const clientOptions: MutationOptions<TData, TVariables, TContext, TCache> = mergeOptions(baseOptions as any, executeOptions as any);
+      const wrappedOptions = ref.current.mutationManager.withMutationOptions<TData, TVariables, TContext, TCache>(clientOptions);
+
+      const originalOnError = clientOptions.onError;
+      const onError = originalOnError
+        ? (error: ApolloError, clientOptions?: BaseMutationOptions): void => {
+          originalOnError(error, clientOptions);
+          const { variables, context } = clientOptions as MutationOptions<TData, TVariables, TContext, TCache>;
+          ref.current.mutationManager.runEffects<TData, TVariables, TContext>({ mutation: ref.current.mutation, variables, context }, undefined, error);
+        }
+        : originalOnError;
+
+      return ref.current.mutationFn({ ...executeOptions, ...wrappedOptions, onError }).then(result => {
+        // If onError is set then the error effect is handled above by onError
+        if (!onError) {
+          ref.current.mutationManager.runEffects<TData, TVariables, TContext>(clientOptions, result, undefined);
+        }
+        return result;
+      }).catch((error: ApolloError) => {
+        ref.current.mutationManager.runEffects<TData, TVariables, TContext>(clientOptions, undefined, error);
+        throw error;
+      });
     },
-    mutationResult
-  ];
+    []
+  );
+
+  return [execute, mutationResult];
 }

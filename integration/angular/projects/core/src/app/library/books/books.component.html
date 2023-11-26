@@ -1,0 +1,13 @@
+<h3>Books <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
+<div>
+    <input type="text" placeholder="Book name" [formControl]="nameControl" />
+</div>
+@if (booksQuery | async; as booksResult) {
+@if (booksResult.loading) { Loading... }
+@if (booksResult.error) { {{ booksResult.error.message }} }
+@if ((booksResult.data ?? booksResult.previousData)?.books; as books) {
+@for (book of books; track book.id) {
+<div>{{ book.name }}</div>
+}
+}
+}

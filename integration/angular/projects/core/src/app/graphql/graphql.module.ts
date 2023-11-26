@@ -1,7 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Inject, NgModule, PLATFORM_ID } from '@angular/core';
-import { makeStateKey, TransferState } from '@angular/platform-browser';
-import { Apollo, ApolloOptions, ApolloOrbitModule, APOLLO_MULTI_ROOT, APOLLO_OPTIONS, InMemoryCache, NormalizedCacheObject } from '@apollo-orbit/angular/core';
+import { Inject, NgModule, PLATFORM_ID, TransferState, makeStateKey } from '@angular/core';
+import { APOLLO_MULTI_ROOT, APOLLO_OPTIONS, Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, NormalizedCacheObject } from '@apollo-orbit/angular/core';
 import { HttpLinkFactory, HttpLinkModule } from '@apollo-orbit/angular/http';
 import { environment } from '../../environments/environment';
 

@@ -5,35 +5,37 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: string;
-  String: string;
-  Boolean: boolean;
-  Int: number;
-  Float: number;
+  ID: { input: string; output: string; }
+  String: { input: string; output: string; }
+  Boolean: { input: boolean; output: boolean; }
+  Int: { input: number; output: number; }
+  Float: { input: number; output: number; }
 };
 
 export type Author = {
   __typename?: 'Author';
-  age: Maybe<Scalars['Int']>;
+  age: Maybe<Scalars['Int']['output']>;
   books: Maybe<Array<Book>>;
-  id: Scalars['ID'];
-  name: Scalars['String'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type Book = {
   __typename?: 'Book';
-  authorId: Scalars['ID'];
-  genre: Maybe<Scalars['String']>;
-  id: Scalars['ID'];
-  name: Scalars['String'];
+  authorId: Scalars['ID']['output'];
+  genre: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type BookInput = {
-  authorId: Scalars['ID'];
-  genre?: InputMaybe<Scalars['String']>;
-  name: Scalars['String'];
+  authorId: Scalars['ID']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };
 
 export type Mutation = {
@@ -44,8 +46,8 @@ export type Mutation = {
 
 
 export type MutationAddAuthorArgs = {
-  age?: InputMaybe<Scalars['Int']>;
-  name: Scalars['String'];
+  age?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
 };
 
 
@@ -63,17 +65,17 @@ export type Query = {
 
 
 export type QueryAuthorArgs = {
-  id: Scalars['ID'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type QueryBookArgs = {
-  id: Scalars['ID'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type QueryBooksArgs = {
-  genre?: InputMaybe<Scalars['String']>;
+  genre?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type AuthorFragment = { __typename: 'Author', id: string, name: string };
@@ -92,7 +94,7 @@ export type AuthorsQueryData = { __typename?: 'Query', authors: Array<(
   )> };
 
 export type AuthorQueryVariables = Exact<{
-  id: Scalars['ID'];
+  id: Scalars['ID']['input'];
 }>;
 
 
@@ -102,8 +104,8 @@ export type AuthorQueryData = { __typename?: 'Query', author: (
   ) };
 
 export type AddAuthorMutationVariables = Exact<{
-  name: Scalars['String'];
-  age?: InputMaybe<Scalars['Int']>;
+  name: Scalars['String']['input'];
+  age?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
@@ -115,7 +117,7 @@ export type AddAuthorMutationData = { __typename?: 'Mutation', addAuthor: (
 export type BookFragment = { __typename: 'Book', id: string, name: string, genre: string | null, authorId: string };
 
 export type BookQueryVariables = Exact<{
-  id: Scalars['ID'];
+  id: Scalars['ID']['input'];
 }>;
 
 
@@ -125,7 +127,7 @@ export type BookQueryData = { __typename?: 'Query', book: (
   ) };
 
 export type BooksQueryVariables = Exact<{
-  genre?: InputMaybe<Scalars['String']>;
+  genre?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 

@@ -4,11 +4,11 @@
   "typescript.preferences.quoteStyle": "single",
   "html.format.wrapAttributes": "preserve-aligned",
   "editor.formatOnSave": true,
+  "editor.trimAutoWhitespace": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.organizeImports": true
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
   },
-  "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.exclude": {

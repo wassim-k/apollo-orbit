@@ -2,6 +2,7 @@ fragment BookFragment on Book {
   id
   name
   genre
+  authorId
   displayName @client
 }
 
@@ -19,6 +20,12 @@ query Book($id: ID!) {
 
 mutation AddBook($book: BookInput!) {
   addBook(book: $book) {
+    ...BookFragment
+  }
+}
+
+mutation UpdateBook($id: ID!, $book: BookInput!) {
+  updateBook(id: $id, book: $book) {
     ...BookFragment
   }
 }

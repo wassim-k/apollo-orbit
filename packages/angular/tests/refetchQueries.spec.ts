@@ -1,6 +1,6 @@
 import { Inject, Injectable, InjectionToken } from '@angular/core';
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { Apollo, ApolloOrbitModule, APOLLO_OPTIONS, InMemoryCache, RefetchQueries, RefetchQueryDescriptor, State } from '@apollo-orbit/angular';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { APOLLO_OPTIONS, Apollo, ApolloOrbitModule, InMemoryCache, RefetchQueries, RefetchQueryDescriptor, State } from '@apollo-orbit/angular';
 import shortid from 'shortid';
 import { AddBookMutation, AddBookMutationInfo, BookInput, BooksQuery } from './graphql';
 
@@ -38,6 +38,6 @@ describe('RefetchQueries', () => {
     const book: BookInput = { name: 'New Book', authorId };
     apollo.mutate({ ...new AddBookMutation({ book }) }).subscribe();
     tick();
-    expect(mock).toBeCalled();
+    expect(mock).toHaveBeenCalled();
   }));
 });

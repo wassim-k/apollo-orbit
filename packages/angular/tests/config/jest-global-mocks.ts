@@ -1,5 +1,8 @@
 Object.defineProperty(window, 'CSS', { value: null });
 
+// Prevent @apollo/client from starting a timer(10_000) for suggesting DevTools
+Object.defineProperty(window, '__DEV__', { value: false });
+
 Object.defineProperty(document, 'doctype', {
   value: '<!DOCTYPE html>'
 });

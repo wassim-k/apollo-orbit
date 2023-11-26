@@ -1,7 +1,7 @@
 import { Injectable, Injector } from '@angular/core';
-import { Apollo, ApolloCache, InMemoryCache, MutationUpdate, OnInitState, State } from '@apollo-orbit/angular';
+import { Apollo, ApolloCache, InMemoryCache, MutationUpdate, OnInitState, State, identifyFragment } from '@apollo-orbit/angular';
 import { FetchResult } from '@apollo/client/core';
-import { AddBookMutation, AddBookMutationInfo, AuthorsQuery, NewAuthorSubscription, NewAuthorSubscriptionData } from '../../graphql';
+import { AddBookMutation, AddBookMutationInfo, AuthorFragmentDoc, AuthorsQuery, NewAuthorSubscription, NewAuthorSubscriptionData } from '../../graphql';
 import { Toastify } from '../../services/toastify.service';
 
 @Injectable()
@@ -32,14 +32,10 @@ export class AuthorState implements OnInitState {
     if (!addBook) return;
     const authorId = info.variables?.book.authorId as string;
 
-    cache.updateQuery(new AuthorsQuery(), data => data
-      ? {
-        ...data,
-        authors: data.authors.map(author => author.id === authorId
-          ? { ...author, books: [...author.books, addBook] }
-          : author)
-      }
-      : data);
+    cache.updateFragment(
+      identifyFragment(AuthorFragmentDoc, authorId),
+      author => author ? ({ ...author, books: [...author.books, addBook] }) : author
+    );
   }
 
   private get apollo(): Apollo {

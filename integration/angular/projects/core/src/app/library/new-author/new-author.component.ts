@@ -1,9 +1,8 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
-import { BehaviorSubject } from 'rxjs';
-import { AddAuthorMutation, AuthorFragment, AuthorInput } from '../../graphql';
+import { AddAuthorMutation, AuthorInput } from '../../graphql';
 
 @Component({
   selector: 'app-new-author',
@@ -13,9 +12,8 @@ import { AddAuthorMutation, AuthorFragment, AuthorInput } from '../../graphql';
 })
 export class NewAuthorComponent {
   @Output() public readonly onClose = new EventEmitter<void>();
-  @Output() public readonly onAuthorAdded = new EventEmitter<AuthorFragment>();
 
-  public readonly error$ = new BehaviorSubject<Error | undefined>(undefined);
+  public readonly error = signal<Error | undefined>(undefined);
 
   public constructor(
     private readonly apollo: Apollo,
@@ -33,10 +31,9 @@ export class NewAuthorComponent {
   public submit(): void {
     if (!this.form.valid) return;
     const author = this.form.value as AuthorInput;
-    this.error$.next(undefined);
+    this.error.set(undefined);
     this.apollo.mutate(new AddAuthorMutation({ author })).subscribe({
-      next: result => this.onAuthorAdded.next(result.data?.addAuthor as AuthorFragment),
-      error: (error: Error) => this.error$.next(error)
+      error: (error: Error) => this.error.set(error)
     });
   }
 }
