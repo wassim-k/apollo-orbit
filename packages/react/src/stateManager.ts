@@ -15,7 +15,7 @@ export class StateManager {
             manager.addState(state);
             addToClient(state);
             addToCache(state);
-            state.onInit?.();
+            state.onInit?.(client.cache);
         });
         return manager;
     }

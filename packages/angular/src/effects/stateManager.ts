@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { addStateToCache, addStateToClient, MutationManager, partition, StateDefinition } from '@apollo-orbit/core';
-import { ApolloClient, ApolloError } from '@apollo/client/core';
+import { ApolloCache, ApolloClient, ApolloError } from '@apollo/client/core';
 import { GraphQLError } from 'graphql';
 
 const apolloErrorFactory = (graphQLErrors: ReadonlyArray<GraphQLError>): ApolloError => new ApolloError({ graphQLErrors });
@@ -66,6 +66,8 @@ export class StateManager {
   }
 
   private invokeOnInit(states: Array<StateDefinition>): void {
-    states.forEach(state => state.onInit?.());
+    states
+      .filter(state => state.onInit)
+      .forEach(state => state.onInit?.(this.clients[state.clientId]?.client.cache as ApolloCache<any>));
   }
 }

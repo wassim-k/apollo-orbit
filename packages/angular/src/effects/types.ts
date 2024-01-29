@@ -8,7 +8,7 @@ export interface OnInitState {
    *
    * If the root component has already been bootstrapped, then it's invoked immediately.
    */
-  onInit(): void;
+  onInit(cache: ApolloCache<any>): void;
 }
 
 export interface ActionContext<TCacheShape = any> {
