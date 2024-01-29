@@ -1,4 +1,4 @@
-import { DocumentNode, PossibleTypesMap, TypePolicies, OperationVariables as Variables } from '@apollo/client/core';
+import { ApolloCache, DocumentNode, PossibleTypesMap, TypePolicies, OperationVariables as Variables } from '@apollo/client/core';
 import { nameOfMutation } from './internal';
 import { Action, ActionFn, ActionType, EffectFn, MutationIdentifier, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, Resolver, TypeField } from './types';
 import { createSymbol } from './utils/symbol';
@@ -14,7 +14,7 @@ export interface StateDefinition {
   optimisticResponses: Array<[string, OptimisticResponseFn<any, any>]>;
   actions: Array<[string, ActionFn<any>]>;
   effects: Array<[string, EffectFn<any, any>]>;
-  onInit?: () => void;
+  onInit?: (cache: ApolloCache<any>) => void;
 }
 
 const definitionSymbol: unique symbol = createSymbol('definition') as any;
@@ -59,7 +59,7 @@ export class StateDescriptor {
     return this;
   }
 
-  public onInit(onInit: () => void): this {
+  public onInit(onInit: (cache: ApolloCache<any>) => void): this {
     this.definition.onInit = onInit;
     return this;
   }
