@@ -1,6 +1,6 @@
 import { state } from '@apollo-orbit/react';
 import gql from 'graphql-tag';
-import { Theme, ThemeDocument, ThemeName } from '../../graphql';
+import { ThemeDocument, ThemeName } from '../../graphql';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
 
 const Toastify = require('toastify-js'); // eslint-disable-line @typescript-eslint/no-var-requires
@@ -23,22 +23,24 @@ export const themeState = state(descriptor => descriptor
     }`)
 
   .typePolicies({
-    Query: {
-      fields: {
-        theme: (existing: Theme | undefined, options): Theme => existing ?? {
-          __typename: 'Theme',
-          name: ThemeName.LightTheme,
-          toggles: 0,
-          displayName: 'Light'
-        }
-      }
-    },
     Theme: {
       fields: {
         displayName: (existing, { readField }) => readField<ThemeName>('name') === ThemeName.LightTheme ? 'Light' : 'Dark'
       }
     }
   })
+
+  .onInit(cache => cache.writeQuery({
+    query: ThemeDocument,
+    data: {
+      theme: {
+        __typename: 'Theme',
+        name: ThemeName.LightTheme,
+        toggles: 0,
+        displayName: 'Light'
+      }
+    }
+  }))
 
   .action<ToggleThemeAction>(
     'theme/toggle',

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Action, ActionContext, State } from '@apollo-orbit/angular';
+import { Action, ActionContext, ApolloCache, OnInitState, State } from '@apollo-orbit/angular';
 import gql from 'graphql-tag';
-import { Theme, ThemeName, ThemeQuery } from '../../graphql';
+import { ThemeName, ThemeQuery } from '../../graphql';
 import { Toastify } from '../../services/toastify.service';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
 
@@ -23,16 +23,6 @@ import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
     theme: Theme!
   }`,
   typePolicies: {
-    Query: {
-      fields: {
-        theme: (existing: Theme | undefined, options): Theme => existing ?? {
-          __typename: 'Theme',
-          name: ThemeName.LightTheme,
-          toggles: 0,
-          displayName: 'Light'
-        }
-      }
-    },
     Theme: {
       fields: {
         displayName: (existing, { readField }) => readField<ThemeName>('name') === ThemeName.LightTheme ? 'Light' : 'Dark'
@@ -40,10 +30,24 @@ import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
     }
   }
 })
-export class ThemeState {
+export class ThemeState implements OnInitState {
   public constructor(
     private readonly toastify: Toastify
   ) { }
+
+  public onInit(cache: ApolloCache<any>): void {
+    cache.writeQuery({
+      ...new ThemeQuery(),
+      data: {
+        theme: {
+          __typename: 'Theme',
+          name: ThemeName.LightTheme,
+          toggles: 0,
+          displayName: 'Light'
+        }
+      }
+    });
+  }
 
   @Action(ToggleThemeAction)
   public toggleTheme(action: ToggleThemeAction, { cache, dispatch }: ActionContext) {
