@@ -31,6 +31,7 @@ const serverCleanup = useServer({ schema, context: (_ctx, _message, _args) => db
 const server = new ApolloServer<BaseContext>({
     typeDefs,
     resolvers,
+    allowBatchedHttpRequests: true,
     plugins: [
         // Proper shutdown for the HTTP server.
         ApolloServerPluginDrainHttpServer({ httpServer }),

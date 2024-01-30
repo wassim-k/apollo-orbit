@@ -9,6 +9,12 @@
       "@apollo-orbit/angular/http": [
         "./http/src/index.ts"
       ],
+      "@apollo-orbit/angular/batch-http": [
+        "./batch-http/src/index.ts"
+      ],
+      "@apollo-orbit/angular/fetch": [
+        "./fetch/src/index.ts"
+      ],
       "@apollo-orbit/core": [
         "../core/src/index.ts"
       ]
