@@ -8,7 +8,11 @@ const APOLLO_STATE_KEY = makeStateKey<NormalizedCacheObject>('APOLLO_STATE');
 
 export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, platformId: { [key: string]: any }): ApolloOptions {
   const link = httpLinkFactory.create({ uri: environment.graphqlApiEndpoint });
-  const ssrOptions = isPlatformBrowser(platformId) ? { ssrForceFetchDelay: 200 } : { ssrMode: true };
+
+  const ssrOptions = isPlatformBrowser(platformId)
+    ? { ssrForceFetchDelay: 200 }
+    : { ssrMode: true };
+
   return {
     link,
     cache: new InMemoryCache(),
@@ -34,9 +38,7 @@ export class GraphQLModule {
   ) {
     if (isPlatformBrowser(platformId)) {
       const state = this.transferState.get<NormalizedCacheObject | undefined>(APOLLO_STATE_KEY, undefined);
-      if (state !== undefined) {
-        this.apollo.cache.restore(state);
-      }
+      this.apollo.cache.restore(state);
     } else {
       this.transferState.onSerialize(APOLLO_STATE_KEY, () => this.apollo.cache.extract());
     }
