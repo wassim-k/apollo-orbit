@@ -1,15 +1,17 @@
 import { NgModule } from '@angular/core';
 import { APOLLO_OPTIONS, ApolloOptions, ApolloOrbitModule, InMemoryCache } from '@apollo-orbit/angular';
-import { HttpLinkFactory, HttpLinkModule } from '@apollo-orbit/angular/http';
+import { BatchHttpLinkFactory, BatchHttpLinkModule } from '@apollo-orbit/angular/batch-http';
 import { split } from '@apollo/client/core';
+import { createPersistedQueryLink } from '@apollo/client/link/persisted-queries';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { sha256 } from 'crypto-hash';
 import { createClient } from 'graphql-ws';
 import { AppConfig } from '../config';
 import { ThemeState } from '../states/theme/theme.state';
 
-export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, appConfig: AppConfig, cache: InMemoryCache): ApolloOptions {
-  const httpLink = httpLinkFactory.create({ uri: appConfig.graphqlApiEndpoint });
+export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory, appConfig: AppConfig, cache: InMemoryCache): ApolloOptions {
+  const batchHttpLink = batchHttpLinkFactory.create({ uri: appConfig.graphqlApiEndpoint });
   const wsLink = new GraphQLWsLink(createClient({ url: appConfig.graphqlSubscriptionEndpoint }));
 
   const link = split(
@@ -21,7 +23,7 @@ export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, appConfig
       );
     },
     wsLink,
-    httpLink
+    createPersistedQueryLink({ sha256 }).concat(batchHttpLink)
   );
 
   return { link, cache };
@@ -30,11 +32,11 @@ export function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, appConfig
 @NgModule({
   imports: [
     ApolloOrbitModule.forRoot([ThemeState]),
-    HttpLinkModule
+    BatchHttpLinkModule
   ],
   providers: [
     { provide: InMemoryCache, useValue: new InMemoryCache() },
-    { provide: APOLLO_OPTIONS, useFactory: apolloOptionsFactory, deps: [HttpLinkFactory, AppConfig, InMemoryCache] }
+    { provide: APOLLO_OPTIONS, useFactory: apolloOptionsFactory, deps: [BatchHttpLinkFactory, AppConfig, InMemoryCache] }
   ]
 })
 export class GraphQLModule { }
