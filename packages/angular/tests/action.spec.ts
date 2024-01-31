@@ -176,7 +176,7 @@ describe('Action', () => {
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
       const newBook3 = { name: 'New Book 2', authorId: author2Id };
 
-      apollo.actions$.pipe(
+      apollo.actions.pipe(
         ofActionDispatched(AddBook, AddBookPromise, AddBookObservable)
       ).subscribe(action => {
         if (action instanceof AddBook) {
@@ -205,7 +205,7 @@ describe('Action', () => {
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
       const newBook3 = { name: 'New Book 2', authorId: author2Id };
 
-      apollo.actions$.pipe(
+      apollo.actions.pipe(
         ofActionSuccess(AddBook, AddBookPromise, AddBookObservable)
       ).subscribe(action => {
         if (action instanceof AddBook) {
@@ -234,7 +234,7 @@ describe('Action', () => {
       const newBook2 = { name: 'Error', authorId: author1Id };
       const newBook3 = { name: 'Error', authorId: author2Id };
 
-      apollo.actions$.pipe(
+      apollo.actions.pipe(
         ofActionError(AddBook, AddBookPromise, AddBookObservable)
       ).subscribe(action => {
         if (action instanceof AddBook) {
@@ -259,7 +259,7 @@ describe('Action', () => {
       const apollo = TestBed.inject(Apollo);
       const completeFn = jest.fn();
 
-      apollo.actions$.pipe(
+      apollo.actions.pipe(
         ofActionComplete(AddBook, AddBookSuccess, AddBookPromise, AddBookObservable)
       ).subscribe(result => {
         completeFn(result);

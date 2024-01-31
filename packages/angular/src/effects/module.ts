@@ -1,15 +1,12 @@
-import { ComponentRef, Inject, Injector, ModuleWithProviders, NgModule, ProviderToken } from '@angular/core';
-import { Apollo as ApolloBase, ApolloClient, DefaultOptions, ɵApolloInstanceFactory as ApolloInstanceFactory, ɵAPOLLO_INSTANCE_FACTORY as APOLLO_INSTANCE_FACTORY } from '@apollo-orbit/angular/core';
-import { flatten, StateDefinition, Type } from '@apollo-orbit/core';
+import { Inject, Injector, ModuleWithProviders, NgModule, ProviderToken } from '@angular/core';
+import { ɵAPOLLO_INSTANCE_FACTORY as APOLLO_INSTANCE_FACTORY, Apollo as ApolloBase, ApolloClient, ɵApolloInstanceFactory as ApolloInstanceFactory, DefaultOptions } from '@apollo-orbit/angular/core';
+import { StateDefinition, Type, flatten } from '@apollo-orbit/core';
 import { Apollo } from './apollo';
-import { BootstrapModule, RootBootstrapListener, ROOT_BOOTSTRAP_LISTENER } from './bootstrap.module';
-import { bindStateDefinition, StateClass } from './decorators/internal';
+import { StateClass, bindStateDefinition } from './decorators/internal';
 import { StateManager } from './stateManager';
 import { CHILD_STATES, ROOT_STATES } from './tokens';
 
-@NgModule({
-  imports: [BootstrapModule]
-})
+@NgModule()
 export class ApolloOrbitEffectsRootModule {
   public constructor(
     @Inject(ROOT_STATES) states: Array<Type<any>>,
@@ -53,8 +50,7 @@ export class ApolloOrbitEffectsModule {
         StateManager,
         { provide: Apollo, useExisting: ApolloBase },
         { provide: APOLLO_INSTANCE_FACTORY, useFactory: apolloInstanceFactory, deps: [StateManager] },
-        { provide: ROOT_STATES, useValue: states },
-        { provide: ROOT_BOOTSTRAP_LISTENER, multi: true, useFactory: rootBootstrapListenerFactory, deps: [StateManager] }
+        { provide: ROOT_STATES, useValue: states }
       ]
     };
   }
@@ -68,11 +64,6 @@ export class ApolloOrbitEffectsModule {
       ]
     };
   }
-}
-
-export function rootBootstrapListenerFactory(stateManager: StateManager): RootBootstrapListener {
-  const listener = (_rootComponentRef: ComponentRef<any>): void => stateManager.onBootstrap();
-  return listener;
 }
 
 export function apolloInstanceFactory(stateManager: StateManager): ApolloInstanceFactory {
