@@ -1,7 +1,7 @@
-@if (themeQuery | async; as themeResult) {
+@if (themeQuery | async; as themeData) {
 <div class="container">
   <span>Current theme:</span>
-  <b>{{ themeResult.data?.theme?.displayName }}</b>
+  <b>{{ themeData.theme.displayName }}</b>
   <button type="button" (click)="toggleTheme()">Toggle theme</button>
 </div>
 }

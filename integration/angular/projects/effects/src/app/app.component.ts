@@ -10,8 +10,8 @@ import { ThemeQuery } from './graphql';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {
-  public readonly theme$ = this.apollo.watchQuery({ ...new ThemeQuery(), notifyOnLoading: false }).pipe(
-    map(result => result.data?.theme.name.toLowerCase())
+  public readonly theme$ = this.apollo.cache.watchQuery(new ThemeQuery()).pipe(
+    map(data => data.theme.name.toLowerCase())
   );
 
   public constructor(

@@ -10,7 +10,7 @@ import { ToggleThemeAction } from '../states/theme/theme.actions';
 })
 export class ThemeComponent {
   public readonly themeName = ThemeName;
-  public readonly themeQuery = this.apollo.watchQuery({ ...new ThemeQuery(), notifyOnLoading: false });
+  public readonly themeQuery = this.apollo.cache.watchQuery(new ThemeQuery());
 
   public constructor(
     private readonly apollo: Apollo
