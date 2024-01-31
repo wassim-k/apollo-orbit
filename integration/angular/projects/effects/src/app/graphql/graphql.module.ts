@@ -10,7 +10,7 @@ import { createClient } from 'graphql-ws';
 import { AppConfig } from '../config';
 import { ThemeState } from '../states/theme/theme.state';
 
-export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory, appConfig: AppConfig, cache: InMemoryCache): ApolloOptions {
+export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory, appConfig: AppConfig): ApolloOptions {
   const batchHttpLink = batchHttpLinkFactory.create({ uri: appConfig.graphqlApiEndpoint });
   const wsLink = new GraphQLWsLink(createClient({ url: appConfig.graphqlSubscriptionEndpoint }));
 
@@ -26,7 +26,7 @@ export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory,
     createPersistedQueryLink({ sha256 }).concat(batchHttpLink)
   );
 
-  return { link, cache };
+  return { link, cache: new InMemoryCache() };
 }
 
 @NgModule({
@@ -35,8 +35,7 @@ export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory,
     BatchHttpLinkModule
   ],
   providers: [
-    { provide: InMemoryCache, useValue: new InMemoryCache() },
-    { provide: APOLLO_OPTIONS, useFactory: apolloOptionsFactory, deps: [BatchHttpLinkFactory, AppConfig, InMemoryCache] }
+    { provide: APOLLO_OPTIONS, useFactory: apolloOptionsFactory, deps: [BatchHttpLinkFactory, AppConfig] }
   ]
 })
 export class GraphQLModule { }
