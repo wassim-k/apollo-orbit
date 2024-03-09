@@ -99,6 +99,8 @@ describe('Apollo', () => {
       tick();
       mockSubscriptionLink.simulateComplete();
       tick();
+
+      tick(100); // auto-clean
     }));
   });
 

@@ -39,5 +39,7 @@ describe('RefetchQueries', () => {
     apollo.mutate({ ...new AddBookMutation({ book }) }).subscribe();
     tick();
     expect(mock).toHaveBeenCalled();
+
+    tick(100); // auto-clean
   }));
 });
