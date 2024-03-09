@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/react",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "@apollo/client state management extensions for React.",
   "license": "MIT",
   "sideEffects": false,

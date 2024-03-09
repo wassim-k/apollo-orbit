@@ -36,9 +36,6 @@
       ],
       "@apollo-orbit/react": [
         "packages/react/src/index.ts"
-      ],
-      "@apollo-orbit/react/components": [
-        "packages/react/components/src/index.ts"
       ]
     }
   },

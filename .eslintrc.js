@@ -29,11 +29,6 @@ module.exports = {
         'react-app'
       ],
       rules: {
-        'no-restricted-imports': ['error', {
-          name: '@apollo/client',
-          importNames: ['useMutation'],
-          message: 'Please import { useMutation } from @apollo-orbit/react'
-        }],
         '@typescript-eslint/no-unnecessary-condition': 'error',
         '@typescript-eslint/strict-boolean-expressions': 'off',
         '@typescript-eslint/explicit-function-return-type': 'off',
