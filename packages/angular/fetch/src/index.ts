@@ -43,7 +43,8 @@ function getResponse(response: HttpResponse<string>): Response {
     }
 }
 
-function mapHeaders(headers: HttpHeaders): HeadersInit {
+function mapHeaders(headers: HttpHeaders | undefined): HeadersInit | undefined {
+    if (!headers) return headers;
     return headers.keys().reduce((acc, key) => ({ ...acc, [key]: headers.get(key) }), {});
 }
 
