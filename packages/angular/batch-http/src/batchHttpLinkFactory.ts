@@ -5,14 +5,14 @@ import { BatchHttpLink } from '@apollo/client/link/batch-http';
 
 @Injectable()
 export class BatchHttpLinkFactory {
-    public constructor(
-        private readonly httpClient: HttpClient
-    ) { }
+  public constructor(
+    private readonly httpClient: HttpClient
+  ) { }
 
-    public create(options: BatchHttpLink.Options = {}): BatchHttpLink {
-        return new BatchHttpLink({
-            ...options,
-            fetch: makeFetch(this.httpClient)
-        });
-    }
+  public create(options: BatchHttpLink.Options = {}): BatchHttpLink {
+    return new BatchHttpLink({
+      ...options,
+      fetch: makeFetch(this.httpClient) as typeof fetch
+    });
+  }
 }

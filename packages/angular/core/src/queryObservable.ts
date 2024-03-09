@@ -1,9 +1,8 @@
 import { ApolloError, ApolloQueryResult, WatchQueryOptions as CoreWatchQueryOptions, FetchMoreQueryOptions, NetworkStatus, ObservableQuery, OperationVariables, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client/core';
 import { Concast, ObservableSubscription, Observer } from '@apollo/client/utilities';
-import { Observable, Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
 import { toQueryResult } from './result';
 import { ExtraWatchQueryOptions, QueryResult, SubscribeToMoreOptions } from './types';
-import { fromZenObservable } from './utils';
 
 export class QueryObservable<TData = any, TVariables extends Variables = Variables> extends Observable<QueryResult<TData>> {
   private previousData: TData | undefined;
@@ -13,51 +12,47 @@ export class QueryObservable<TData = any, TVariables extends Variables = Variabl
     { notifyOnLoading = true, throwError = false }: ExtraWatchQueryOptions
   ) {
     super(subscriber => {
-      let subscription: Subscription | undefined;
-      const subscribeToObservableQuery = (initial: boolean): void => {
-        if (initial) {
-          // on calling getCurrentResult apollo client sets lastResult based on fetchPolicy
-          // when lastResult is present, apollo client emits value on subscription
-          // otherwise, it is emitted here instead
-          const currentResult = this.getCurrentResult();
-          const lastResult = observableQuery.getLastResult();
-          if (!lastResult) {
-            const { previousData } = this;
-            subscriber.next({ ...currentResult, previousData });
-            this.previousData = currentResult.data ?? previousData;
-          }
-        }
+      let subscription: ObservableSubscription | undefined;
 
-        subscription = fromZenObservable(observableQuery).subscribe({
-          next: () => {
+      if (notifyOnLoading) {
+        // on calling getCurrentResult apollo client sets lastResult based on fetchPolicy
+        // when lastResult is present, apollo client emits value on subscription
+        // otherwise, it is emitted here instead
+        const currentResult = this.getCurrentResult();
+        const lastResult = observableQuery.getLastResult();
+        if (!lastResult) {
+          const { previousData } = this;
+          subscriber.next({ ...currentResult, previousData });
+          this.previousData = currentResult.data ?? previousData;
+        }
+      }
+
+      const observer: Observer<ApolloQueryResult<TData>> = {
+        next: () => {
+          const currentResult = this.getCurrentResult();
+          const { previousData } = this;
+          subscriber.next({ ...currentResult, previousData });
+          this.previousData = currentResult.data ?? previousData;
+        },
+        error: error => {
+          subscription = undefined;
+          if (throwError) {
+            subscriber.error(error);
+          } else {
             const currentResult = this.getCurrentResult();
             const { previousData } = this;
             subscriber.next({ ...currentResult, previousData });
             this.previousData = currentResult.data ?? previousData;
-          },
-          error: error => {
-            subscription = undefined;
-            if (throwError) {
-              subscriber.error(error);
-            } else {
-              const currentResult = this.getCurrentResult();
-              const { previousData } = this;
-              subscriber.next({ ...currentResult, previousData });
-              this.previousData = currentResult.data ?? previousData;
-              const last = observableQuery['last']; // eslint-disable-line dot-notation
-              observableQuery.resetLastResults();
-              subscribeToObservableQuery(false);
-              observableQuery['last'] = last; // eslint-disable-line dot-notation
-            }
-          },
-          complete: () => {
-            subscription = undefined;
-            subscriber.complete();
+            subscription = observableQuery.resubscribeAfterError(observer);
           }
-        });
+        },
+        complete: () => {
+          subscription = undefined;
+          subscriber.complete();
+        }
       };
 
-      subscribeToObservableQuery(notifyOnLoading);
+      subscription = observableQuery.subscribe(observer);
 
       return () => subscription?.unsubscribe();
     });

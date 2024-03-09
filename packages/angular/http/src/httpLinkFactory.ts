@@ -5,14 +5,14 @@ import { HttpLink, HttpOptions } from '@apollo/client/link/http';
 
 @Injectable()
 export class HttpLinkFactory {
-    public constructor(
-        private readonly httpClient: HttpClient
-    ) { }
+  public constructor(
+    private readonly httpClient: HttpClient
+  ) { }
 
-    public create(options: HttpOptions = {}): HttpLink {
-        return new HttpLink({
-            ...options,
-            fetch: makeFetch(this.httpClient)
-        });
-    }
+  public create(options: HttpOptions = {}): HttpLink {
+    return new HttpLink({
+      ...options,
+      fetch: makeFetch(this.httpClient) as typeof fetch
+    });
+  }
 }

@@ -43,6 +43,8 @@ describe('QueryObservable', () => {
         networkStatus: 7
       }]
     ]);
+
+    tick(100); // auto-clean
   }));
 
   it('should emit current result on subscription', waitForAsync(() => {
@@ -81,6 +83,8 @@ describe('QueryObservable', () => {
         networkStatus: 7
       }]
     ]);
+
+    tick(100); // auto-clean
   }));
 
   it('should emit on cache update', fakeAsync(() => {
@@ -103,6 +107,8 @@ describe('QueryObservable', () => {
     apollo.cache.modify({ fields: { value: () => 'expected 2' } });
     tick();
     expect(mockFn.mock.calls).toEqual([['expected 1'], ['expected 2']]);
+
+    tick(100); // auto-clean
   }));
 
   it('should emit on refetch', fakeAsync(() => {
@@ -128,6 +134,8 @@ describe('QueryObservable', () => {
     tick();
     query$.refetch();
     tick();
+
+    tick(100); // auto-clean
   }));
 
   it('should not emit after unsubscribe', fakeAsync(() => {
@@ -152,6 +160,8 @@ describe('QueryObservable', () => {
     query$.refetch();
     tick();
     expect(mockFn.mock.calls.length).toEqual(1);
+
+    tick(100); // auto-clean
   }));
 
   it('should recover resubscribe on error', fakeAsync(() => {
@@ -229,6 +239,8 @@ describe('QueryObservable', () => {
       [{ data: { value: 'expected 2' }, loading: true, networkStatus: 4, previousData: { value: 'expected 2' } }],
       [{ data: { value: 'expected 3' }, loading: false, networkStatus: 7, previousData: { value: 'expected 2' } }]
     ]);
+
+    tick(100); // auto-clean
   }));
 
   describe('errorPolicy', () => {
@@ -282,6 +294,8 @@ describe('QueryObservable', () => {
         tick();
 
         expect(mockFn.mock.calls).toEqual([[{ value: 'expected 1', error: undefined }], [{ value: 'expected 1', error: 'Invalid query' }]]);
+
+        tick(100); // auto-clean
       }));
     });
 

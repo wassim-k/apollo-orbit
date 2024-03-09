@@ -25,7 +25,7 @@
     "@angular/router": "^17.0.0",
     "@angular/ssr": "^17.0.0",
     "@apollo-orbit/angular": "*",
-    "@apollo/client": "^3.8.7",
+    "@apollo/client": "^3.9.6",
     "bufferutil": "^4.0.8",
     "crypto-hash": "^3.0.0",
     "decorator-cache-getter": "^1.0.0",
