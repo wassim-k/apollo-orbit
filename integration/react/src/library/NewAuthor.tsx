@@ -1,4 +1,4 @@
-import { useMutation } from '@apollo-orbit/react';
+import { useMutation } from '@apollo/client';
 import { FormEvent, useState } from 'react';
 import { AddAuthorDocument } from '../graphql';
 

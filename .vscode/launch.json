@@ -18,7 +18,8 @@
       "args": [
         "--test-match=\"**/${relativeFile}\"",
         "--run-in-band",
-        "--no-cache"
+        "--no-cache",
+        "--test-timeout=30000"
       ],
       "console": "externalTerminal",
       "internalConsoleOptions": "neverOpen",

@@ -5,7 +5,6 @@
     "jsx": "react"
   },
   "files": [
-    "src/index.ts",
-    "components/src/index.ts"
+    "src/index.ts"
   ]
 }
