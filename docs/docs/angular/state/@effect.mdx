@@ -1,0 +1,36 @@
+---
+sidebar_position: 4
+title: '@Effect'
+---
+
+## Overview
+`@Effect` decorator is used to execute a side-effect after a mutation has completed whether successful or not.  
+
+## Usage
+Let's extend `BookState` class created in the previous page to display a notification when `AddBookMutation` is executed.
+
+```typescript title="library/states/book/book.state.ts"
+import { Injectable } from '@angular/core';
+import { Effect, State } from '@apollo-orbit/angular';
+import { AddBookMutation, AddBookMutationInfo } from '../../../graphql/types';
+import { Notification } from '../../../services/notification.service';
+
+@State()
+@Injectable()
+export class BookState {
+  public constructor(
+    private readonly notification: Notification
+  ) { }
+
+  ...
+
+  @Effect(AddBookMutation)
+  public addBookEffect(info: AddBookMutationInfo): void {
+    if (!info.error) {
+      this.notification.success(`New book '${info.data?.addBook?.name}' was added successfully.`);
+    } else {
+      this.notification.error(`Failed to add book '${info.variables?.book.name}': ${info.error.message}`);
+    }
+  }
+}
+```

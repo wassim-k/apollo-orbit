@@ -1,0 +1,120 @@
+---
+sidebar_position: 2
+title: '@State'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`@State` is the decorator used to define a state class.
+
+`@State` class methods can have the following decorators:
+* [@MutationUpdate](./@mutation-update)
+* [@Effect](./@effect)
+* [@OptimisticResponse](./@optimistic-response)
+* [@RefetchQueries](./@refetch-queries)
+* [@Resolve](./@resolve)
+* [@Action](./@action)
+
+## Defining state
+Defining a state class is as simple as creating a class and decorating it with `@State()`.
+
+```typescript title="app/states/theme/theme.state.ts"
+@State()
+@Injectable()
+export class ThemeState {
+  ...
+}
+```
+
+Just like any standard **Angular** service, states are registered with the **Angular** Dependency Injection (DI) system. This allows them to inject other dependencies, such as services or factories, via the constructor.  
+For that to work, state classes must be decorated with `@Injectable()` decorator besides `@State()` decorator.
+
+:::note
+State class file name should be in the format `<state-name>.state.ts`, this is a requirement as per our [environment setup](../get-started/setup-environment).  
+`<state-name>` is singular by convention for simplicity.
+:::
+
+### Options
+`@State()` decorator accepts an options object with the following *optional* properties:
+* [clientId](../advanced/multi-client)
+* <Link to="https://www.apollographql.com/docs/react/local-state/client-side-schema">typeDefs</Link>
+* <Link to="https://www.apollographql.com/docs/react/caching/cache-configuration/#typepolicies">typePolicies</Link>
+* <Link to="https://www.apollographql.com/docs/react/caching/cache-configuration/#possibletypes">possibleTypes</Link>
+
+## Adding state
+Once a `@State` class is created it needs to be added to the module before being used.
+
+### Root module
+To add a state to the root module, use the `ApolloOrbitModule.forRoot()` method.
+
+We'll modify the `GraphQLModule` created as part of the [setup GraphQL guide](../get-started/setup-graphql-module) to include `ThemeState`.
+
+```typescript title="app/graphql/graphql.module.ts"
+import { ThemeState } from '../states/theme/theme.state';
+
+...
+
+@NgModule({
+  imports: [
+    // code-remove-line
+    ApolloOrbitModule.forRoot(),
+    // code-add-line
+    ApolloOrbitModule.forRoot([ThemeState]),
+    ...
+  ]
+  ...
+})
+export class GraphQLModule { }
+```
+
+:::info
+`ApolloOrbitModule.forRoot()` is required even if no states are passed into it.
+:::
+
+### Child modules
+Typically, an **Angular** application is made up of multiple modules, each feature may have its own module and its own state logic.  
+States can be added to these child modules, using the `ApolloOrbitModule.forChild()` method.
+
+```typescript title="library/library.module.ts"
+import { AuthorState } from './states/author/author.state';
+import { BookState } from './states/book/book.state';
+
+...
+
+@NgModule({
+  imports: [
+    // code-add-line
+    ApolloOrbitModule.forChild([AuthorState, BookState]),
+    ...
+  ]
+  ...
+})
+export class LibraryModule { }
+```
+
+### Lazy-loaded modules
+Similar to adding states to child modules, states can be added to lazy-loaded modules using the `ApolloOrbitModule.forChild()` method.
+
+:::warning
+States added to lazy-loaded modules should only handle mutations and actions that are defined within the same module or any of its children modules.
+:::
+
+## `OnInitState` interface
+Similar to Angular's `OnInit` interface, `OnInitState` interface can be implemented in the state class to define a method that will be called when the state is initialised.
+
+```typescript title="app/states/theme/theme.state.ts"
+@State()
+@Injectable()
+export class ThemeState implements OnInitState {
+  public onInit(cache: ApolloCache<any>): void {
+    cache.writeQuery(...);
+  }
+}
+```
+
+`onInit` method accepts the cache instance associated with the state and can be used to initialise cache data for that state. More on this in [client-only state guide](./client-only-state).
+
+`onInit` method is called only once when the state is initialised. This can occur at one of the following times:
+* When the Apollo instance associated with the state is first injected into the application.
+* When the lazy-loaded module that includes the state is loaded.
