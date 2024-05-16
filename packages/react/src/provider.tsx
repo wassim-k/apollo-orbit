@@ -1,4 +1,4 @@
-import { StateDefinition } from '@apollo-orbit/core';
+import { State } from '@apollo-orbit/core';
 import { useApolloClient } from '@apollo/client';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ApolloOrbitContext, ApolloOrbitContextValue } from './context';
@@ -10,7 +10,7 @@ export function ApolloOrbitProvider({
   states,
   children
 }: {
-  states: Array<StateDefinition>;
+  states: Array<State>;
   children: React.ReactNode | Array<React.ReactNode> | null;
 }): JSX.Element | null {
   const initialised = useRef(false); // execute effect once in strict mode.

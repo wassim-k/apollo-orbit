@@ -1,6 +1,6 @@
-import { NgModule } from '@angular/core';
-import { APOLLO_OPTIONS, ApolloOptions, ApolloOrbitModule, InMemoryCache } from '@apollo-orbit/angular';
-import { BatchHttpLinkFactory, BatchHttpLinkModule } from '@apollo-orbit/angular/batch-http';
+import { NgModule, inject } from '@angular/core';
+import { ApolloOptions, InMemoryCache, provideApolloOrbit, withApolloOptions, withStates } from '@apollo-orbit/angular';
+import { BatchHttpLinkFactory, withBatchHttpLink } from '@apollo-orbit/angular/batch-http';
 import { split } from '@apollo/client/core';
 import { createPersistedQueryLink } from '@apollo/client/link/persisted-queries';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
@@ -8,9 +8,12 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { sha256 } from 'crypto-hash';
 import { createClient } from 'graphql-ws';
 import { AppConfig } from '../config';
-import { ThemeState } from '../states/theme/theme.state';
+import { themeState } from '../states/theme/theme.state';
 
-export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory, appConfig: AppConfig): ApolloOptions {
+export function apolloOptionsFactory(): ApolloOptions {
+  const appConfig = inject(AppConfig);
+  const batchHttpLinkFactory = inject(BatchHttpLinkFactory);
+
   const batchHttpLink = batchHttpLinkFactory.create({ uri: appConfig.graphqlApiEndpoint });
   const wsLink = new GraphQLWsLink(createClient({ url: appConfig.graphqlSubscriptionEndpoint }));
 
@@ -30,12 +33,12 @@ export function apolloOptionsFactory(batchHttpLinkFactory: BatchHttpLinkFactory,
 }
 
 @NgModule({
-  imports: [
-    ApolloOrbitModule.forRoot([ThemeState]),
-    BatchHttpLinkModule
-  ],
   providers: [
-    { provide: APOLLO_OPTIONS, useFactory: apolloOptionsFactory, deps: [BatchHttpLinkFactory, AppConfig] }
+    provideApolloOrbit(
+      withApolloOptions(apolloOptionsFactory),
+      withStates(themeState),
+      withBatchHttpLink()
+    )
   ]
 })
 export class GraphQLModule { }

@@ -1,19 +1,12 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { InjectionToken } from '@angular/core';
+import { InjectionToken, inject } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
-import { APOLLO_OPTIONS, Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, gql } from '@apollo-orbit/angular';
-import { HttpLinkFactory, HttpLinkModule } from '@apollo-orbit/angular/http';
+import { Apollo, ApolloOptions, InMemoryCache, gql, provideApolloOrbit, withApolloOptions } from '@apollo-orbit/angular';
+import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
 import { HttpOptions } from '@apollo/client/core';
 import 'whatwg-fetch';
 
 const HTTP_OPTIONS: InjectionToken<HttpOptions> = new InjectionToken('http options');
-
-function apolloOptionsFactory(httpLinkFactory: HttpLinkFactory, httpOptions: HttpOptions): ApolloOptions {
-  return {
-    cache: new InMemoryCache(),
-    link: httpLinkFactory.create(httpOptions)
-  };
-}
 
 const query = gql`query Books { books { id } }`;
 const uri = 'http://localhost';
@@ -22,12 +15,18 @@ describe('HttpLink', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        ApolloOrbitModule.forRoot(),
-        HttpClientTestingModule,
-        HttpLinkModule
+        HttpClientTestingModule
       ],
       providers: [
-        { provide: APOLLO_OPTIONS, useFactory: apolloOptionsFactory, deps: [HttpLinkFactory, HTTP_OPTIONS] }
+        provideApolloOrbit(
+          withApolloOptions((): ApolloOptions => {
+            return {
+              cache: new InMemoryCache(),
+              link: inject(HttpLinkFactory).create(inject(HTTP_OPTIONS))
+            };
+          }),
+          withHttpLink()
+        )
       ]
     });
   });

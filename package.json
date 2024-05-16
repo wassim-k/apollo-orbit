@@ -17,7 +17,7 @@
       "packages/*"
     ],
     "nohoist": [
-      "**/@angular/*",
+      "@integration/angular/@angular/*",
       "**/ts-jest"
     ]
   },

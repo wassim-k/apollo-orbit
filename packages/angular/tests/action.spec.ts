@@ -1,7 +1,6 @@
-import { Injectable } from '@angular/core';
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Action, ActionContext, Apollo, APOLLO_OPTIONS, ApolloOrbitModule, InMemoryCache, ofActionComplete, ofActionDispatched, ofActionError, ofActionSuccess, State } from '@apollo-orbit/angular';
-import { forkJoin, noop, Observable, throwError, timer } from 'rxjs';
+import { Apollo, InMemoryCache, ofActionComplete, ofActionDispatched, ofActionError, ofActionSuccess, provideApolloOrbit, state, withApolloOptions, withStates } from '@apollo-orbit/angular';
+import { forkJoin, noop, throwError, timer } from 'rxjs';
 import { map, mergeMap, tap } from 'rxjs/operators';
 import shortid from 'shortid';
 import { Author, Book, BookFragment, BookInput, BooksQuery } from './graphql';
@@ -37,9 +36,8 @@ class AddBookPromise {
   ) { }
 }
 
-@Injectable()
-@State({
-  typePolicies: {
+const testState = () => state(descriptor => descriptor
+  .typePolicies({
     Query: {
       fields: {
         authors: existing => existing ?? [
@@ -54,52 +52,45 @@ class AddBookPromise {
         ] as Array<Book>
       }
     }
-  }
-})
-class TestState {
-  @Action(AddBook)
-  public addBook(action: AddBook, { cache, dispatch }: ActionContext): void {
+  })
+  .action(AddBook, (action, { cache, dispatch }) => {
     if (action.book.name === 'Error') throw new Error();
-    const book = this.createNewBook(action.book);
+    const book = createNewBook(action.book);
     cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data);
     dispatch(new AddBookSuccess());
-  }
-
-  @Action(AddBookSuccess)
-  public addBookSuccess(action: AddBookSuccess, context: ActionContext): void {
+  })
+  .action(AddBookSuccess, (action, context) => {
     // noop
-  }
-
-  @Action(AddBookObservable)
-  public addBookObservable(action: AddBookObservable, { cache }: ActionContext): Observable<any> {
+  })
+  .action(AddBookObservable, (action, { cache }) => {
     if (action.book.name === 'Error') return throwError(() => new Error());
     return timer(10).pipe(
-      map(() => this.createNewBook(action.book)),
+      map(() => createNewBook(action.book)),
       tap(book => cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data))
     );
-  }
-
-  @Action(AddBookPromise)
-  public addBookPromise(action: AddBookPromise, { cache }: ActionContext): Promise<any> {
+  })
+  .action(AddBookPromise, (action, { cache }) => {
     return new Promise((resolve, reject) => setTimeout(() => {
       if (action.book.name === 'Error') reject(new Error());
-      const book = this.createNewBook(action.book);
+      const book = createNewBook(action.book);
       cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data);
       resolve(void 0);
     }, 10));
-  }
+  })
+);
 
-  private createNewBook(book: BookInput): BookFragment {
-    return { __typename: 'Book' as const, id: shortid.generate(), ...book, genre: null };
-  }
+function createNewBook(book: BookInput): BookFragment {
+  return { __typename: 'Book' as const, id: shortid.generate(), ...book, genre: null };
 }
 
 describe('Action', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ApolloOrbitModule.forRoot([TestState])],
       providers: [
-        { provide: APOLLO_OPTIONS, useFactory: () => ({ cache: new InMemoryCache() }) }
+        provideApolloOrbit(
+          withApolloOptions({ cache: new InMemoryCache() }),
+          withStates(testState)
+        )
       ]
     });
   });

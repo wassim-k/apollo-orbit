@@ -1,33 +1,32 @@
-import { Inject, Injectable, InjectionToken } from '@angular/core';
+import { InjectionToken, inject } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { APOLLO_OPTIONS, Apollo, ApolloOrbitModule, InMemoryCache, RefetchQueries, RefetchQueryDescriptor, State } from '@apollo-orbit/angular';
+import { Apollo, InMemoryCache, provideApolloOrbit, state, withApolloOptions, withStates } from '@apollo-orbit/angular';
 import shortid from 'shortid';
-import { AddBookMutation, AddBookMutationInfo, BookInput, BooksQuery } from './graphql';
+import { AddBookMutation, BookInput, BooksQuery } from './graphql';
 
 const authorId = shortid.generate();
 const MOCK_TOKEN = new InjectionToken('mock');
 
-@Injectable()
-@State()
-class TestState {
-  public constructor(
-    @Inject(MOCK_TOKEN) private readonly mock: jest.Mock
-  ) { }
+const testState = () => {
+  const mock = inject<jest.Mock>(MOCK_TOKEN);
 
-  @RefetchQueries(AddBookMutation)
-  public addBookRefetch(result: AddBookMutationInfo): RefetchQueryDescriptor {
-    this.mock();
-    return [new BooksQuery()];
-  }
-}
+  return state(descriptor => descriptor
+    .refetchQueries(AddBookMutation, result => {
+      mock();
+      return [new BooksQuery()];
+    })
+  );
+};
 
 describe('RefetchQueries', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ApolloOrbitModule.forRoot([TestState])],
       providers: [
-        { provide: MOCK_TOKEN, useValue: jest.fn() },
-        { provide: APOLLO_OPTIONS, useValue: { cache: new InMemoryCache() } }
+        provideApolloOrbit(
+          withApolloOptions({ cache: new InMemoryCache() }),
+          withStates(testState)
+        ),
+        { provide: MOCK_TOKEN, useValue: jest.fn() }
       ]
     });
   });

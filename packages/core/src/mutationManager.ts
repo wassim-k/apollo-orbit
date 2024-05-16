@@ -1,7 +1,7 @@
 import { ApolloCache, ApolloError, FetchResult, MutationOptions, QueryOptions, RefetchQueryDescriptor, OperationVariables as Variables } from '@apollo/client/core';
 import { ExecutionResult, GraphQLError } from 'graphql';
 import { ValuesByKey, invokeActionFns, nameOfMutationDocument } from './internal';
-import { StateDefinition } from './state';
+import { State } from './state';
 import { Action, ActionContextInternal, ActionFn, ActionInstance, Context, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
 import { getActionType } from './utils/action';
 
@@ -16,7 +16,7 @@ export class MutationManager {
     private readonly apolloErrorFactory: (graphQLErrors: ReadonlyArray<GraphQLError>) => ApolloError
   ) { }
 
-  public addState(definition: Pick<StateDefinition, 'mutationUpdates' | 'actions' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
+  public addState(definition: Pick<State, 'mutationUpdates' | 'actions' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
     this.mutationUpdates.add(...definition.mutationUpdates);
     this.refetchQueries.add(...definition.refetchQueries);
     this.optimisticResponses.add(...definition.optimisticResponses);

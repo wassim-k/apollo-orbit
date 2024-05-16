@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { addStateToCache, addStateToClient, MutationManager, partition, StateDefinition } from '@apollo-orbit/core';
+import { addStateToCache, addStateToClient, MutationManager, partition, State } from '@apollo-orbit/core';
 import { ApolloClient, ApolloError } from '@apollo/client/core';
 import { GraphQLError } from 'graphql';
 
@@ -15,7 +15,7 @@ interface Clients {
 @Injectable()
 export class StateManager {
   private readonly clients: Clients = {};
-  private pending: ReadonlyArray<StateDefinition> = [];
+  private pending: ReadonlyArray<State> = [];
 
   /**
    * Create a mutation manager for an apollo client
@@ -30,7 +30,7 @@ export class StateManager {
     return manager;
   }
 
-  public onAddStates(states: Array<StateDefinition>): void {
+  public onAddStates(states: Array<State>): void {
     for (const state of states) {
       const pair = this.clients[state.clientId];
       if (pair) {
@@ -42,7 +42,7 @@ export class StateManager {
     }
   }
 
-  private addState(client: ApolloClient<any>, manager: MutationManager, ...states: Array<StateDefinition>): void {
+  private addState(client: ApolloClient<any>, manager: MutationManager, ...states: Array<State>): void {
     const addToClient = addStateToClient(client);
     const addToCache = addStateToCache(client.cache);
     states.forEach(state => {

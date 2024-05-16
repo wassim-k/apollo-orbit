@@ -1,10 +1,9 @@
-import { Component, Injectable, InjectionToken, NgZone } from '@angular/core';
+import { Component, NgZone } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Apollo, ApolloOptions, ApolloOrbitModule, InMemoryCache, MutationUpdate, Resolve, ResolverContext, State, apolloFactory } from '@apollo-orbit/angular';
-import { ApolloCache } from '@apollo/client/core';
+import { Apollo, InMemoryCache, provideApolloInstance, provideApolloOrbit, state, withStates } from '@apollo-orbit/angular';
 import { take } from 'rxjs/operators';
 import shortid from 'shortid';
-import { AddAuthorMutation, AddAuthorMutationInfo, AddBookMutation, AddBookMutationInfo, AuthorInput, AuthorsQuery, BookInput, BooksQuery, Mutation, MutationAddAuthorArgs, MutationAddBookArgs } from './graphql';
+import { AddAuthorMutation, AddBookMutation, AuthorInput, AuthorsQuery, BookInput, BooksQuery, Mutation, MutationAddAuthorArgs, MutationAddBookArgs } from './graphql';
 
 const authorId = shortid.generate();
 
@@ -15,16 +14,11 @@ sharedCache.writeQuery({ ...new AuthorsQuery(), data: { authors: [] } });
 /******************************
  *            Book            *
  ******************************/
-const APOLLO_BOOK_OPTIONS = new InjectionToken<ApolloOptions>('Apollo Book');
 class ApolloBook extends Apollo { }
 
-@Injectable()
-@State({
-  clientId: 'book'
-})
-class BookState {
-  @Resolve(['Mutation', 'addBook'])
-  public addBookResolver(rootValue: any, { book }: MutationAddBookArgs, context: ResolverContext): Mutation['addBook'] {
+const bookState = () => state(descriptor => descriptor
+  .clientId('book')
+  .resolver(['Mutation', 'addBook'], (rootValue, { book }: MutationAddBookArgs, context, info): Mutation['addBook'] => {
     return {
       __typename: 'Book',
       id: shortid.generate(),
@@ -32,46 +26,37 @@ class BookState {
       authorId: book.authorId,
       genre: book.genre ?? null
     };
-  }
-
-  @MutationUpdate(AddBookMutation)
-  public addBook(cache: ApolloCache<any>, info: AddBookMutationInfo): void {
+  })
+  .mutationUpdate(AddBookMutation, (cache, info) => {
     if (info.data) {
       const { addBook } = info.data;
       cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, addBook] } : data);
     }
-  }
-}
+  })
+);
 
 /******************************
  *            Author            *
  ******************************/
-const APOLLO_AUTHOR_OPTIONS = new InjectionToken<ApolloOptions>('Apollo Author');
 class ApolloAuthor extends Apollo { }
 
-@Injectable()
-@State({
-  clientId: 'author'
-})
-class AuthorState {
-  @Resolve(['Mutation', 'addAuthor'])
-  public addAuthorResolver(rootValue: any, { author }: MutationAddAuthorArgs, context: ResolverContext): Mutation['addAuthor'] {
+const authorState = () => state(descriptor => descriptor
+  .clientId('author')
+  .resolver(['Mutation', 'addAuthor'], (rootValue, { author }: MutationAddAuthorArgs, context): Mutation['addAuthor'] => {
     return {
       __typename: 'Author',
       id: authorId,
       books: [],
       ...author
     };
-  }
-
-  @MutationUpdate(AddAuthorMutation)
-  public addAuthor(cache: ApolloCache<any>, info: AddAuthorMutationInfo): void {
+  })
+  .mutationUpdate(AddAuthorMutation, (cache, info) => {
     if (info.data) {
       const { addAuthor } = info.data;
       cache.updateQuery(new AuthorsQuery(), data => data ? { authors: [...data.authors, addAuthor] } : data);
     }
-  }
-}
+  })
+);
 
 @Component({
   template: `
@@ -98,15 +83,23 @@ class TestComponent {
 }
 
 describe('Multi', () => {
+  it('should throw if options was not passed', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideApolloOrbit()
+      ]
+    });
+
+    expect(() => TestBed.inject(Apollo)).toThrow(/must be passed/);
+  });
+
   it('should render component with result', async () => {
     TestBed.configureTestingModule({
-      imports: [ApolloOrbitModule.forRoot([BookState, AuthorState])],
       declarations: [TestComponent],
       providers: [
-        { provide: APOLLO_BOOK_OPTIONS, useValue: { id: 'book', cache: sharedCache } },
-        { provide: ApolloBook, useFactory: apolloFactory, deps: [APOLLO_BOOK_OPTIONS] },
-        { provide: APOLLO_AUTHOR_OPTIONS, useValue: { id: 'author', cache: sharedCache } },
-        { provide: ApolloAuthor, useFactory: apolloFactory, deps: [APOLLO_AUTHOR_OPTIONS] }
+        provideApolloOrbit(withStates(bookState, authorState)),
+        provideApolloInstance(ApolloBook, { id: 'book', cache: sharedCache }),
+        provideApolloInstance(ApolloAuthor, { id: 'author', cache: sharedCache })
       ]
     });
     const fixture = TestBed.createComponent(TestComponent);
@@ -127,33 +120,29 @@ describe('Multi', () => {
 
   it('should throw error with duplicate default clients', async () => {
     TestBed.configureTestingModule({
-      imports: [ApolloOrbitModule.forRoot()],
       providers: [
-        { provide: APOLLO_BOOK_OPTIONS, useValue: { cache: sharedCache } },
-        { provide: ApolloBook, useFactory: apolloFactory, deps: [APOLLO_BOOK_OPTIONS] },
-        { provide: APOLLO_AUTHOR_OPTIONS, useValue: { cache: sharedCache } },
-        { provide: ApolloAuthor, useFactory: apolloFactory, deps: [APOLLO_AUTHOR_OPTIONS] }
+        provideApolloOrbit(),
+        provideApolloInstance(ApolloBook, { cache: sharedCache }),
+        provideApolloInstance(ApolloAuthor, { cache: sharedCache })
       ]
     });
     expect(() => {
       TestBed.inject(ApolloBook);
       TestBed.inject(ApolloAuthor);
-    }).toThrowError('Apollo clients with duplicate options.id: \'default\'');
+    }).toThrow('Apollo clients with duplicate options.id: \'default\'');
   });
 
   it('should throw error with duplicate named clients', async () => {
     TestBed.configureTestingModule({
-      imports: [ApolloOrbitModule.forRoot()],
       providers: [
-        { provide: APOLLO_BOOK_OPTIONS, useValue: { id: 'duplicate', cache: sharedCache } },
-        { provide: ApolloBook, useFactory: apolloFactory, deps: [APOLLO_BOOK_OPTIONS] },
-        { provide: APOLLO_AUTHOR_OPTIONS, useValue: { id: 'duplicate', cache: sharedCache } },
-        { provide: ApolloAuthor, useFactory: apolloFactory, deps: [APOLLO_AUTHOR_OPTIONS] }
+        provideApolloOrbit(),
+        provideApolloInstance(ApolloBook, { id: 'duplicate', cache: sharedCache }),
+        provideApolloInstance(ApolloAuthor, { id: 'duplicate', cache: sharedCache })
       ]
     });
     expect(() => {
       TestBed.inject(ApolloBook);
       TestBed.inject(ApolloAuthor);
-    }).toThrowError('Apollo clients with duplicate options.id: \'duplicate\'');
+    }).toThrow('Apollo clients with duplicate options.id: \'duplicate\'');
   });
 });

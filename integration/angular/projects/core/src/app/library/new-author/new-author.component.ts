@@ -1,14 +1,16 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, signal } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
 import { AddAuthorMutation, AuthorInput } from '../../graphql';
 
 @Component({
-  selector: 'app-new-author',
-  templateUrl: './new-author.component.html',
-  styleUrls: ['./new-author.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-new-author',
+    templateUrl: './new-author.component.html',
+    styleUrls: ['./new-author.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: true,
+    imports: [ReactiveFormsModule]
 })
 export class NewAuthorComponent {
   @Output() public readonly onClose = new EventEmitter<void>();

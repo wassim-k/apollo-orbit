@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/react",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "@apollo/client state management extensions for React.",
   "license": "MIT",
   "sideEffects": false,
@@ -36,7 +36,7 @@
     "react": ">=16.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.10.0"
+    "@apollo-orbit/core": "^0.11.0"
   },
   "devDependencies": {
     "@testing-library/react": "^14.1.2"
