@@ -16,13 +16,13 @@ export type MutationUpdateFn<
   TVariables,
   TContext = Context,
   TCache extends ApolloCache<any> = ApolloCache<any>
-> = (cache: TCache, result: MutationInfo<TData, TVariables, TContext>) => void;
+> = (cache: TCache, info: MutationInfo<TData, TVariables, TContext>) => void;
 
-export type EffectFn<TData, TVariables, TContext = Context> = (result: MutationInfo<TData, TVariables, TContext>) => void;
+export type EffectFn<TData, TVariables, TContext = Context> = (info: MutationInfo<TData, TVariables, TContext>) => void;
 
 export type ActionFn<T> = (action: T, context: ActionContext) => void | Promise<any>;
 
-export type RefetchQueriesFn<TData, TVariables, TContext = Context> = (result: MutationInfo<TData, TVariables, TContext>) => RefetchQueryDescriptor;
+export type RefetchQueriesFn<TData, TVariables, TContext = Context> = (info: MutationInfo<TData, TVariables, TContext>) => RefetchQueryDescriptor;
 
 export type OptimisticResponseFn<TData, TVariables, TContext = Context> = (variables: TVariables, context?: TContext) => TData;
 

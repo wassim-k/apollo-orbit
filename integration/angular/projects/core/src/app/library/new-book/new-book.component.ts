@@ -1,14 +1,17 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, signal } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Apollo } from '@apollo-orbit/angular/core';
 import { cache } from 'decorator-cache-getter';
 import { AddBookMutation, AuthorsQuery, BookInput } from '../../graphql';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
-  selector: 'app-new-book',
-  templateUrl: './new-book.component.html',
-  styleUrls: ['./new-book.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-new-book',
+    templateUrl: './new-book.component.html',
+    styleUrls: ['./new-book.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: true,
+    imports: [ReactiveFormsModule, AsyncPipe]
 })
 export class NewBookComponent {
   @Output() public readonly onClose = new EventEmitter<void>();

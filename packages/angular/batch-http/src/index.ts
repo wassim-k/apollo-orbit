@@ -1,2 +1,2 @@
 export { BatchHttpLinkFactory } from './batchHttpLinkFactory';
-export { BatchHttpLinkModule } from './module';
+export { withBatchHttpLink } from './providers';

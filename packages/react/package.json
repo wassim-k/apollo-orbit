@@ -36,7 +36,7 @@
     "react": ">=16.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.10.0"
+    "@apollo-orbit/core": "^0.11.0"
   },
   "devDependencies": {
     "@testing-library/react": "^14.1.2"

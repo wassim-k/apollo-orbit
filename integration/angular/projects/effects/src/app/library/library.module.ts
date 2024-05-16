@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ComponentRef, NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { Apollo, ApolloOrbitModule } from '@apollo-orbit/angular';
+import { Apollo, provideStates } from '@apollo-orbit/angular';
 import { ROOT_BOOTSTRAP_LISTENER } from '../config/bootstrap.module';
 import { AuthorsQuery, NewAuthorSubscription } from '../graphql';
 import { Toastify } from '../services/toastify.service';
@@ -10,8 +10,8 @@ import { BooksComponent } from './books/books.component';
 import { LibraryComponent } from './library.component';
 import { NewAuthorComponent } from './new-author/new-author.component';
 import { NewBookComponent } from './new-book/new-book.component';
-import { AuthorState } from './states/author.state';
-import { BookState } from './states/book.state';
+import { authorState } from './states/author.state';
+import { bookState } from './states/book.state';
 
 @NgModule({
   declarations: [
@@ -23,10 +23,10 @@ import { BookState } from './states/book.state';
   ],
   imports: [
     CommonModule,
-    ReactiveFormsModule,
-    ApolloOrbitModule.forChild([AuthorState, BookState])
+    ReactiveFormsModule
   ],
   providers: [
+    provideStates(authorState, bookState),
     // This is necessary because of the use of APP_INITIALIZER in ConfigModule for initializing AppConfig
     // Injecting Apollo instance too early will attempt to retrieve config instance before APP_INITIALIZER has completed running and will trigger an error.
     // ROOT_BOOTSTRAP_LISTENER is called after AppComponent is bootstrapped which is guaranteed to run after APP_INITIALIZER has completed.

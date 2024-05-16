@@ -3,7 +3,7 @@ import { nameOfMutation } from './internal';
 import { Action, ActionFn, ActionType, EffectFn, MutationIdentifier, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, Resolver, TypeField } from './types';
 import { createSymbol } from './utils/symbol';
 
-export interface StateDefinition {
+export interface State {
   clientId: string;
   typeDefs: Array<string | DocumentNode>;
   typePolicies: Array<TypePolicies>;
@@ -17,22 +17,22 @@ export interface StateDefinition {
   onInit?: (cache: ApolloCache<any>) => void;
 }
 
-const definitionSymbol: unique symbol = createSymbol('definition') as any;
+export const STATE_DEFINITION_SYMBOL: unique symbol = createSymbol('STATE_DEFINITION') as any;
 
-export function state(configure: (descriptor: StateDescriptor) => StateDescriptor | void, definition?: StateDefinition): StateDefinition {
+export function state(configure: (descriptor: StateDescriptor) => StateDescriptor | void, definition?: State): State {
   const descriptor = new StateDescriptor(definition);
   configure(descriptor);
-  return descriptor[definitionSymbol];
+  return descriptor[STATE_DEFINITION_SYMBOL];
 }
 
 export class StateDescriptor {
-  private readonly definition: StateDefinition;
+  private readonly definition: State;
 
-  public constructor(definition?: StateDefinition) {
+  public constructor(definition?: State) {
     this.definition = definition ?? createDefaultStateDefinition();
   }
 
-  public get [definitionSymbol](): StateDefinition {
+  private get [STATE_DEFINITION_SYMBOL](): State {
     return this.definition;
   }
 
@@ -69,8 +69,8 @@ export class StateDescriptor {
     return this;
   }
 
-  public mutationUpdate<T = any, V = Variables>(mutation: MutationIdentifier<T, V>, mutationUpdate: MutationUpdateFn<T, V>): this {
-    this.definition.mutationUpdates.push([nameOfMutation(mutation), mutationUpdate]);
+  public mutationUpdate<T = any, V = Variables>(mutation: MutationIdentifier<T, V>, update: MutationUpdateFn<T, V>): this {
+    this.definition.mutationUpdates.push([nameOfMutation(mutation), update]);
     return this;
   }
 
@@ -97,7 +97,7 @@ export class StateDescriptor {
   }
 }
 
-function createDefaultStateDefinition(): StateDefinition {
+function createDefaultStateDefinition(): State {
   return {
     clientId: 'default',
     resolvers: [],

@@ -1,2 +1,2 @@
 export { HttpLinkFactory } from './httpLinkFactory';
-export { HttpLinkModule } from './module';
+export { withHttpLink } from './providers';
