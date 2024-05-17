@@ -1,5 +1,6 @@
-export { ApolloCache, ApolloClient, ApolloError, ApolloQueryResult, Cache, DataProxy, DocumentNode, FetchMoreOptions, FetchMoreQueryOptions, InMemoryCache, MutationOptions, NetworkStatus, NormalizedCache, NormalizedCacheObject, StoreObject, SubscriptionOptions, TypedDocumentNode, UpdateQueryOptions, OperationVariables as Variables, gql } from '@apollo/client/core';
+export { ApolloCache, ApolloClient, ApolloError, ApolloQueryResult, Cache, DataProxy, DocumentNode, FetchMoreOptions, FetchMoreQueryOptions, InMemoryCache, MutationOptions, NetworkStatus, NormalizedCache, NormalizedCacheObject, StoreObject, SubscriptionOptions, TypedDocumentNode, UpdateQueryOptions, OperationVariables as Variables, WatchFragmentOptions, WatchFragmentResult, gql } from '@apollo/client/core';
 export { Apollo } from './apollo';
+export { ApolloCacheEx, CacheWatchQueryOptions, CacheWatchQueryResult } from './cacheEx';
 export { APOLLO_CLIENT_FACTORY, ApolloClientFactory } from './clientFactory';
 export { ApolloInstanceFactory as ɵApolloInstanceFactory } from './instanceFactory';
 export { mapMutation, mapQuery, mapSubscription } from './map';

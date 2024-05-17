@@ -1,8 +1,9 @@
 /* eslint-disable max-len */
 import { Injectable } from '@angular/core';
-import { ApolloCache, ApolloClient, ApolloError, MutationOptions, NetworkStatus, SubscriptionOptions, OperationVariables as Variables } from '@apollo/client/core';
+import { ApolloClient, ApolloError, MutationOptions, NetworkStatus, SubscriptionOptions, OperationVariables as Variables, WatchFragmentOptions, WatchFragmentResult } from '@apollo/client/core';
 import { Observable, defer, of } from 'rxjs';
 import { catchError, map, startWith } from 'rxjs/operators';
+import { ApolloCacheEx, extendCache } from './cacheEx';
 import { QueryObservable } from './queryObservable';
 import { toMutationResult, toQueryResult, toSubscriptionResult } from './result';
 import type { DefaultOptions, MutationResult, QueryOptions, QueryResult, SubscriptionResult, WatchQueryOptions } from './types';
@@ -16,10 +17,12 @@ export class Apollo<TCacheShape = any> {
   public readonly client: ApolloClient<TCacheShape>;
 
   private readonly defaultOptions?: DefaultOptions;
+  private readonly _cache: ApolloCacheEx<TCacheShape>;
 
   public constructor(client: ApolloClient<TCacheShape>, defaultOptions?: DefaultOptions) {
     this.client = client;
     this.defaultOptions = defaultOptions;
+    this._cache = extendCache<TCacheShape>(client.cache);
   }
 
   public query<T = any, V extends Variables = Variables>(options: QueryOptions<V, T>): Observable<QueryResult<T>> {
@@ -40,6 +43,10 @@ export class Apollo<TCacheShape = any> {
     return new QueryObservable(this.client.watchQuery<T, V>(options), { notifyOnLoading, throwError });
   }
 
+  public watchFragment<T = any, V extends Variables = Variables>(options: WatchFragmentOptions<T, V>): Observable<WatchFragmentResult<T>> {
+    return fromZenObservable(this.cache.watchFragment(options));
+  }
+
   public mutate<T = any, V extends Variables = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {
     return defer(() => this.client.mutate<T, V>(options)).pipe(
       map(result => toMutationResult(result))
@@ -52,7 +59,7 @@ export class Apollo<TCacheShape = any> {
     );
   }
 
-  public get cache(): ApolloCache<TCacheShape> {
-    return this.client.cache;
+  public get cache(): ApolloCacheEx<TCacheShape> {
+    return this._cache;
   }
 }
