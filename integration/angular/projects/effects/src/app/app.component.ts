@@ -11,7 +11,7 @@ import { ThemeQuery } from './graphql';
 })
 export class AppComponent {
   public readonly theme$ = this.apollo.cache.watchQuery(new ThemeQuery()).pipe(
-    map(data => data.theme.name.toLowerCase())
+    map(({ data }) => data.theme.name.toLowerCase())
   );
 
   public constructor(

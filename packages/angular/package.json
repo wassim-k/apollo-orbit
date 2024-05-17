@@ -30,7 +30,7 @@
   "peerDependencies": {
     "@angular/common": ">=8.0.0",
     "@angular/core": ">=8.0.0",
-    "@apollo/client": "^3.8.0",
+    "@apollo/client": "^3.10.0",
     "graphql": ">=0.11",
     "rxjs": ">=7.0.0"
   },

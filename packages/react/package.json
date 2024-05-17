@@ -31,7 +31,7 @@
     "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.ts"
   },
   "peerDependencies": {
-    "@apollo/client": "^3.8.0",
+    "@apollo/client": "^3.10.0",
     "graphql": ">=0.11",
     "react": ">=16.0.0"
   },
