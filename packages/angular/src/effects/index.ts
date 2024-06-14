@@ -1,4 +1,4 @@
-export { ActionInstance, ActionType, EffectFn, FragmentMap, MutationIdentifier, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, RefetchQueryDescriptor, Resolver, ResolverContext, ResolverInfo, State, TypeField, identifyFragment } from '@apollo-orbit/core';
+export { ActionInstance, ActionType, EffectFn, FragmentIdentifier, FragmentMap, MutationIdentifier, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, RefetchQueryDescriptor, Resolver, ResolverContext, ResolverInfo, State, TypeField, identifyFragment } from '@apollo-orbit/core';
 export * from './actions';
 export * from './apollo';
 export * from './providers';

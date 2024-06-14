@@ -12,8 +12,8 @@ export const bookState = () => {
     .typeDefs(gql`
       extend type Book {
         displayName: String!
-      }`
-    )
+      }
+    `)
     .resolver(['Book', 'displayName'], (rootValue: Book, args, context, info): Book['displayName'] => {
       return displayName(rootValue);
     })

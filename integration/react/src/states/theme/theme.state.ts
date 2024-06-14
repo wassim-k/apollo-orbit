@@ -1,5 +1,5 @@
 import { state } from '@apollo-orbit/react';
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client';
 import { ThemeDocument, ThemeName } from '../../graphql';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
 
@@ -17,10 +17,11 @@ export const themeState = state(descriptor => descriptor
       DARK_THEME
       LIGHT_THEME
     }
-
+     
     extend type Query {
       theme: Theme!
-    }`)
+    }
+  `)
 
   .typePolicies({
     Theme: {
