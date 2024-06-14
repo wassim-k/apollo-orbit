@@ -1,0 +1,36 @@
+---
+sidebar_position: 4
+title: 'effect'
+---
+
+## Overview
+`effect` is used to execute a side-effect after a mutation has completed whether successful or not.  
+
+## Usage
+Let's extend `bookState` to display a notification when `AddBookMutation` is executed.
+
+```typescript title="library/states/book.state.ts"
+import { inject } from '@angular/core';
+import { StateFactory, state } from '@apollo-orbit/angular';
+import { AddBookMutation } from '../../graphql/types';
+import { NotificationService } from '../../services/notification.service';
+
+export const bookState: StateFactory = () => {
+  const notificationService = inject(NotificationService);
+
+  return state(descriptor => descriptor
+    ...
+    .effect(AddBookMutation, info => {
+      if (info.data?.addBook) {
+        notificationService.success(`New book '${info.data.addBook.name}' was added successfully.`);
+      } else if (info.error) {
+        notificationService.error(`Failed to add book '${info.variables?.book.name}': ${info.error.message}`);
+      }
+    })
+  );
+};
+```
+
+:::note
+`bookState` was changed to a `StateFactory` in order to inject `NotificationService`.
+:::

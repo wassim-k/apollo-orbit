@@ -1,0 +1,66 @@
+---
+sidebar_position: 5
+---
+
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Library Entry Point
+
+## Overview
+An entry point is the path used to import a library into your application.
+
+**Apollo Orbit** provides two entry points into the library:
+
+1. `@apollo-orbit/angular/core`: This is a full-featured **Angular** implementation of `@apollo/client` library.
+2. `@apollo-orbit/angular`: Provides the full functionality of `@apollo-orbit/angular/core` **+** all the state management capabilities covered in [State section](../state/intro)
+
+If, for some reason, you're only interested in the core functionality of **Apollo Orbit** without the added state management capabilities, you can follow the steps below:
+
+### Using `@apollo-orbit/angular/core`
+
+#### Update ESLint
+Add the following rule to *.eslintrc.js* to ensure the correct import path is used in your application.
+```javascript title=".eslintrc.js "
+'no-restricted-imports': [
+    'error',
+    {
+        paths: [
+            {
+              name: '@apollo/client',
+              message: 'Please use @apollo/client/core instead.'
+            },
+            // code-add-start
+            {
+              name: '@apollo-orbit/angular',
+              message: 'Please use @apollo-orbit/angular/core instead.'
+            }
+            // code-add-end
+        ]
+    }
+]
+```
+
+#### Update codegen.ts
+Add `importFromCore` config to *codegen.ts* file created in the [environment setup guid](../get-started/setup-environment#create-codegents).
+
+```typescript title="codegen.ts"
+import { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: [
+    ...
+  ],
+  config: {
+    // code-add-line
+    importFromCore: true,
+    ...
+  },
+  generates: {
+    ...
+  }
+};
+
+export default config;
+```

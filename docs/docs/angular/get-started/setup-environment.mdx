@@ -1,0 +1,161 @@
+---
+sidebar_position: 2.1
+---
+
+import Link from '@docusaurus/Link';
+
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Setup Environment
+The following steps will get you fully setup with `@apollo-orbit/angular` and `@apollo-orbit/codegen`.  
+All the code samples in the docs assume that the following steps were completed successfully.
+
+### Setup `@apollo-orbit/angular`
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+  ```bash
+  yarn add @apollo-orbit/angular @apollo/client graphql
+  ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm install @apollo-orbit/angular @apollo/client graphql
+    ```
+  </TabItem>
+</Tabs>
+
+
+### Setup `@apollo-orbit/codegen`
+
+:::info
+While `@apollo-orbit/angular` can work fully without `@apollo-orbit/codegen` it is highly recommended to use codegen in order to unlock its full potential.
+:::
+
+More information on `@apollo-orbit/codegen` can be found in the [Codegen guide](../codegen/intro).
+
+#### Install codegen dependencies
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+    ```bash
+    yarn add --dev @apollo-orbit/codegen @graphql-codegen/add @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/visitor-plugin-common concurrently @parcel/watcher
+    ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm install --save-dev @apollo-orbit/codegen @graphql-codegen/add @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/visitor-plugin-common concurrently
+    ```
+  </TabItem>
+</Tabs>
+
+
+#### Update package.json
+
+```jsx title="package.json"
+"scripts": {
+  "start": "concurrently --raw \"yarn codegen --watch\" \"ng serve\"",
+  "codegen": "graphql-codegen --config ./codegen.ts",
+  ...
+}
+```
+
+:::info
+**concurrently** is used here in order to run codegen in watch mode side by side with your Angular application when running `yarn start`.  
+`yarn codegen` can also be executed manually to trigger GraphQL codegen.
+:::
+
+
+#### Create codegen.ts
+
+```typescript title="codegen.ts"
+import { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: [
+    'http://localhost:4000/graphql',
+    {
+      './src/app/**/*.state.ts': {
+        noRequire: true
+      }
+    }
+  ],
+  config: {
+    operationResultSuffix: 'Data',
+    querySuffix: 'Query',
+    mutationSuffix: 'Mutation',
+    subscriptionSuffix: 'Subscription',
+    dedupeOperationSuffix: true,
+    inlineFragmentTypes: 'combine',
+    avoidOptionals: {
+      field: true
+    }
+  },
+  generates: {
+    './src/app/graphql/types.ts': {
+      documents: './src/app/**/*.graphql',
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
+        'typescript',
+        'typescript-operations',
+        '@apollo-orbit/codegen'
+      ]
+    }
+  }
+};
+
+export default config;
+```
+
+
+### Install Apollo GraphQL extension
+
+#### Install extension
+<Link to="https://marketplace.visualstudio.com/items?itemName=apollographql.vscode-apollo">VSCode Marketplace - Apollo GraphQL</Link>
+
+#### Create apollo.config.js
+Create the following file in the root folder of your project.  
+For more information, visit <Link to="https://www.apollographql.com/docs/devtools/apollo-config/">Configuring Apollo projects</Link>
+
+```javascript title="apollo.config.js"
+module.exports = {
+  client: {
+    service: {
+      name: 'API',
+      url: 'http://localhost:4000/graphql',
+      skipSSLValidation: true
+    },
+    includes: [
+      `${__dirname}/src/app/**/*.graphql`,
+      `${__dirname}/src/app/**/*.state.ts`
+    ]
+  }
+};
+```
+
+### Update ESLint
+Add the following rule to *.eslintrc.js* to ensure the correct import path is used in your application.
+```javascript title=".eslintrc.js "
+'no-restricted-imports': [
+  'error',
+  {
+    paths: [
+      {
+        name: '@apollo/client',
+        message: 'Please use @apollo/client/core instead.'
+      },
+      {
+        name: '@apollo-orbit/angular/core',
+        message: 'Please use @apollo-orbit/angular instead.'
+      }
+    ]
+  }
+]
+```
+
+For more information on **Apollo Orbit** entry points, please refer to [Library Entry Point guide](../advanced/entry-point).

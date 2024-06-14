@@ -1,0 +1,17 @@
+---
+sidebar_position: 1
+pagination_label: State
+---
+
+# Introduction
+**Apollo Client** is much more than a simple GraphQL client. It offers a comprehensive caching API that leverages GraphQL's rich type information system (schema) to provide features like cache normalization, optimistic UI and more.
+
+**Apollo Orbit** aims to bridge the gap between **Apollo Client** and a full-fledged state management solutions like NGXS, NgRx or Redux.
+
+It does so by providing the following features:
+* **Comprehensive state management**: **Apollo Orbit** combines the strengths of **Apollo Client** and traditional state management libraries, providing a unified solution for managing both local and remote data.
+* **Decoupling**: Separate state management code from component code using modular `state` definitions and `action` handlers.
+* **Modular:** Each `state` definition manage its own slice of the cache.
+* **Separation of concerns (SoC):** Different `state` slices can handle the same `Mutation` or `Action` independently.
+* **Event-driven architecture:** **Apollo Orbit** `@Action`s enable event driven application design.
+* **Testability:** `state` logic can be tested in isolation, enhancing testability.
