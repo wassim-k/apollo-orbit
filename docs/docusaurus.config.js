@@ -9,8 +9,8 @@ import { themes as prismThemes } from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Apollo Orbit',
-  url: 'https://apollo-orbit.vypex.net',
-  baseUrl: '/',
+  url: 'https://wassim-k.github.io',
+  baseUrl: '/apollo-orbit/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.svg',

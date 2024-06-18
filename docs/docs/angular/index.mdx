@@ -3,6 +3,7 @@ sidebar_position: 1
 ---
 
 import Link from '@docusaurus/Link'
+import StateFeatures from '../shared/_state-features.mdx'
 
 # Introduction
 **Apollo Orbit** is a fully-featured **<Link to="https://www.apollographql.com/docs/react/">Apollo Client</Link>** for **<Link to="https://angular.io/">Angular</Link>**.
@@ -20,12 +21,7 @@ import Link from '@docusaurus/Link'
 * **Battle tested and production ready:** used in production environment for 3+ years.
 
 ### State Management
-* **Comprehensive state management**: **Apollo Orbit** combines the strengths of **Apollo Client** and traditional state management libraries, providing a unified solution for managing both local and remote data.
-* **Decoupling**: Separate state management code from component code using modular `state` definitions and `action` handlers.
-* **Modular:** Each `state` definition manage its own slice of the cache.
-* **Separation of concerns (SoC):** Different `state` slices can handle the same `Mutation` or `Action` independently.
-* **Event-driven architecture:** **Apollo Orbit** `@Action`s enable event driven application design.
-* **Testability:** `state` logic can be tested in isolation, enhancing testability.
+<StateFeatures />
 
 ## Docs
 The docs are designed to supplement <Link to="https://www.apollographql.com/docs/react/">Apollo Client docs</Link>, with focuses on the **Angular** specific API and features implemented by **Apollo Orbit**.  

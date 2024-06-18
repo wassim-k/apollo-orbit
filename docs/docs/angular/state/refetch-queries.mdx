@@ -6,7 +6,7 @@ title: 'refetchQueries'
 import Link from '@docusaurus/Link'
 
 ## Overview
-`refetchQueries` is analogous to <Link to="https://www.apollographql.com/docs/react/data/mutations/#options">`refetchQueries`</Link> option passed to [`mutate`](../fetching/mutations#mutate) method in `Apollo`.  
+`refetchQueries` is analogous to <Link to="https://www.apollographql.com/docs/react/data/mutations/#mutationhookoptions-interface-refetchqueries">`refetchQueries`</Link> option passed to [`mutate`](../fetching/mutations#mutate) method in `Apollo`.  
 It enables <Link to="https://www.apollographql.com/docs/react/data/mutations/#refetching-queries">refetching queries</Link> after a mutation has executed.
 
 ## Usage
@@ -18,12 +18,12 @@ import { AddBookMutation, BooksQuery } from '../../graphql/types';
 
 export const bookState = state(descriptor => descriptor
   // code-add-line
-  .refetchQueries(AddBookMutation, info => [new BooksQuery({ genre: 'Fiction' })])
+  .refetchQueries(AddBookMutation, info => [new BooksQuery()])
   // code-remove-start
   .mutationUpdate(AddBookMutation, (cache, info) => {
     const addBook = info.data?.addBook;
     if (!addBook) return;
-    cache.updateQuery(new BooksQuery({ genre: 'Fiction' }), query => query ? { books: [...query.books, addBook] } : query);
+    cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
   })
   // code-remove-end
 );

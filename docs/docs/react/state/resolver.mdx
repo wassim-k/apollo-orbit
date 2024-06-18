@@ -1,12 +1,12 @@
 ---
-sidebar_position: 7
+sidebar_position: 6
 title: 'resolver'
 ---
 
 import Link from '@docusaurus/Link'
 
 ## Overview
-`resolver` is analogous to <Link to="https://www.apollographql.com/docs/react/api/core/ApolloClient#apolloclientoptions-resolvers">`resolvers`</Link> option passed to `ApolloOptions`.  
+`resolver` is analogous to <Link to="https://www.apollographql.com/docs/react/api/core/ApolloClient#apolloclientoptions-resolvers">`resolvers`</Link> option passed to `ApolloClientOptions`.  
 It allows implementing <Link to="https://www.apollographql.com/docs/react/local-state/local-resolvers">local resolvers</Link>.
 
 :::note
@@ -18,8 +18,9 @@ Local resolver support will be moved out of the core of Apollo Client in a futur
 Let's modify `bookState` to to return `displayName` for each `Book` which is a concatenation of the book name and genre.
 
 ```typescript title="library/states/book.state.ts"
-import { gql, state } from '@apollo-orbit/angular';
-import { Book } from '../../graphql/types';
+import { state } from '@apollo-orbit/react';
+import { gql } from '@apollo/client';
+import { Book } from '../../graphql';
 
 export const bookState = state(descriptor => descriptor
   .typeDefs(gql`
@@ -34,7 +35,7 @@ export const bookState = state(descriptor => descriptor
 );
 ```
 
-Since `*.state.ts` files are included in our [codegen configuration](../get-started/setup-environment#setup-apollo-orbitcodegen), defining local schema using `typeDefs` will get automatically picked up by codegen.
+Since `*.state.ts` files are included in our [codegen configuration](../get-started#setup-graphql-codegen), defining local schema using `typeDefs` will get automatically picked up by codegen.
 
 Next, we update `book.graphql` to include `displayName` field:
 ```graphql title="library/gql/book.graphql"
@@ -53,14 +54,15 @@ fragment BookFragment on Book {
 Now, `displayName` can be used in the component to display the book name along with genre.
 
 ## API
-`resolve` methods can return a value, promise or observable.
+`resolve` methods can return a value or a promise.
 
 ## Local-only fields (Recommended)
 In order to implement the same functionality using field policies, we can modify `bookState` as follows:
 
 ```typescript title="library/states/book.state.ts"
-import { gql, state } from '@apollo-orbit/angular';
-import { Book } from '../../graphql/types';
+import { state } from '@apollo-orbit/react';
+import { gql } from '@apollo/client';
+import { Book } from '../../graphql';
 
 export const bookState = state(descriptor => descriptor
   .typeDefs(gql`

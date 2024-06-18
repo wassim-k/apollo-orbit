@@ -3,9 +3,9 @@ sidebar_position: 2.1
 ---
 
 import Link from '@docusaurus/Link';
-
 import TabItem from '@theme/TabItem';
 import Tabs from '@theme/Tabs';
+import CodegenTip from '../../shared/_codegen-tip.mdx';
 
 # Setup Environment
 The following steps will get you fully setup with `@apollo-orbit/angular` and `@apollo-orbit/codegen`.  
@@ -28,12 +28,7 @@ All the code samples in the docs assume that the following steps were completed 
 
 
 ### Setup `@apollo-orbit/codegen`
-
-:::info
-While `@apollo-orbit/angular` can work fully without `@apollo-orbit/codegen` it is highly recommended to use codegen in order to unlock its full potential.
-:::
-
-More information on `@apollo-orbit/codegen` can be found in the [Codegen guide](../codegen/intro).
+<CodegenTip />
 
 #### Install codegen dependencies
 
@@ -65,7 +60,6 @@ More information on `@apollo-orbit/codegen` can be found in the [Codegen guide](
 **concurrently** is used here in order to run codegen in watch mode side by side with your Angular application when running `yarn start`.  
 `yarn codegen` can also be executed manually to trigger GraphQL codegen.
 :::
-
 
 #### Create codegen.ts
 
@@ -112,31 +106,34 @@ const config: CodegenConfig = {
 export default config;
 ```
 
+More information on `@apollo-orbit/codegen` can be found in the [Codegen guide](../codegen/intro).
 
-### Install Apollo GraphQL extension
+### Setup GraphQL syntax highlighting & auto-complete
 
-#### Install extension
-<Link to="https://marketplace.visualstudio.com/items?itemName=apollographql.vscode-apollo">VSCode Marketplace - Apollo GraphQL</Link>
+#### Install VSCode extension
+<Link to="https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql">GraphQL: Language Feature Support</Link>
 
-#### Create apollo.config.js
+#### Create graphql.config.js
 Create the following file in the root folder of your project.  
-For more information, visit <Link to="https://www.apollographql.com/docs/devtools/apollo-config/">Configuring Apollo projects</Link>
 
-```javascript title="apollo.config.js"
+```javascript title="graphql.config.js"
 module.exports = {
-  client: {
-    service: {
-      name: 'API',
-      url: 'http://localhost:4000/graphql',
-      skipSSLValidation: true
-    },
-    includes: [
-      `${__dirname}/src/app/**/*.graphql`,
-      `${__dirname}/src/app/**/*.state.ts`
+  schema: [
+    'http://localhost:4000/graphql',
+    'src/app/**/*.state.ts'
+  ],
+  documents: [
+    'src/app/**/*.graphql'
+  ],
+  extensions: {
+    customDirectives: [
+      'directive @client on FIELD' // required for Apollo Client local schema
     ]
   }
 };
 ```
+
+For more information, visit <Link to="https://github.com/graphql/graphiql/blob/main/packages/graphql-language-service-server/README.md#graphql-configuration-file">configuration documentation</Link>
 
 ### Update ESLint
 Add the following rule to *.eslintrc.js* to ensure the correct import path is used in your application.

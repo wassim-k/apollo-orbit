@@ -19,8 +19,7 @@ In this example, we'll build a theme management feature that allows users to swi
 First, we'll start by defining the local schema for our theme management feature, by creating a theme `state` slice and defining the schema in `typeDefs`.
 
 ```typescript title="states/theme/theme.state.ts"
-import { state } from '@apollo-orbit/angular';
-import gql from 'graphql-tag';
+import { gql, state } from '@apollo-orbit/angular';
 
 export const themeState = () => {
   return state(descriptor => descriptor
@@ -38,8 +37,8 @@ export const themeState = () => {
 
       extend type Query {
         theme: Theme!
-      }`
-    )
+      }
+    `)
   );
 };
 ```
@@ -180,7 +179,7 @@ export function provideGraphQL(): EnvironmentProviders {
 }
 ```
 
-## 3. Define theme component
+## 3. Create theme component
 Finally, we'll bring it all together by defining our theme component which queries the cache and dispatches the relevant actions.
 
 ```typescript title="theme/theme.component.ts"
@@ -226,7 +225,7 @@ There you have it! we've created our first fully local state managed feature wit
 
 <details>
   <summary>Here's the complete `theme.state.ts` code for reference</summary>
-  ```typescript title="states/theme/theme.state.ts"/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+  ```typescript title="states/theme/theme.state.ts"
   import { inject } from '@angular/core';
   import { gql, state } from '@apollo-orbit/angular';
   import { ThemeName, ThemeQuery } from '../../graphql/types';
@@ -251,8 +250,8 @@ There you have it! we've created our first fully local state managed feature wit
 
         extend type Query {
           theme: Theme!
-        }`
-      )
+        }
+      `)
       .typePolicies({
         Theme: {
           fields: {

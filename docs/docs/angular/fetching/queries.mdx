@@ -83,7 +83,7 @@ import { BooksQuery } from '../graphql/types';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BooksComponent {
-  protected readonly booksQuery = this.apollo.watchQuery(new BooksQuery({ genre: 'Fiction' }));
+  protected readonly booksQuery = this.apollo.watchQuery(new BooksQuery());
 
   public constructor(
     private readonly apollo: Apollo
@@ -92,7 +92,7 @@ export class BooksComponent {
 ```
 Then, we subscribe to the query using `async` pipe and handle the different query states:
 ```html title="books/books.component.html"
-<h3>Books (Fiction)</h3>
+<h3>Books</h3>
 @if (booksQuery | async; as booksResult) {
   @if (booksResult.loading) { Loading... }
   @if (booksResult.error) { {{ booksResult.error.message }} }
@@ -104,13 +104,30 @@ Then, we subscribe to the query using `async` pipe and handle the different quer
 }
 ```
 
+## Variables
+Variables are passed as constructor parameters to `new BooksQuery()`:
+
+```typescript title="books/books.component.ts"
+@Component({
+  ...
+})
+export class BooksComponent {
+  // code-add-line
+  protected readonly booksQuery = this.apollo.watchQuery(new BooksQuery({ genre: 'Fiction' }));
+
+  ...
+}
+```
+
+This ensures that a query with required variables generates a class with required constructor parameters as explained in the [Codegen](../codegen/generated-code) section.
+
 ## Options
 For the complete list of options available to query methods, please refer to <Link to="https://www.apollographql.com/docs/react/data/queries/#options">Apollo Client docs</Link>
 
 In the next example, let's see how we can modify the query from the previous example in order to allow users to manually refetch the data.
 
 First, we will need to pass `notifyOnNetworkStatusChange` option to our `watchQuery` method, this tells Apollo Client to set `loading` property to true whenever a refetch is in flight.  
-In order to do that, we will need to spread the `query`, `variables` & `context` properties of `new BooksQuery({ genre: 'Fiction' })` and add `notifyOnNetworkStatusChange: true` to the options object.
+In order to do that, we will need to spread the `query`, `variables` & `context` properties of `new BooksQuery()` and add `notifyOnNetworkStatusChange: true` to the options object.
 
 Secondly, we define a method in our component that calls `refetch` method on the `QueryObservable` instance.
 
@@ -127,9 +144,9 @@ import { BooksQuery } from '../graphql/types';
 })
 export class BooksComponent {
   // code-remove-line
-  protected readonly booksQuery = this.apollo.watchQuery(new BooksQuery({ genre: 'Fiction' }));
+  protected readonly booksQuery = this.apollo.watchQuery(new BooksQuery());
   // code-add-line
-  protected readonly booksQuery = this.apollo.watchQuery({ ...new BooksQuery({ genre: 'Fiction' }), notifyOnNetworkStatusChange: true });
+  protected readonly booksQuery = this.apollo.watchQuery({ ...new BooksQuery(), notifyOnNetworkStatusChange: true });
 
   public constructor(
     private readonly apollo: Apollo
@@ -145,11 +162,11 @@ export class BooksComponent {
 
 Then, we modify the template to include a button that calls `refetch`, and finally, we replace `booksResult.data?.books` with `booksResult.data ?? booksResult.previousData`.  
 This is because while a refetch is in flight, the `QueryResult` object will have `{ loading: true, data: undefined, ... }` which can provide a jarring user experience as the data disappears off the screen until the new data arrives.  
-**Apollo Orbit** exposes a `previousData` property which stores the last non-nil value of the `data` property which can be used to provider a smoother user experience.
+**Apollo Orbit** exposes a `previousData` property which stores the last non-nil value of the `data` property that can be used to provide a smoother user experience.
 
 ```html title="books/books.component.html"
 <h3>
-  Books (Fiction)
+  Books
   // code-add-line
   <button type="button" (click)="refetch()">⟳</button>
 </h3>
@@ -168,12 +185,12 @@ This is because while a refetch is in flight, the `QueryResult` object will have
 ```
 
 ## `mapQuery`
-`Apollo Orbit` provides a `mapQuery` RxJS operator to map both `data` and `previousData` of a query result while preserving the other properties.  
+**Apollo Orbit** provides a `mapQuery` RxJS operator to map both `data` and `previousData` of a query result while preserving the other properties.  
 This is useful when you want to map the query result without dealing with the nullability of `data` and `previousData` properties.
 ```typescript
 import { mapQuery } from '@apollo-orbit/angular';
 ...
-protected readonly bookNames$: Observable<QueryResult<Array<string>>> = this.apollo.watchQuery(new BooksQuery({ genre: 'Fiction' })).pipe(
+protected readonly bookNames$: Observable<QueryResult<Array<string>>> = this.apollo.watchQuery(new BooksQuery()).pipe(
   // code-add-line
   mapQuery(data => data.books.map(book => book.name))
 );

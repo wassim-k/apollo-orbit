@@ -3,6 +3,8 @@ sidebar_position: 8
 title: 'action'
 ---
 
+import EventCommand from '../../shared/_event-command.mdx';
+
 ## Overview
 Actions are simple classes that have a unique `type` property and, optionally, additional information.  
 
@@ -10,11 +12,7 @@ Actions generally take one of two forms:
 * **Command**: A verb. For example, `[Theme] ToggleTheme`
 * **Event**: Past tense. For example, `[Library] BookSelected`
 
-:::tip
-When unsure whether to use a **command** or an **event** for a certain action, it is advisable to choose **event**.  
-Events simply relay what has already happened, without making assumptions about how the various states should react.  
-In contrast, a command could potentially obscure information about what has happened and dictate what states should do.
-:::
+<EventCommand />
 
 ## Defining an action
 An action is required to have a unique `type`. By convention, `type` follows the format `[<Context>] <ActionName>` to uniquely identify the action throughout the app.
@@ -80,7 +78,7 @@ interface ActionType<T> {
 ## Handling an action
 `action` is used in a `state` slice to define an action handler.
 
-An `action` handler can be synchronous or asynchronous and can be used to update the state, call a service, or perform any other logic.
+An `action` handler can be synchronous or asynchronous and can be used to update the cache, call a service, or perform any other logic.
 
 Action handlers can be chained together to form a sequence of actions that are executed in order, by using the `dispatch` function which is available in the `ActionContext` parameter.
 

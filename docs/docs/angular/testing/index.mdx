@@ -33,7 +33,7 @@ class BookComponent {
 }
 ```
 
-In order to write unit tests for the above component, we first start by creating our `ApolloMockModule` which will be shared across all tests in the application and be customised to suit your application's needs.
+In order to write unit tests for the above component, we first start by creating our `ApolloMockModule` which will be shared across all tests in the application and can be customised to suit your application's needs.
 ```typescript title="apollo-mock.module.ts"
 import { NgModule, inject } from '@angular/core';
 import { ApolloOptions, InMemoryCache, provideApolloOrbit, withApolloOptions } from '@apollo-orbit/angular';

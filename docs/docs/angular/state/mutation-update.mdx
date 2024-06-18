@@ -10,7 +10,7 @@ import Link from '@docusaurus/Link'
 It is used to update the cache following the execution of a mutation.
 
 ## Usage
-As stated previously in the [`mutations guid`](../fetching/mutations#caching), unlike `UpdateBookMutation`, updating the cache after executing `AddBookMutation` requires manual intervention.
+As stated previously in the [`mutations guid`](../fetching/mutations#cache-normalisation), unlike `UpdateBookMutation`, updating the cache after executing `AddBookMutation` requires manual intervention.
 
 Let's build on the same example used in [fetching guide](../fetching/queries) to demonstrate how `mutationUpdate` can be used to update the cache after executing `AddBookMutation`.  
 
@@ -36,7 +36,7 @@ export const bookState = state(descriptor => descriptor
   .mutationUpdate(AddBookMutation, (cache, info) => {
     const addBook = info.data?.addBook;
     if (!addBook) return;
-    cache.updateQuery(new BooksQuery({ genre: 'Fiction' }), query => query ? { books: [...query.books, addBook] } : query);
+    cache.updateQuery(new BooksQuery(), query => query ? { books: [...query.books, addBook] } : query);
   })
 );
 ```
@@ -67,6 +67,11 @@ The example above demonstrates how the same mutation can be handled independentl
 `identifyFragment` is a helper function provided by **Apollo Orbit** for returning a fragment object that uniquely identifies a fragment in the cache.
 
 `info` argument is of type `MutationInfo<AddBookMutationData, AddBookMutationVariables>` and all logic in `mutationUpdate` handler is type-safe.
+
+:::note
+`mutationUpdate` also accepts the name of the mutation as a `string` argument. This can be used in projects that do not have codegen setup.  
+So the above code can be updated to `.mutationUpdate('AddBook', (cache, info) =>` and the rest of the code remains the same, except it won't have type-safety.
+:::
 
 ## API
 ```typescript
