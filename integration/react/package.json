@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@types/toastify-js": "^1.12.3",
-    "@parcel/watcher": "^2.3.0",
+    "@parcel/watcher": "^2.4.1",
     "graphql-tag": "^2.12.6"
   },
   "browserslist": {

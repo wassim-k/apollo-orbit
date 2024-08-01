@@ -1,7 +1,7 @@
 import { state } from '@apollo-orbit/react';
 import { gql } from '@apollo/client';
 import shortid from 'shortid';
-import { AddBookDocument, AddBookMutation, Book, BooksDocument } from '../../graphql';
+import { AddBookDocument, Book, BooksDocument } from '../../graphql';
 
 const Toastify = require('toastify-js'); // eslint-disable-line @typescript-eslint/no-var-requires
 
@@ -14,7 +14,8 @@ export const bookState = state(descriptor => descriptor
   .typeDefs(gql`
       extend type Book {
         displayName: String!
-    }`)
+    }
+  `)
 
   .resolver(
     ['Book', 'displayName'],
@@ -22,10 +23,10 @@ export const bookState = state(descriptor => descriptor
       return getDisplayName(rootValue);
     })
 
-  .optimisticResponse(AddBookDocument, ({ book }): AddBookMutation => ({
-    __typename: 'Mutation',
+  .optimisticResponse(AddBookDocument, ({ book }) => ({
+    __typename: 'Mutation' as const,
     addBook: {
-      __typename: 'Book',
+      __typename: 'Book' as const,
       id: shortid.generate(),
       displayName: getDisplayName(book as Book),
       genre: book.genre ?? null,

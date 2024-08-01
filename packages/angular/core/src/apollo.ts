@@ -44,7 +44,7 @@ export class Apollo<TCacheShape = any> {
   }
 
   public watchFragment<T = any, V extends Variables = Variables>(options: WatchFragmentOptions<T, V>): Observable<WatchFragmentResult<T>> {
-    return fromZenObservable(this.cache.watchFragment(options));
+    return fromZenObservable(this.client.watchFragment(options));
   }
 
   public mutate<T = any, V extends Variables = Variables>(options: MutationOptions<T, V>): Observable<MutationResult<T>> {

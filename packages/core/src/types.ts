@@ -1,4 +1,4 @@
-import { ApolloCache, ApolloClient, ApolloError, DocumentNode, MutationOptions, NormalizedCacheObject, PureQueryOptions, QueryOptions, StoreObject, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client/core';
+import { ApolloCache, ApolloClient, ApolloError, DocumentNode, InternalRefetchQueriesInclude, MutationOptions, NormalizedCacheObject, PureQueryOptions, QueryOptions, StoreObject, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client/core';
 import { FieldNode, FragmentDefinitionNode } from 'graphql';
 
 export interface Context extends Record<string, any> { }
@@ -22,7 +22,7 @@ export type EffectFn<TData, TVariables, TContext = Context> = (info: MutationInf
 
 export type ActionFn<T> = (action: T, context: ActionContext) => void | Promise<any>;
 
-export type RefetchQueriesFn<TData, TVariables, TContext = Context> = (info: MutationInfo<TData, TVariables, TContext>) => RefetchQueryDescriptor;
+export type RefetchQueriesFn<TData, TVariables, TContext = Context> = (info: MutationInfo<TData, TVariables, TContext>) => InternalRefetchQueriesInclude;
 
 export type OptimisticResponseFn<TData, TVariables, TContext = Context> = (variables: TVariables, context?: TContext) => TData;
 

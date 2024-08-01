@@ -1,5 +1,5 @@
 import { ApolloError, ApolloQueryResult, FetchResult } from '@apollo/client/core';
-import { GraphQLError } from 'graphql';
+import { GraphQLFormattedError } from 'graphql';
 import { MutationResult, QueryResult, SubscriptionResult } from './types';
 
 export function toQueryResult<T>({ errors, ...result }: ApolloQueryResult<T>): QueryResult<T> {
@@ -25,6 +25,6 @@ export function toSubscriptionResult<T, C>(fetchResult: FetchResult<T, C>): Subs
   return toMutationResult(fetchResult);
 }
 
-function getApolloError(graphQLErrors: ReadonlyArray<GraphQLError> | undefined, apolloError: ApolloError | undefined): ApolloError | undefined {
+function getApolloError(graphQLErrors: ReadonlyArray<GraphQLFormattedError> | undefined, apolloError: ApolloError | undefined): ApolloError | undefined {
   return graphQLErrors && graphQLErrors.length > 0 ? new ApolloError({ graphQLErrors }) : apolloError;
 }

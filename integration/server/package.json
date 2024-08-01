@@ -5,20 +5,22 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "nodemon --exec ts-node --esm ./src/index.ts",
+    "start": "tsx ./src/index.ts",
     "build": "tsc --project tsconfig.json",
     "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
-    "@apollo/server": "^4.9.5",
-    "shortid": "^2.2.16",
-    "graphql": "^16.8.1",
+    "@apollo/server": "^4.10.5",
+    "graphql": "^16.9.0",
     "graphql-subscriptions": "^2.0.0",
-    "graphql-ws": "^5.14.2"
+    "graphql-ws": "^5.16.0",
+    "shortid": "^2.2.16"
   },
   "devDependencies": {
+    "@graphql-codegen/typescript-resolvers": "^4.2.1",
+    "@types/cors": "^2.8.17",
     "@types/shortid": "^0.0.32",
-    "nodemon": "^3.0.1",
-    "@graphql-codegen/typescript-resolvers": "^4.0.1"
+    "nodemon": "^3.1.4",
+    "tsx": "^4.16.3"
   }
 }
