@@ -6,20 +6,22 @@ import { getMainDefinition } from '@apollo/client/utilities';
 
 @NgModule({
   providers: [
-    provideApolloOrbit(withApolloOptions((): ApolloOptions => ({
-      cache: new InMemoryCache(),
-      link: split(
-        ({ query }) => {
-          const definition = getMainDefinition(query);
-          return (
-            definition.kind === 'OperationDefinition' &&
-            definition.operation === 'subscription'
-          );
-        },
-        inject(MockSubscriptionLink),
-        inject(MockLink)
-      )
-    }))),
+    provideApolloOrbit(
+      withApolloOptions((): ApolloOptions => ({
+        cache: new InMemoryCache(),
+        link: split(
+          ({ query }) => {
+            const definition = getMainDefinition(query);
+            return (
+              definition.kind === 'OperationDefinition' &&
+              definition.operation === 'subscription'
+            );
+          },
+          inject(MockSubscriptionLink),
+          inject(MockLink)
+        )
+      }))
+    ),
     { provide: MockLink, useValue: new MockLink([]) },
     { provide: MockSubscriptionLink, useValue: new MockSubscriptionLink() }
   ]

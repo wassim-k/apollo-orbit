@@ -18,15 +18,15 @@
     "graphql": ">=0.11"
   },
   "dependencies": {
-    "@graphql-codegen/plugin-helpers": "^5.0.1",
-    "@graphql-codegen/visitor-plugin-common": "^4.0.1",
+    "@graphql-codegen/plugin-helpers": "^5.0.4",
+    "@graphql-codegen/visitor-plugin-common": "^5.3.1",
     "auto-bind": "~4.0.0",
     "pascal-case": "3.1.2",
-    "tslib": "^2.6.0"
+    "tslib": "^2.6.3"
   },
   "devDependencies": {
-    "@graphql-codegen/testing": "^3.0.0",
-    "jest-diff": "^28.0.0"
+    "@graphql-codegen/testing": "^3.0.3",
+    "jest-diff": "^29.7.0"
   },
   "publishConfig": {
     "directory": "dist"

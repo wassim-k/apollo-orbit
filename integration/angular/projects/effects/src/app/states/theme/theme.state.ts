@@ -1,6 +1,5 @@
 import { inject } from '@angular/core';
-import { state } from '@apollo-orbit/angular';
-import gql from 'graphql-tag';
+import { gql, state } from '@apollo-orbit/angular';
 import { ThemeName, ThemeQuery } from '../../graphql';
 import { Toastify } from '../../services/toastify.service';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
@@ -23,8 +22,8 @@ export const themeState = () => {
 
       extend type Query {
         theme: Theme!
-      }`
-    )
+      }
+    `)
     .typePolicies({
       Theme: {
         fields: {

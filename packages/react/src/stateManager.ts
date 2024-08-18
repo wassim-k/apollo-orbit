@@ -1,8 +1,8 @@
 import { addStateToCache, addStateToClient, MutationManager, State } from '@apollo-orbit/core';
 import { ApolloClient, ApolloError } from '@apollo/client';
-import { GraphQLError } from 'graphql';
+import { GraphQLFormattedError } from 'graphql';
 
-const apolloErrorFactory = (graphQLErrors: ReadonlyArray<GraphQLError>): ApolloError => new ApolloError({ graphQLErrors });
+const apolloErrorFactory = (graphQLErrors: ReadonlyArray<GraphQLFormattedError>): ApolloError => new ApolloError({ graphQLErrors });
 
 export class StateManager {
   private readonly clients: Array<[ApolloClient<any>, MutationManager]> = [];

@@ -8,8 +8,8 @@ export const lazyState = state(descriptor => descriptor
   .typeDefs(gql`
     extend type Query {
       lazy: String!
-    }`)
-
+    }
+  `)
   .resolver(
     ['Query', 'lazy'],
     (rootValue, args, context, info): Promise<Query['lazy']> => {

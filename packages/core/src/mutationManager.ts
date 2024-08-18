@@ -1,5 +1,5 @@
-import { ApolloCache, ApolloError, FetchResult, MutationOptions, QueryOptions, RefetchQueryDescriptor, OperationVariables as Variables } from '@apollo/client/core';
-import { ExecutionResult, GraphQLError } from 'graphql';
+import { ApolloCache, ApolloError, FetchResult, InternalRefetchQueriesInclude, MutationOptions, OperationVariables as Variables } from '@apollo/client/core';
+import { GraphQLFormattedError } from 'graphql';
 import { ValuesByKey, invokeActionFns, nameOfMutationDocument } from './internal';
 import { State } from './state';
 import { Action, ActionContextInternal, ActionFn, ActionInstance, Context, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
@@ -13,7 +13,7 @@ export class MutationManager {
   private readonly optimisticResponses = new ValuesByKey<[string, OptimisticResponseFn<any, any, any>]>(([mutation]) => mutation);
 
   public constructor(
-    private readonly apolloErrorFactory: (graphQLErrors: ReadonlyArray<GraphQLError>) => ApolloError
+    private readonly apolloErrorFactory: (graphQLErrors: ReadonlyArray<GraphQLFormattedError>) => ApolloError
   ) { }
 
   public addState(definition: Pick<State, 'mutationUpdates' | 'actions' | 'effects' | 'refetchQueries' | 'optimisticResponses'>): void {
@@ -72,9 +72,9 @@ export class MutationManager {
     const refetchQueriesDefs = this.refetchQueries.get(mutationName);
     return refetchQueriesDefs === undefined
       ? refetchQueries
-      : (result: ExecutionResult<TData>): Array<RefetchQueryDescriptor | QueryOptions> | 'all' | 'active' => {
+      : (result: FetchResult<TData>): InternalRefetchQueriesInclude => {
         const mutationInfo = this.toMutationInfo({ variables, context }, result);
-        return refetchQueriesDefs.reduce<Array<RefetchQueryDescriptor | QueryOptions> | 'all' | 'active'>(
+        return refetchQueriesDefs.reduce<InternalRefetchQueriesInclude>(
           (prev, [, fn]) => [...prev, ...fn(mutationInfo)],
           typeof refetchQueries === 'function'
             ? refetchQueries(result)

@@ -30,20 +30,20 @@
   "peerDependencies": {
     "@angular/common": ">=8.0.0",
     "@angular/core": ">=8.0.0",
-    "@apollo/client": "^3.10.0",
+    "@apollo/client": "^3.11.0",
     "graphql": ">=0.11",
     "rxjs": ">=7.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^0.11.0"
+    "@apollo-orbit/core": "^1.0.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^17.0.0",
-    "@angular/platform-browser": "^17.0.0",
-    "@angular/platform-browser-dynamic": "^17.0.0",
-    "@angular/router": "^17.0.0",
-    "jest-preset-angular": "^13.1.4",
+    "@angular-devkit/build-angular": "^18.0.0",
+    "@angular/platform-browser": "^18.0.0",
+    "@angular/platform-browser-dynamic": "^18.0.0",
+    "@angular/router": "^18.0.0",
+    "jest-preset-angular": "^14.2.2",
     "shortid": "^2.2.16",
-    "ts-jest": "^29.1.1"
+    "ts-jest": "^29.2.3"
   }
 }

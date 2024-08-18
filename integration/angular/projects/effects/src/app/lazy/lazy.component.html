@@ -1,8 +1,8 @@
 @if (lazyQuery | async; as lazyResult) {
-  @if (lazyResult.loading) {
-    <p>Loading lazy...</p>
-  }
-  @if (lazyResult.data?.lazy === true) {
-    <p>Lazy loaded</p>
-  }
+@if (lazyResult.loading) {
+<p>Loading lazy...</p>
+}
+@if (lazyResult.data?.lazy === true) {
+<p>Lazy loaded</p>
+}
 }

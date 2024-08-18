@@ -1,18 +1,26 @@
-import { DataProxy, DocumentNode, TypedDocumentNode } from '@apollo/client/core';
+import { DocumentNode, TypedDocumentNode } from '@apollo/client/core';
 import { FragmentDefinitionNode } from 'graphql';
 
-export function identifyFragment<TData = any, TVariables = any>(
-    fragment: DocumentNode | TypedDocumentNode<TData, TVariables>,
-    id: string,
-    fragmentName?: string,
-    variables?: TVariables
-): DataProxy.Fragment<TVariables, TData> {
-    const fragmentDefinition = fragment.definitions.find<FragmentDefinitionNode>((definition): definition is FragmentDefinitionNode => definition.kind === 'FragmentDefinition');
-    if (fragmentDefinition === undefined) throw new Error('Invalid fragment document.');
-    return {
-        id: `${fragmentDefinition.typeCondition.name.value}:${id}`,
-        fragmentName: fragmentName ?? fragmentDefinition.name.value,
-        fragment,
-        variables
-    };
+export interface FragmentIdentifier<TData> {
+  id: string;
+  fragmentName: string;
+  fragment: DocumentNode | TypedDocumentNode<TData>;
+}
+
+export function identifyFragment<TData = any>(
+  fragment: DocumentNode | TypedDocumentNode<TData>,
+  id: string,
+  fragmentName?: string
+): FragmentIdentifier<TData> {
+  const fragmentDefinition = fragment.definitions.find<FragmentDefinitionNode>((definition): definition is FragmentDefinitionNode =>
+    definition.kind === 'FragmentDefinition' &&
+    (fragmentName === undefined || definition.name.value === fragmentName));
+
+  if (fragmentDefinition === undefined) throw new Error('Fragment definition was not found.');
+
+  return {
+    id: `${fragmentDefinition.typeCondition.name.value}:${id}`,
+    fragmentName: fragmentName ?? fragmentDefinition.name.value,
+    fragment
+  };
 }

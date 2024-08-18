@@ -1,3 +1,4 @@
+import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { Apollo } from '@apollo-orbit/angular';
 import { LazyQuery } from '../graphql';
@@ -6,7 +7,9 @@ import { LazyQuery } from '../graphql';
   selector: 'app-lazy',
   templateUrl: './lazy.component.html',
   styleUrls: ['./lazy.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [AsyncPipe]
 })
 export class LazyComponent {
   public lazyQuery = this.apollo.watchQuery(new LazyQuery());

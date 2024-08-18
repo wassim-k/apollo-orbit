@@ -1,10 +1,10 @@
-import { State } from '@apollo-orbit/core';
+import { State, createSymbol } from '@apollo-orbit/core';
 import { useApolloClient } from '@apollo/client';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ApolloOrbitContext, ApolloOrbitContextValue } from './context';
 import { wrapMutate } from './wrapMutate';
 
-const wrappedSymbol = Symbol('apollo-orbit.mutate-wrapped');
+const wrappedSymbol = createSymbol('apollo-orbit.mutate-wrapped');
 
 export function ApolloOrbitProvider({
   states,

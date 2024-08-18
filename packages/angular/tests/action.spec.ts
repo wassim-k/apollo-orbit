@@ -118,8 +118,6 @@ describe('Action', () => {
       tick(10);
 
       expect(errorFn).toHaveBeenCalled();
-
-      tick(100); // auto-clean
     }));
 
     it('should call update method and update cache (multiple success)', waitForAsync(() => {
@@ -157,8 +155,6 @@ describe('Action', () => {
       tick(10);
 
       expect(errorFn).toHaveBeenCalledTimes(1);
-
-      tick(100); // auto-clean
     }));
   });
 
@@ -190,8 +186,6 @@ describe('Action', () => {
       tick(10);
 
       expect(dispatchedFn).toHaveBeenCalledTimes(3);
-
-      tick(100); // auto-clean
     }));
 
     it('ofActionSuccess', fakeAsync(() => {
@@ -221,8 +215,6 @@ describe('Action', () => {
       tick(10);
 
       expect(successFn).toHaveBeenCalledTimes(3);
-
-      tick(100); // auto-clean
     }));
 
     it('ofActionError', fakeAsync(() => {
@@ -252,8 +244,6 @@ describe('Action', () => {
       tick(10);
 
       expect(errorFn).toHaveBeenCalledTimes(3);
-
-      tick(100); // auto-clean
     }));
 
     it('ofActionComplete', fakeAsync(() => {
@@ -297,8 +287,6 @@ describe('Action', () => {
 
       expect(completeFn).toHaveBeenNthCalledWith(7, expect.objectContaining({ status: 'success' }));
       expect(completeFn.mock.calls[6][0].action).toBeInstanceOf(AddBookObservable);
-
-      tick(100); // auto-clean
     }));
   });
 });
