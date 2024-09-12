@@ -1,0 +1,53 @@
+---
+sidebar_position: 4
+title: Fragments
+---
+
+import Link from '@docusaurus/Link'
+
+## Prerequisites
+This article assumes you're familiar with building basic GraphQL fragments.
+
+For a full documentation of fragments, please refer to the <Link to="https://www.apollographql.com/docs/react/data/fragments/">Apollo Client docs</Link>
+
+## Overview
+**Apollo Client** provides few standard methods for interacting with fragments that are <Link to="https://www.apollographql.com/docs/react/caching/cache-interaction/#using-graphql-fragments">covered here</Link>.  
+In addition to those methods, **Apollo Orbit** provides the following:
+
+
+## `watchFragment`
+Is a method available on an `Apollo` instance that allows you to watch a fragment in the cache. This is useful when you want to subscribe to changes in a fragment.
+
+It is a thin wrapper around the underlying `ApolloClient.watchFragment` except it returns an **RxJS** `Observable` instead of the `ZenObservable` used by **Apollo Client**.
+
+The call stack is as follows:
+```typescript
+apollo.watchFragment<TData>(options): Observable<TData>
+apollo.client.watchFragment<TData>(options): ZenObservable<TData>
+apollo.client.cache.watchFragment<TData>(options): ZenObservable<TData>
+...
+```
+
+### Example
+```typescript
+this.apollo.watchFragment({
+  fragment: AuthorFragmentDoc,
+  from: {
+    __typename: 'Author',
+    id: '1'
+  }
+}).pipe(
+  map(result => result.data as AuthorFragment)
+);
+```
+
+## `identifyFragment`
+Is a utility function provided by **Apollo Orbit** that extract the `__typename` from a fragment document and returns `{__typename}:{id}` format used for querying and updating fragments. 
+
+The above example can be re-written as follows:
+```typescript
+const { id, fragment } = identifyFragment(AuthorFragmentDoc, '1');
+this.apollo.watchFragment({ fragment, from: id }).pipe(
+  map(result => result.data as AuthorFragment)
+);
+```
