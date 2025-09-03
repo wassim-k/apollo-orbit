@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { Apollo } from '@apollo-orbit/angular';
-import { MockLink, MockSubscriptionLink } from '@apollo/client/testing/core';
+import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
-import { BookQuery, BookQueryData, NewBookByAuthorSubscription, NewBookByAuthorSubscriptionData } from './graphql';
-import { ApolloMockModule } from './helpers';
+import { BookQueryData, gqlBookQuery, gqlNewBookByAuthorSubscription, NewBookByAuthorSubscriptionData } from './graphql';
+import { provideApolloMock } from './helpers';
 
 @Component({
   template: `
@@ -15,15 +16,14 @@ import { ApolloMockModule } from './helpers';
     @if (newBookSubscription | async; as result) {
       @if (result.data) { <div id="subscription-result">{{ result.data.newBook.name }}</div> }
     }
-  `
+  `,
+  imports: [AsyncPipe]
 })
 class BookComponent {
-  public readonly bookQuery = this.apollo.watchQuery(new BookQuery({ id: '1' }));
-  public readonly newBookSubscription = this.apollo.subscribe(new NewBookByAuthorSubscription({ id: '1' }));
+  private readonly apollo = inject(Apollo);
 
-  public constructor(
-    private readonly apollo: Apollo
-  ) { }
+  protected readonly bookQuery = this.apollo.watchQuery(gqlBookQuery({ id: '1' }));
+  protected readonly newBookSubscription = this.apollo.subscribe(gqlNewBookByAuthorSubscription({ id: '1' }));
 }
 
 describe('Testing', () => {
@@ -32,8 +32,8 @@ describe('Testing', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [BookComponent],
-      imports: [ApolloMockModule]
+      imports: [BookComponent],
+      providers: [provideApolloMock()]
     });
 
     mockLink = TestBed.inject(MockLink);
@@ -42,7 +42,7 @@ describe('Testing', () => {
 
   it('should render component with query result', async () => {
     mockLink.addMockedResponse({
-      request: new BookQuery({ id: '1' }),
+      request: gqlBookQuery({ id: '1' }),
       result: {
         data: {
           book: { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: '1' }
@@ -58,7 +58,7 @@ describe('Testing', () => {
 
   it('should render component with query error', async () => {
     mockLink.addMockedResponse({
-      request: new BookQuery({ id: '1' }),
+      request: gqlBookQuery({ id: '1' }),
       result: {
         errors: [new GraphQLError('Book does not exist')]
       }
@@ -74,7 +74,7 @@ describe('Testing', () => {
     const fixture = TestBed.createComponent(BookComponent);
 
     mockLink.addMockedResponse({
-      request: new BookQuery({ id: '1' }),
+      request: gqlBookQuery({ id: '1' }),
       result: {
         data: {
           book: { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: '1' }

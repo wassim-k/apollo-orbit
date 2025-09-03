@@ -1,9 +1,8 @@
 import { state } from '@apollo-orbit/react';
 import { gql } from '@apollo/client';
-import { ThemeDocument, ThemeName } from '../../graphql';
+import Toastify from 'toastify-js';
+import { THEME_QUERY, ThemeName } from '../../graphql';
 import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
-
-const Toastify = require('toastify-js'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 export const themeState = state(descriptor => descriptor
   .typeDefs(gql`
@@ -26,13 +25,13 @@ export const themeState = state(descriptor => descriptor
   .typePolicies({
     Theme: {
       fields: {
-        displayName: (existing, { readField }) => readField<ThemeName>('name') === ThemeName.LightTheme ? 'Light' : 'Dark'
+        displayName: (_existing, { readField }) => readField<ThemeName>('name') === ThemeName.LightTheme ? 'Light' : 'Dark'
       }
     }
   })
 
   .onInit(cache => cache.writeQuery({
-    query: ThemeDocument,
+    query: THEME_QUERY,
     data: {
       theme: {
         __typename: 'Theme',
@@ -46,7 +45,7 @@ export const themeState = state(descriptor => descriptor
   .action<ToggleThemeAction>(
     'theme/toggle',
     (action, { cache, dispatch }) => {
-      const result = cache.updateQuery({ query: ThemeDocument }, data => data
+      const result = cache.updateQuery({ query: THEME_QUERY }, data => data
         ? {
           theme: {
             ...data.theme,
@@ -56,12 +55,19 @@ export const themeState = state(descriptor => descriptor
         }
         : data);
 
-      return dispatch<ThemeToggledAction>({ type: 'theme/toggled', toggles: result?.theme.toggles as number });
+      return dispatch<ThemeToggledAction>({ type: 'theme/toggled', toggles: result?.theme.toggles as number, theme: result?.theme.name as ThemeName });
     })
 
   .action<ThemeToggledAction>(
     'theme/toggled',
     action => {
+      document.documentElement.className = '';
+      if (action.theme === ThemeName.DarkTheme) {
+        document.documentElement.classList.add('dark-mode');
+      } else {
+        document.documentElement.classList.add('light-mode');
+      }
+
       Toastify({
         text: `Theme was toggled ${action.toggles} time(s)`,
         duration: 3000,

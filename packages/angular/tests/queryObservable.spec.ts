@@ -1,9 +1,11 @@
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Apollo } from '@apollo-orbit/angular/core';
-import { gql, NetworkStatus } from '@apollo/client/core';
-import { MockLink } from '@apollo/client/testing/core';
+import { Apollo } from '@apollo-orbit/angular';
+import { gql, NetworkStatus, WatchQueryFetchPolicy } from '@apollo/client';
+import { MockLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
-import { ApolloMockModule } from './helpers';
+import { provideApolloMock } from './helpers';
+
+const allFetchPolicies: Array<WatchQueryFetchPolicy> = ['cache-first', 'cache-only', 'network-only', 'no-cache', 'standby'];
 
 describe('QueryObservable', () => {
   let apollo: Apollo;
@@ -11,39 +13,12 @@ describe('QueryObservable', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ApolloMockModule]
+      providers: [provideApolloMock()]
     });
 
     apollo = TestBed.inject(Apollo);
     mockLink = TestBed.inject(MockLink);
   });
-
-  it('should emit loading and network status on subscription', fakeAsync(() => {
-    const mockFn = jest.fn();
-    const query = gql`query { value }`;
-    mockLink.addMockedResponse({
-      request: { query },
-      result: { data: { value: 'expected' } }
-    });
-
-    apollo.watchQuery<{ value: string }>({ query }).subscribe(result => {
-      mockFn(result);
-    });
-
-    tick(10);
-
-    expect(mockFn.mock.calls).toMatchObject([
-      [{
-        loading: true,
-        networkStatus: 1
-      }],
-      [{
-        data: { value: 'expected' },
-        loading: false,
-        networkStatus: 7
-      }]
-    ]);
-  }));
 
   it('should emit current result on subscription', waitForAsync(() => {
     const query = gql`query { value }`;
@@ -61,15 +36,70 @@ describe('QueryObservable', () => {
     );
   }));
 
-  it('should not emit loading (notifyOnLoading: false)', fakeAsync(() => {
+  for (const fetchPolicy of allFetchPolicies.filter(policy => !['cache-only', 'standby'].includes(policy))) {
+    it(`should emit loading subscription: (notifyOnLoading: true (default), fetchPolicy: ${fetchPolicy})`, fakeAsync(() => {
+      const mockFn = jest.fn();
+      const query = gql`query { value }`;
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } },
+        delay: 10
+      });
+
+      apollo.watchQuery<{ value: string }>({ query, fetchPolicy }).subscribe(result => {
+        mockFn(result);
+      });
+
+      tick(10);
+
+      expect(mockFn.mock.calls).toMatchObject([
+        [{
+          data: undefined,
+          loading: true,
+          networkStatus: 1,
+          previousData: undefined
+        }],
+        [{
+          data: { value: 'expected' },
+          loading: false,
+          networkStatus: 7
+        }]
+      ]);
+    }));
+  }
+
+  for (const fetchPolicy of allFetchPolicies.filter(policy => !['cache-only', 'standby'].includes(policy))) {
+    it(`should not emit loading (notifyOnLoading: false, fetchPolicy: ${fetchPolicy})`, fakeAsync(() => {
+      const mockFn = jest.fn();
+      const query = gql`query { value }`;
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } },
+        delay: 10
+      });
+
+      apollo.watchQuery<{ value: string }>({ query, fetchPolicy, notifyOnLoading: false, notifyOnNetworkStatusChange: true }).subscribe(result => {
+        mockFn(result);
+      });
+
+      tick(10);
+
+      expect(mockFn.mock.calls).toMatchObject([
+        [{
+          data: { value: 'expected' },
+          networkStatus: 7
+        }]
+      ]);
+    }));
+  }
+
+  it('should emit initial cached result (notifyLoading: false)', fakeAsync(() => {
     const mockFn = jest.fn();
     const query = gql`query { value }`;
-    mockLink.addMockedResponse({
-      request: { query },
-      result: { data: { value: 'expected' } }
-    });
 
-    apollo.watchQuery<{ value: string }>({ query, notifyOnLoading: false }).subscribe(result => {
+    apollo.cache.writeQuery({ query, data: { value: 'expected' } });
+
+    apollo.watchQuery<{ value: string }>({ query, fetchPolicy: 'cache-first', notifyOnLoading: false, notifyOnNetworkStatusChange: true }).subscribe(result => {
       mockFn(result);
     });
 
@@ -171,7 +201,9 @@ describe('QueryObservable', () => {
     const queryObservable = apollo.watchQuery<{ value: string }>({ query, notifyOnNetworkStatusChange: true });
 
     const mockFn = jest.fn();
-    const subscription = queryObservable.subscribe(mockFn);
+    const subscription = queryObservable.subscribe(result => {
+      mockFn(result);
+    });
 
     tick();
 
@@ -184,16 +216,20 @@ describe('QueryObservable', () => {
     expect(mockFn.mock.calls).toMatchObject([
       [{
         loading: true,
-        networkStatus: NetworkStatus.loading
+        networkStatus: NetworkStatus.loading,
+        data: undefined,
+        previousData: undefined
       }],
       [{
         loading: false,
         networkStatus: NetworkStatus.ready,
-        data: { value: 'expected 1' }
+        data: { value: 'expected 1' },
+        previousData: undefined
       }],
       [{
         loading: true,
         networkStatus: NetworkStatus.refetch,
+        data: { value: 'expected 1' },
         previousData: { value: 'expected 1' }
       }],
       [{
@@ -205,7 +241,9 @@ describe('QueryObservable', () => {
     ]);
 
     mockFn.mockClear();
-    queryObservable.subscribe(mockFn);
+    queryObservable.subscribe(result => {
+      mockFn(result);
+    });
     tick();
 
     mockLink.addMockedResponse({
@@ -225,7 +263,7 @@ describe('QueryObservable', () => {
     expect(mockFn.mock.calls).toMatchObject([
       [{ data: { value: 'expected 2' }, loading: false, networkStatus: 7, previousData: { value: 'expected 2' } }],
       [{ data: { value: 'expected 2' }, loading: true, networkStatus: 4, previousData: { value: 'expected 2' } }],
-      [{ data: { value: 'expected 2' }, loading: false, networkStatus: 8, error: { graphQLErrors: [{ message: 'Invalid query' }] }, previousData: { value: 'expected 2' } }],
+      [{ data: { value: 'expected 2' }, loading: false, networkStatus: 8, error: { errors: [{ message: 'Invalid query' }] }, previousData: { value: 'expected 2' } }],
       [{ data: { value: 'expected 2' }, loading: true, networkStatus: 4, previousData: { value: 'expected 2' } }],
       [{ data: { value: 'expected 3' }, loading: false, networkStatus: 7, previousData: { value: 'expected 2' } }]
     ]);
@@ -233,38 +271,50 @@ describe('QueryObservable', () => {
 
   describe('errorPolicy', () => {
     describe('errorPolicy: all', () => {
-      it('should emit graphql errors (errorPolicy: all)', waitForAsync(() => {
+      it('should emit graphql errors and not throw on reobserve (errorPolicy: all)', waitForAsync(async () => {
+        const errorFn = jest.fn();
         const query = gql`query { value }`;
         mockLink.addMockedResponse({ request: { query }, result: { errors: [new GraphQLError('Invalid query')] } });
 
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all', throwError: true }).subscribe(
+        const queryObservable = apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all' });
+
+        queryObservable.subscribe(
           result => {
             if (!result.loading) {
               expect(result.error?.message).toEqual('Invalid query');
             }
           }
         );
+
+        try {
+          const result = await queryObservable.reobserve();
+          expect(result.error?.message).toEqual('Invalid query');
+        } catch (error) {
+          errorFn(error);
+        }
+
+        expect(errorFn).not.toHaveBeenCalled();
       }));
 
-      it('should throw network error (errorPolicy: all)', waitForAsync(() => {
+      it('should emit network error (errorPolicy: all)', waitForAsync(() => {
         const query = gql`query { value }`;
         mockLink.addMockedResponse({ request: { query }, error: new Error('An unexpected error has occurred') });
 
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all', throwError: true }).subscribe({
-          error: error => {
-            expect(error?.message).toEqual('An unexpected error has occurred');
+        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all' }).subscribe(result => {
+          if (!result.loading) {
+            expect(result.error?.message).toEqual('An unexpected error has occurred');
           }
         });
       }));
 
-      it('should emit new result it contains errors without data (errorPolicy: all)', fakeAsync(() => {
+      it('should emit error with data (errorPolicy: all)', fakeAsync(() => {
         const mockFn = jest.fn();
 
-        const query = gql`query { value }`;
+        const query = gql`query { value value2 }`;
         mockLink.addMockedResponse({ request: { query }, result: { data: { value: 'expected 1' } } });
-        mockLink.addMockedResponse({ request: { query }, result: { errors: [new GraphQLError('Invalid query')] } });
+        mockLink.addMockedResponse({ request: { query }, result: { data: { value: 'expected 1' }, errors: [new GraphQLError('Invalid query')] } });
 
-        const query$ = apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all', throwError: true });
+        const query$ = apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all' });
 
         query$.subscribe(
           result => {
@@ -281,23 +331,38 @@ describe('QueryObservable', () => {
 
         tick();
 
-        expect(mockFn.mock.calls).toEqual([[{ value: 'expected 1', error: undefined }], [{ value: 'expected 1', error: 'Invalid query' }]]);
+        expect(mockFn.mock.calls).toEqual([
+          [{ value: 'expected 1', error: undefined }],
+          [{ value: 'expected 1', error: 'Invalid query' }]
+        ]);
       }));
     });
 
     describe('errorPolicy: none', () => {
-      it('should throw graphql errors (errorPolicy: none)', waitForAsync(() => {
+      it('should emit graphql errors, ignore data and throw on reobserve (errorPolicy: none)', waitForAsync(async () => {
+        const errorFn = jest.fn();
         const query = gql`query { value }`;
         mockLink.addMockedResponse({
           request: { query },
-          result: { errors: [new GraphQLError('Invalid query')] }
+          result: { data: { value: 'expected' }, errors: [new GraphQLError('Invalid query')] }
         });
 
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'none', throwError: true }).subscribe({
-          error: error => {
-            expect(error?.message).toEqual('Invalid query');
+        const queryObservable = apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'none' });
+
+        queryObservable.subscribe(result => {
+          if (!result.loading) {
+            expect(result.error).toBeDefined();
+            expect(result.data).toBeUndefined();
           }
         });
+
+        try {
+          await queryObservable.reobserve();
+        } catch (error) {
+          errorFn(error);
+        }
+
+        expect(errorFn).toHaveBeenCalledWith(new Error('Invalid query'));
       }));
     });
 
@@ -306,92 +371,24 @@ describe('QueryObservable', () => {
         const query = gql`query { value }`;
         mockLink.addMockedResponse({ request: { query }, result: { errors: [new GraphQLError('Invalid query')] } });
 
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'ignore', throwError: true }).subscribe(
+        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'ignore' }).subscribe(
           result => {
             if (!result.loading) {
-              expect(!result.error).toEqual(true);
+              expect(result.error).toBeUndefined();
             }
           });
       }));
 
-      it('should throw network errors (errorPolicy: ignore)', waitForAsync(() => {
+      it('should not emit network errors (errorPolicy: ignore)', waitForAsync(() => {
         const query = gql`query { value }`;
         mockLink.addMockedResponse({
           request: { query },
           error: new Error('An unexpected error has occurred')
         });
 
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'ignore', throwError: true }).subscribe({
-          error: error => {
-            expect(error?.message).toEqual('An unexpected error has occurred');
-          }
+        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'ignore' }).subscribe(result => {
+          expect(result.error).toBeUndefined();
         });
-      }));
-    });
-
-    describe('throwError: false', () => {
-      it('should emit network errors (errorPolicy: ignore)', waitForAsync(() => {
-        const query = gql`query { value }`;
-        mockLink.addMockedResponse({
-          request: { query },
-          error: new Error('An unexpected error has occurred')
-        });
-
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'ignore', throwError: false }).subscribe(
-          result => {
-            if (!result.loading) {
-              expect(result.error?.message).toEqual('An unexpected error has occurred');
-            }
-          }
-        );
-      }));
-
-      it('should emit graphql errors (errorPolicy: none)', waitForAsync(() => {
-        const query = gql`query { value }`;
-        mockLink.addMockedResponse({
-          request: { query },
-          result: { errors: [new GraphQLError('Invalid query')] }
-        });
-
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'none', throwError: false }).subscribe(
-          result => {
-            if (!result.loading) {
-              expect(result.error?.message).toEqual('Invalid query');
-            }
-          }
-        );
-      }));
-
-      it('should emit network errors (errorPolicy: none)', waitForAsync(() => {
-        const query = gql`query { value }`;
-        mockLink.addMockedResponse({
-          request: { query },
-          error: new Error('An unexpected error has occurred')
-        });
-
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'none', throwError: false }).subscribe(
-          result => {
-            if (!result.loading) {
-              expect(result.error?.message).toEqual('An unexpected error has occurred');
-            }
-          }
-        );
-      }));
-
-      it('should emit network errors (errorPolicy: all)', waitForAsync(() => {
-        const query = gql`query { value }`;
-        mockLink.addMockedResponse({
-          request: { query },
-          error: new Error('An unexpected error has occurred')
-        });
-
-        apollo.watchQuery<{ value: string }>({ query, errorPolicy: 'all', throwError: false }).subscribe(
-          result => {
-            if (!result.loading) {
-              expect(result.error?.message).toEqual('An unexpected error has occurred');
-            }
-          }
-        );
       }));
     });
   });

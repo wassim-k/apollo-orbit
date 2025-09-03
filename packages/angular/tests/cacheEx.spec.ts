@@ -1,8 +1,8 @@
 import { TestBed, waitForAsync } from '@angular/core/testing';
 import { Apollo } from '@apollo-orbit/angular';
-import { gql } from '@apollo/client/core';
+import { gql } from '@apollo/client';
 import { asyncScheduler, observeOn } from 'rxjs';
-import { ApolloMockModule } from './helpers';
+import { provideApolloMock } from './helpers';
 
 interface Value {
   a: string;
@@ -14,7 +14,7 @@ describe('CacheEx', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ApolloMockModule]
+      providers: [provideApolloMock()]
     });
 
     apollo = TestBed.inject(Apollo);
@@ -79,8 +79,8 @@ describe('CacheEx', () => {
         error: errorFn
       });
 
-      expect(resultFn).not.toHaveBeenCalled();
-      expect(errorFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Can\'t find field \'b\' on ROOT_QUERY object' }));
+      expect(resultFn).toHaveBeenCalledWith(expect.objectContaining({ complete: false, data: null }));
+      expect(errorFn).not.toHaveBeenCalled();
     });
   });
 
@@ -109,7 +109,7 @@ describe('CacheEx', () => {
         error: errorFn
       });
 
-      expect(resultFn).toHaveBeenCalledWith(expect.objectContaining({ data: { a: '1' }, complete: false, missing: expect.arrayContaining([expect.any(Error)]) }));
+      expect(resultFn).toHaveBeenCalledWith(expect.objectContaining({ data: { a: '1' }, complete: false }));
       expect(errorFn).not.toHaveBeenCalled();
     });
   });

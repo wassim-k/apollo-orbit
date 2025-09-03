@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/core",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Apollo Orbit state management core package",
   "license": "MIT",
   "sideEffects": false,
@@ -25,7 +25,7 @@
     "prebuild": "yarn clean"
   },
   "peerDependencies": {
-    "@apollo/client": "^3.11.0",
+    "@apollo/client": "^4.0.0",
     "graphql": ">=0.11"
   }
 }

@@ -2,19 +2,19 @@
 @if (authorsResult.loading) { Loading... }
 @if (authorsResult.error) { {{ authorsResult.error.message }} }
 @if (authorsResult.data?.authors; as authors) {
-<form [formGroup]="form" autocomplete="off" (ngSubmit)="submit()">
+<form class="form" [formGroup]="form" autocomplete="off" (ngSubmit)="submit()">
   @if (error(); as error) {
   <div class="error-well">An error has occurred: {{ error.message }}</div>
   }
-  <div class="form-group">
+  <div class="form-field">
     <label for="name">Name *</label>
     <input name="name" type="text" formControlName="name" />
   </div>
-  <div class="form-group">
+  <div class="form-field">
     <label for="genre">Genre</label>
     <input name="genre" type="text" formControlName="genre" />
   </div>
-  <div class="form-group">
+  <div class="form-field">
     <label for="author">Author *</label>
     <select name="author" formControlName="authorId">
       @for (author of authors; track author) {

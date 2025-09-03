@@ -1,6 +1,9 @@
 <h3>Authors <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
+<div>
+  <input type="text" placeholder="Author name" [formControl]="nameControl" />
+</div>
 @if (authorsQuery | async; as authorsResult) {
-@if (authorsResult.loading) { Loading...}
+@if (authorsResult.loading) { Loading... }
 @if (authorsResult.error) { {{ authorsResult.error.message }} }
 @if ((authorsResult.data || authorsResult.previousData)?.authors; as authors) {
 @for (author of authors; track author.id) {

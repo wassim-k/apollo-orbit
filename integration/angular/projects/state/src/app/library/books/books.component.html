@@ -1,0 +1,27 @@
+<div class="flex-row gap-10">
+  <div>
+    <h3>Books <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
+    <div>
+      <input type="text" placeholder="Book name" [formControl]="nameControl" />
+    </div>
+    @if (booksQuery.loading()) { Loading... }
+    @if (booksQuery.error(); as error) { {{ error.message }} }
+    @if ((booksQuery.data() ?? booksQuery.previousData())?.books; as books) {
+    @for (book of books; track book.id) {
+    <div>
+      <span>{{ book.displayName }}</span>
+      <button type="button" class="icon-btn" href="javascript: void 0" (click)="edit(book)">✏️</button>
+    </div>
+    }
+    }
+  </div>
+  @if (bookId !== undefined) {
+  <div>
+    <app-edit-book [bookId]="bookId" (closed)="bookId = undefined"></app-edit-book>
+  </div>
+  }
+</div>
+
+@if (newBookSubscription.data(); as newBookData) {
+<div class="notification">New book '{{ newBookData.newBook.name }}' was added successfully.</div>
+}

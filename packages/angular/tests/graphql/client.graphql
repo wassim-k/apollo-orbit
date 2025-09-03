@@ -1,0 +1,23 @@
+query BooksClient($genre: String) {
+  books(genre: $genre) @client {
+    ...BookFragment
+  }
+}
+
+mutation AddBookClient($book: AddBookInput!) {
+  addBook(book: $book) @client {
+    ...BookFragment
+  }
+}
+
+query AuthorsClient {
+  authors @client {
+    ...AuthorFragment
+  }
+}
+
+query AuthorClient($id: ID!) {
+  author(id: $id) @client {
+    ...AuthorFragment
+  }
+}

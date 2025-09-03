@@ -1,0 +1,38 @@
+fragment AuthorFragment on Author {
+  id
+  name
+  age
+  books {
+    ...BookFragment
+  }
+}
+
+fragment NewAuthorFragment on Author {
+  id
+  name
+  age
+}
+
+query Authors($name: String) {
+  authors(name: $name) {
+    ...AuthorFragment
+  }
+}
+
+mutation AddAuthor($author: AuthorInput!) {
+  addAuthor(author: $author) {
+    ...AuthorFragment
+  }
+}
+
+mutation UpdateAuthor($id: ID!, $author: AuthorInput!) {
+  updateAuthor(id: $id, author: $author) {
+    ...AuthorFragment
+  }
+}
+
+subscription NewAuthor {
+  newAuthor {
+    ...NewAuthorFragment
+  }
+}

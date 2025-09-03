@@ -2,14 +2,15 @@ import { inject } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { APOLLO_MULTI_ROOT, Apollo, InMemoryCache, provideApolloInstance, provideApolloOrbit, withApolloOptions } from '@apollo-orbit/angular/core';
+import { APOLLO_MULTI_ROOT, Apollo, InMemoryCache, provideApollo, provideApolloInstance, withApolloOptions } from '@apollo-orbit/angular';
+import { ApolloLink } from '@apollo/client/link';
 
 describe('Providers', () => {
   describe('guard', () => {
     beforeEach(() => {
       TestBed.configureTestingModule({
         providers: [
-          provideApolloOrbit(withApolloOptions({ cache: new InMemoryCache() })),
+          provideApollo(withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty() })),
           provideRouter([
             {
               path: '',
@@ -17,7 +18,7 @@ describe('Providers', () => {
             },
             {
               path: 'child',
-              providers: [provideApolloOrbit(withApolloOptions({ cache: new InMemoryCache() }))],
+              providers: [provideApollo(withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty() }))],
               children: []
             }
           ])
@@ -25,12 +26,12 @@ describe('Providers', () => {
       });
     });
 
-    it('should throw if provideApolloOrbit was called more than once', waitForAsync(async () => {
+    it('should throw if provideApollo was called more than once', waitForAsync(async () => {
       const harness = await RouterTestingHarness.create();
-      await expect(harness.navigateByUrl('/child')).rejects.toThrow(/has been called more than once/);
+      await expect(harness.navigateByUrl('/child')).rejects.toThrow(/should only be called once/);
     }));
 
-    it('should not throw if provideApolloOrbit was called more than once and APOLLO_MULTI_ROOT was supplied', waitForAsync(async () => {
+    it('should not throw if provideApollo was called more than once and APOLLO_MULTI_ROOT was supplied', waitForAsync(async () => {
       TestBed.overrideProvider(APOLLO_MULTI_ROOT, { useValue: true });
       const harness = await RouterTestingHarness.create();
       await expect(harness.navigateByUrl('/child')).resolves.not.toThrow();
@@ -41,7 +42,7 @@ describe('Providers', () => {
     const cache = new InMemoryCache();
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit(withApolloOptions({ cache }))
+        provideApollo(withApolloOptions({ cache, link: ApolloLink.empty() }))
       ]
     });
 
@@ -54,7 +55,7 @@ describe('Providers', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: InMemoryCache, useValue: cache },
-        provideApolloOrbit(withApolloOptions(() => ({ cache: inject(InMemoryCache) })))
+        provideApollo(withApolloOptions(() => ({ cache: inject(InMemoryCache), link: ApolloLink.empty() })))
       ]
     });
 
@@ -62,14 +63,14 @@ describe('Providers', () => {
     expect(apollo.cache).toEqual(cache);
   });
 
-  it('should support provideApolloInstance', async () => {
+  it('should support provideApolloInstance', () => {
     class ApolloMulti extends Apollo { }
     const cache1 = new InMemoryCache();
     const cache2 = new InMemoryCache();
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit(withApolloOptions({ cache: cache1 })),
-        provideApolloInstance(ApolloMulti, { cache: cache2 })
+        provideApollo(withApolloOptions({ cache: cache1, link: ApolloLink.empty() })),
+        provideApolloInstance(ApolloMulti, { cache: cache2, link: ApolloLink.empty() })
       ]
     });
 

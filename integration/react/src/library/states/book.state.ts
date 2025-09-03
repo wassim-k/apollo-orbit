@@ -1,14 +1,8 @@
 import { state } from '@apollo-orbit/react';
 import { gql } from '@apollo/client';
 import shortid from 'shortid';
-import { AddBookDocument, Book, BooksDocument } from '../../graphql';
-
-const Toastify = require('toastify-js'); // eslint-disable-line @typescript-eslint/no-var-requires
-
-const getDisplayName = (book: Book) => {
-  const { name, genre } = book;
-  return typeof genre === 'string' ? `${name} (${genre})` : name;
-};
+import Toastify from 'toastify-js';
+import { ADD_BOOK_MUTATION, Book, BOOKS_QUERY } from '../../graphql';
 
 export const bookState = state(descriptor => descriptor
   .typeDefs(gql`
@@ -17,31 +11,33 @@ export const bookState = state(descriptor => descriptor
     }
   `)
 
-  .resolver(
-    ['Book', 'displayName'],
-    (rootValue: Book, args, context, info): Book['displayName'] => {
-      return getDisplayName(rootValue);
-    })
+  .typePolicies({
+    Book: {
+      fields: {
+        displayName: (_existing, { readField }) => getDisplayName(readField<Book['name']>('name') as string, readField<Book['genre']>('genre'))
+      }
+    }
+  })
 
-  .optimisticResponse(AddBookDocument, ({ book }) => ({
+  .optimisticResponse(ADD_BOOK_MUTATION, ({ book }) => ({
     __typename: 'Mutation' as const,
     addBook: {
       __typename: 'Book' as const,
       id: shortid.generate(),
-      displayName: getDisplayName(book as Book),
+      displayName: getDisplayName(book.name, book.genre),
       genre: book.genre ?? null,
       name: book.name,
       authorId: book.authorId
     }
   }))
 
-  .mutationUpdate(AddBookDocument, (cache, info) => {
+  .mutationUpdate(ADD_BOOK_MUTATION, (cache, info) => {
     const addBook = info.data?.addBook;
     if (!addBook) return;
-    cache.updateQuery({ query: BooksDocument }, data => data ? { books: [...data.books, addBook] } : data);
+    cache.updateQuery({ query: BOOKS_QUERY }, data => data ? { books: [...data.books, addBook] } : data);
   })
 
-  .effect(AddBookDocument, info => {
+  .effect(ADD_BOOK_MUTATION, info => {
     if (info.data?.addBook) {
       Toastify({
         text: `New book '${info.data.addBook.name}' was added.`,
@@ -61,3 +57,7 @@ export const bookState = state(descriptor => descriptor
     }
   })
 );
+
+function getDisplayName(name: string, genre: string | null | undefined): string {
+  return typeof genre === 'string' ? `${name} (${genre})` : name;
+}

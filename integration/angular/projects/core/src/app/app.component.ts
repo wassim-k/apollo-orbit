@@ -9,7 +9,6 @@ import { LibraryComponent } from './library/library.component';
     </div>`,
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [LibraryComponent]
 })
 export class AppComponent { }

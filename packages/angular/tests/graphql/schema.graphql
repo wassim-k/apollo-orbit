@@ -1,37 +1,45 @@
-input BookInput {
-  name: String!
-  genre: String
-  authorId: ID!
+input AuthorInput {
+	name: String!
+	age: Int
+}
+
+input AddBookInput {
+	name: String!
+	genre: String
+	authorId: ID!
 }
 
 type Book {
-  id: ID!
-  name: String!
-  genre: String
-  authorId: ID!
+	id: ID!
+	name: String!
+	genre: String
+	author: Author!
+	authorId: ID!
 }
 
-input AuthorInput {
-  name: String!
-  age: Int
+input UpdateBookInput {
+	name: String!
+	genre: String
 }
 
 type Author {
-  id: ID!
-  name: String!
-  books: [Book!]
+	id: ID!
+	name: String!
+	age: Int
+	books: [Book!]!
 }
 
 type Query {
-  authors: [Author!]!
-  author(id: ID!): Author!
-  book(id: ID!): Book!
-  books(genre: String): [Book!]!
+	book(id: ID!): Book!
+	books(name: String, genre: String, authorId: ID): [Book!]!
+	author(id: ID!): Author!
+	authors: [Author!]!
 }
 
 type Mutation {
-  addBook(book: BookInput!): Book!
-  addAuthor(author: AuthorInput!): Author!
+	addAuthor(author: AuthorInput!): Author!
+	addBook(book: AddBookInput!): Book!
+	updateBook(id: ID!, book: UpdateBookInput!): Book!
 }
 
 type Subscription {

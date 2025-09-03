@@ -7,11 +7,12 @@ interface Data {
 
 describe('Map', () => {
   it('should map query', () => {
-    of<QueryResult<Data>>({
+    of<QueryResult<Data, 'empty' | 'complete'>>({
       loading: false,
-      networkStatus: NetworkStatus.ready,
       data: { parent: { child: { value: 'new' } } },
-      previousData: { parent: { child: { value: 'old' } } }
+      previousData: { parent: { child: { value: 'old' } } },
+      dataState: 'complete',
+      networkStatus: NetworkStatus.ready
     }).pipe(
       mapQuery(data => data.parent.child.value)
     ).subscribe(result => {

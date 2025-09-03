@@ -1,14 +1,14 @@
-/* eslint-disable prefer-const */
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { state } from '@apollo-orbit/core';
 import { ApolloOrbitProvider } from '@apollo-orbit/react';
-import { ApolloClient, ApolloProvider, gql, InMemoryCache, useMutation, useQuery } from '@apollo/client';
+import { ApolloClient, gql, InMemoryCache } from '@apollo/client';
+import { ApolloProvider, useMutation, useQuery } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing';
 import { act, render } from '@testing-library/react';
 import React, { useEffect } from 'react';
 import * as wrapMutate from '../src/wrapMutate';
-import { AddAuthorDocument } from './graphql';
+import { ADD_AUTHOR_MUTATION } from './graphql';
 
 let update1Mock: jest.Mock;
 let update2Mock: jest.Mock;
@@ -17,27 +17,13 @@ const cache1 = new InMemoryCache();
 const cache2 = new InMemoryCache();
 
 const testState1 = state(descriptor => descriptor
-  .resolver(
-    ['Query', 'value1'],
-    (rootValue, args, context, info): Promise<string> =>
-      Promise.resolve().then(() => {
-        return 'state1';
-      })
-  )
-  .mutationUpdate(AddAuthorDocument, () => {
+  .mutationUpdate(ADD_AUTHOR_MUTATION, () => {
     update1Mock();
   })
 );
 
 const testState2 = state(descriptor => descriptor
-  .resolver(
-    ['Query', 'value2'],
-    (rootValue, args, context, info): Promise<string> =>
-      Promise.resolve().then(() => {
-        return 'state2';
-      })
-  )
-  .mutationUpdate(AddAuthorDocument, () => {
+  .mutationUpdate(ADD_AUTHOR_MUTATION, () => {
     update2Mock();
   })
 );
@@ -46,19 +32,21 @@ describe('Multi', () => {
   beforeEach(() => {
     update1Mock = jest.fn();
     update2Mock = jest.fn();
+    MockLink.defaultOptions = { delay: 0 };
   });
 
   afterEach(() => {
     cache1.reset({ discardWatches: true });
     cache2.reset({ discardWatches: true });
+    MockLink.defaultOptions = { delay: undefined };
   });
 
   it('should render multiple clients', async () => {
     const TestChild1 = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument);
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION);
       useEffect(() => void addAuthor({ variables: { name: 'Author 1' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value1 @client }`);
+      const { data, loading } = useQuery(gql`query { value1 }`);
       if (!loading) {
         expect(data).toEqual({ value1: 'state1' });
       }
@@ -66,10 +54,10 @@ describe('Multi', () => {
     };
 
     const TestChild2 = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument);
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION);
       useEffect(() => void addAuthor({ variables: { name: 'Author 2' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value2 @client }`);
+      const { data, loading } = useQuery(gql`query { value2 }`);
       if (!loading) {
         expect(data).toEqual({ value2: 'state2' });
       }
@@ -81,9 +69,15 @@ describe('Multi', () => {
       cache: cache1,
       link: new MockLink([
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 1' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 1' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '1', name: 'Author 1' } }
+          }
+        },
+        {
+          request: { query: gql`query { value1 }` },
+          result: {
+            data: { value1: 'state1' }
           }
         }
       ])
@@ -93,9 +87,15 @@ describe('Multi', () => {
       cache: cache2,
       link: new MockLink([
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 2' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 2' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '2', name: 'Author 2' } }
+          }
+        },
+        {
+          request: { query: gql`query { value2 }` },
+          result: {
+            data: { value2: 'state2' }
           }
         }
       ])
@@ -124,10 +124,10 @@ describe('Multi', () => {
 
   it('should render multiple providers for the same client', async () => {
     const TestChild1 = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument);
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION);
       useEffect(() => void addAuthor({ variables: { name: 'Author 1' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value1 @client }`);
+      const { data, loading } = useQuery(gql`query { value1 }`);
       if (!loading) {
         expect(data).toEqual({ value1: 'state1' });
       }
@@ -135,10 +135,10 @@ describe('Multi', () => {
     };
 
     const TestChild2 = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument);
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION);
       useEffect(() => void addAuthor({ variables: { name: 'Author 2' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value2 @client }`);
+      const { data, loading } = useQuery(gql`query { value2 }`);
       if (!loading) {
         expect(data).toEqual({ value2: 'state2' });
       }
@@ -150,15 +150,27 @@ describe('Multi', () => {
       cache: cache1,
       link: new MockLink([
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 1' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 1' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '1', name: 'Author 1' } }
           }
         },
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 2' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 2' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '2', name: 'Author 2' } }
+          }
+        },
+        {
+          request: { query: gql`query { value1 }` },
+          result: {
+            data: { value1: 'state1' }
+          }
+        },
+        {
+          request: { query: gql`query { value2 }` },
+          result: {
+            data: { value2: 'state2' }
           }
         }
       ])
@@ -190,19 +202,25 @@ describe('Multi', () => {
       cache: cache1,
       link: new MockLink([
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 1' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 1' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '1', name: 'Author 1' } }
+          }
+        },
+        {
+          request: { query: gql`query { value1 }` },
+          result: {
+            data: { value1: 'state1' }
           }
         }
       ])
     });
 
     const TestChild = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument);
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION);
       useEffect(() => void addAuthor({ variables: { name: 'Author 1' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value1 @client }`);
+      const { data, loading } = useQuery(gql`query { value1 }`);
       if (!loading) {
         expect(data).toEqual({ value1: 'state1' });
       }
@@ -233,15 +251,21 @@ describe('Multi', () => {
       cache: cache1,
       link: new MockLink([
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 1' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 1' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '1', name: 'Author 1' } }
           }
         },
         {
-          request: { query: AddAuthorDocument, variables: { name: 'Author 2' } },
+          request: { query: ADD_AUTHOR_MUTATION, variables: { name: 'Author 2' } },
           result: {
             data: { addAuthor: { __typename: 'Author', id: '2', name: 'Author 2' } }
+          }
+        },
+        {
+          request: { query: gql`query { value1 }` },
+          result: {
+            data: { value1: 'state1' }
           }
         }
       ])
@@ -249,14 +273,20 @@ describe('Multi', () => {
 
     const client2 = new ApolloClient({
       cache: cache2,
-      link: new MockLink([])
+      link: new MockLink([
+        {
+          request: { query: gql`query { value2 }` },
+          result: {
+            data: { value2: 'state2' }
+          }
+        }])
     });
 
     const TestChild1 = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument);
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION);
       useEffect(() => void addAuthor({ variables: { name: 'Author 1' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value1 @client }`);
+      const { data, loading } = useQuery(gql`query { value1 }`);
       if (!loading) {
         expect(data).toEqual({ value1: 'state1' });
       }
@@ -264,10 +294,10 @@ describe('Multi', () => {
     };
 
     const TestChild2 = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument, { client: client1 });
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION, { client: client1 });
       useEffect(() => void addAuthor({ variables: { name: 'Author 2' } }), []);
 
-      const { data, loading } = useQuery(gql`query { value2 @client }`);
+      const { data, loading } = useQuery(gql`query { value2 }`);
       if (!loading) {
         expect(data).toEqual({ value2: 'state2' });
       }

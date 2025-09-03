@@ -1,53 +1,78 @@
+@forward "../../../../../node_modules/toastify-js/src/toastify.css";
+
 html,
 body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
-        "Droid Sans", "Helvetica Neue", sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
-.form-group {
+.form {
+  width: 400px;
+  margin: 1em;
+  padding: 1em;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: hsl(0, 0%, 98%);
+
+  &-field {
     display: flex;
     flex-direction: row;
     margin: 0.5em 0;
 
     label {
-        flex-basis: 20%;
-        white-space: nowrap;
-        margin-right: 0.5em;
+      flex-basis: 20%;
+      white-space: nowrap;
+      margin-right: 0.5em;
     }
 
     input,
     select {
-        flex-basis: 80%;
+      flex-basis: 80%;
     }
-}
+  }
 
-.form-buttons {
+  &-buttons {
     margin-top: 1em;
     display: flex;
     flex-direction: row;
     gap: 1em;
 
     button {
-        width: 6em;
+      width: 6em;
     }
+  }
+}
+
+.actions-container {
+  margin-top: 1em;
+
+  button {
+    margin-right: 0.5em;
+  }
 }
 
 .error-well {
-    background-color: rgba(red, 0.1);
-    padding: 1em;
-    margin: 1em 0;
+  background-color: rgba(red, 0.1);
+  padding: 1em;
+  margin: 1em 0;
+}
+
+.notification {
+  background-color: #def8db;
+  margin: 1rem 0;
+  padding: 0.75rem;
 }

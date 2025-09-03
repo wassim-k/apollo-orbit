@@ -1,1 +1,1 @@
-export * from './angular';
+export * from './angular/index.js';

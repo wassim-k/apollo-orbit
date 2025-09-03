@@ -1,12 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { ApolloOrbitProvider, state, useDispatch } from '@apollo-orbit/react';
-import { ApolloClient, ApolloProvider, InMemoryCache, useLazyQuery, useMutation, useQuery } from '@apollo/client';
-import { MockedProvider } from '@apollo/client/testing';
+import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloLink } from '@apollo/client/link';
+import { LocalState } from '@apollo/client/local-state';
+import { ApolloProvider, useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
+import { MockLink } from '@apollo/client/testing';
+import { MockedProvider } from '@apollo/client/testing/react';
 import { act, render } from '@testing-library/react';
 import { GraphQLError } from 'graphql';
 import React, { useEffect } from 'react';
-import { AddAuthorDocument, AddAuthorMutationVariables, AddBookDocument, AuthorDocument, AuthorsDocument, BookInput, BooksDocument, Mutation, MutationAddBookArgs, Query } from './graphql';
+import { noop } from 'rxjs';
+import { ADD_AUTHOR_MUTATION, ADD_BOOK_MUTATION, AddAuthorMutationVariables, AUTHOR_QUERY, AUTHORS_QUERY, BookInput, BOOKS_QUERY, Mutation, MutationAddBookArgs, Query } from './graphql';
 
 const author1Id = `${Math.random()}`;
 const author2Id = `${Math.random()}`;
@@ -38,7 +43,7 @@ const testState = state(descriptor => descriptor
 
   .onInit(cache => {
     cache.writeQuery({
-      query: BooksDocument,
+      query: BOOKS_QUERY,
       data: {
         books: [
           { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: author1Id },
@@ -66,13 +71,13 @@ const testState = state(descriptor => descriptor
       return { __typename: 'Book', id: `${Math.random()}`, ...book, genre: null };
     })
 
-  .mutationUpdate(AddBookDocument, (cache, info) => {
+  .mutationUpdate(ADD_BOOK_MUTATION, (cache, info) => {
     if (!info.data) return;
     const { addBook } = info.data;
-    cache.updateQuery({ query: BooksDocument }, data => data ? { books: [...data.books, addBook] } : data);
+    cache.updateQuery({ query: BOOKS_QUERY }, data => data ? { books: [...data.books, addBook] } : data);
   })
 
-  .effect(AddAuthorDocument, result => {
+  .effect(ADD_AUTHOR_MUTATION, result => {
     effectMock(result);
   })
 
@@ -93,13 +98,17 @@ describe('State', () => {
     effectMock = jest.fn();
     actionMock = jest.fn();
     nestedActionMock = jest.fn();
+    MockLink.defaultOptions = { delay: 0 };
   });
 
-  afterEach(() => cache.reset({ discardWatches: true }));
+  afterEach(() => {
+    cache.reset({ discardWatches: true });
+    MockLink.defaultOptions = { delay: undefined };
+  });
 
   it('should run client resolvers', () => {
     const TestChild = () => {
-      const { data, loading } = useQuery(AuthorsDocument);
+      const { data, loading } = useQuery(AUTHORS_QUERY);
       if (!loading) {
         expect(data?.authors).toHaveLength(2);
       }
@@ -107,7 +116,7 @@ describe('State', () => {
     };
 
     return act(async () => void render(
-      <ApolloProvider client={new ApolloClient({ cache })}>
+      <ApolloProvider client={new ApolloClient({ cache, link: ApolloLink.empty(), localState: new LocalState() })}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
@@ -117,11 +126,11 @@ describe('State', () => {
 
   it('should call type policies read function', () => {
     const TestChild = () => {
-      const { data: authorsData } = useQuery(AuthorsDocument);
-      const [getAuthor, { data }] = useLazyQuery(AuthorDocument, { variables: { id: author1Id } });
+      const { data: authorsData } = useQuery(AUTHORS_QUERY);
+      const [getAuthor, { data }] = useLazyQuery(AUTHOR_QUERY);
 
       useEffect(() => {
-        if (authorsData) getAuthor();
+        if (authorsData) getAuthor({ variables: { id: author1Id } });
       }, [authorsData, getAuthor]);
 
       if (data) {
@@ -131,7 +140,7 @@ describe('State', () => {
     };
 
     return act(async () => void render(
-      <ApolloProvider client={new ApolloClient({ cache })}>
+      <ApolloProvider client={new ApolloClient({ cache, link: ApolloLink.empty(), localState: new LocalState() })}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
@@ -143,47 +152,25 @@ describe('State', () => {
     const book: BookInput = { name: 'New Book', authorId: author1Id };
 
     const TestChild = () => {
-      const [getBooks, { data }] = useLazyQuery(BooksDocument);
-      const [addBook] = useMutation(AddBookDocument, { variables: { book } });
+      const [getBooks, { data }] = useLazyQuery(BOOKS_QUERY);
+      const [addBook] = useMutation(ADD_BOOK_MUTATION, { variables: { book } });
 
       useEffect(() => void addBook().then(() => getBooks()), []);
 
       if (data) {
-        expect(data.books.find((b: any) => b.name === book.name)).toBeDefined();
+        expect(data.books.find(b => b.name === book.name)).toBeDefined();
       }
 
       return null;
     };
 
     return act(async () => void render(
-      <ApolloProvider client={new ApolloClient({ cache })}>
+      <ApolloProvider client={new ApolloClient({ cache, link: ApolloLink.empty(), localState: new LocalState() })}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
       </ApolloProvider>
     ));
-  });
-
-  it('should merge mutation variables from mutationOptions and mutationFunctionOptions', async () => {
-    const TestChild = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument, { variables: { name: 'Brandon Sanderson' }, context: { val1: 'old', val2: '2' } });
-      useEffect(() => void addAuthor({ variables: { age: 44 } as AddAuthorMutationVariables, context: { val1: 'new', val3: '3' } as any }), []);
-      return null;
-    };
-
-    const client = new ApolloClient({ cache });
-    const mutateSpy = jest.spyOn(client, 'mutate');
-
-    await act(async () => void render(
-      <ApolloProvider client={client}>
-        <ApolloOrbitProvider states={[testState]}>
-          <TestChild />
-        </ApolloOrbitProvider>
-      </ApolloProvider>
-    ));
-
-    expect(mutateSpy.mock.calls[0][0].variables).toEqual({ name: 'Brandon Sanderson', age: 44 });
-    expect(mutateSpy.mock.calls[0][0].context).toEqual({ val1: 'new', val3: '3' });
   });
 
   it('should call action', async () => {
@@ -196,7 +183,7 @@ describe('State', () => {
     };
 
     await act(async () => void render(
-      <MockedProvider cache={cache}>
+      <MockedProvider localState={new LocalState()} cache={cache}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
@@ -216,17 +203,17 @@ describe('State', () => {
     const onErrorFn = jest.fn();
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
     const TestChild = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument, {
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION, {
         onError: onErrorFn
       });
-      useEffect(() => void addAuthor({ variables }), []);
+      useEffect(() => void addAuthor({ variables }).catch(noop), []);
       return null;
     };
 
     await act(async () => void render(
-      <MockedProvider cache={cache} mocks={[
+      <MockedProvider localState={new LocalState()} cache={cache} mocks={[
         {
-          request: { query: AddAuthorDocument, variables },
+          request: { query: ADD_AUTHOR_MUTATION, variables },
           result: {
             errors: [new GraphQLError('Failed to add author')]
           }
@@ -251,7 +238,7 @@ describe('State', () => {
     const onErrorFn = jest.fn();
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
     const TestChild = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument, {
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION, {
         errorPolicy: 'all',
         onError: onErrorFn
       });
@@ -260,9 +247,9 @@ describe('State', () => {
     };
 
     await act(async () => void render(
-      <MockedProvider cache={cache} mocks={[
+      <MockedProvider localState={new LocalState()} cache={cache} mocks={[
         {
-          request: { query: AddAuthorDocument, variables },
+          request: { query: ADD_AUTHOR_MUTATION, variables },
           result: {
             errors: [new GraphQLError('Failed to add author')]
           }
@@ -286,15 +273,15 @@ describe('State', () => {
   it('should call effect without onError (errorPolicy: all)', async () => {
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
     const TestChild = () => {
-      const [addAuthor] = useMutation(AddAuthorDocument, { errorPolicy: 'all' });
+      const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION, { errorPolicy: 'all' });
       useEffect(() => void addAuthor({ variables }), []);
       return null;
     };
 
     await act(async () => void render(
-      <MockedProvider cache={cache} mocks={[
+      <MockedProvider localState={new LocalState()} cache={cache} mocks={[
         {
-          request: { query: AddAuthorDocument, variables },
+          request: { query: ADD_AUTHOR_MUTATION, variables },
           result: {
             errors: [new GraphQLError('Failed to add author')]
           }

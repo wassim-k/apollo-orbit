@@ -1,5 +1,5 @@
 # 🚀 Apollo Orbit - Angular
-A fully-featured GraphQL client for Angular with modular state management.
+A full-featured GraphQL client for Angular
 
 ## 📚 Documentation
 

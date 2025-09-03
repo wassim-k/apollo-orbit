@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-imports */
-export { Action, ActionContext, ActionFn, ActionInstance, ActionType, Context, EffectFn, FragmentIdentifier, FragmentMap, MutationIdentifier, MutationInfo, MutationUpdateFn, OptimisticResponseFn, PureMutationOptions, RefetchQueriesFn, RefetchQueryDescriptor, Resolver, ResolverContext, ResolverInfo, State, StateDescriptor, TypeField, identifyFragment, state } from '@apollo-orbit/core';
+export { Action, ActionContext, ActionFn, ActionInstance, ActionType, EffectFn, FragmentMap, MutationIdentifier, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, State, state, StateDescriptor, TypeField } from '@apollo-orbit/core';
 export { ApolloOrbitProvider } from './provider';
 export { useDispatch } from './useDispatch';

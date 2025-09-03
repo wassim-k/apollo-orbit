@@ -2,7 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "target": "es2017",
+    "target": "es2022",
     "module": "esnext",
     "moduleResolution": "node",
     "noUnusedParameters": false,
@@ -25,14 +25,26 @@
       "@apollo-orbit/angular": [
         "packages/angular/src/index.ts"
       ],
-      "@apollo-orbit/angular/core": [
-        "packages/angular/core/src/index.ts"
+      "@apollo-orbit/angular/state": [
+        "packages/angular/state/src/index.ts"
       ],
       "@apollo-orbit/angular/http": [
         "packages/angular/http/src/index.ts"
       ],
+      "@apollo-orbit/angular/batch-http": [
+        "packages/angular/batch-http/src/index.ts"
+      ],
+      "@apollo-orbit/angular/fetch": [
+        "packages/angular/fetch/src/index.ts"
+      ],
       "@apollo-orbit/codegen": [
         "packages/codegen/src/index.ts"
+      ],
+      "@apollo-orbit/codegen/angular": [
+        "packages/codegen/src/angular/index.ts"
+      ],
+      "@apollo-orbit/codegen/core": [
+        "packages/codegen/src/core/index.ts"
       ],
       "@apollo-orbit/react": [
         "packages/react/src/index.ts"

@@ -1,8 +1,7 @@
 import { PubSub, withFilter } from 'graphql-subscriptions';
-import { Book } from '../types';
-import { Resolvers, SubscriptionNewBookArgs } from './types';
+import { Resolvers, Subscription } from './types.js';
 
-const delay = <T>(value: T, duration: number): Promise<T> => new Promise<T>(resolve => {
+const delay = <T>(value: T, duration = 500): Promise<T> => new Promise<T>(resolve => {
   setTimeout(() => resolve(value), duration);
 });
 
@@ -21,15 +20,17 @@ export const resolvers: Resolvers = {
       return context.books.getById(args.id);
     },
     books: (_parent, args, context) => {
-      return true as boolean
-        ? delay(context.books.getAll(args), 1000)
-        : delayError(1000);
+      return args.name === 'Error'
+        ? delayError(1000)
+        : delay(context.books.getAll(args));
     },
     author: (_parent, args, context) => {
       return context.authors.getById(args.id);
     },
-    authors: (_parent, _args, context) => {
-      return context.authors.getAll();
+    authors: (_parent, args, context) => {
+      return args.name === 'Error'
+        ? delayError(1000)
+        : delay(context.authors.getAll(args));
     }
   },
   Book: {
@@ -47,36 +48,35 @@ export const resolvers: Resolvers = {
       const addedAuthor = context.authors.addAuthor(author);
       const newAuthor = { ...addedAuthor, books: [] };
       void pubsub.publish(NEW_AUTHOR, { newAuthor });
-      return newAuthor;
+      return delay(newAuthor);
+    },
+    updateAuthor: (_parent, { id, author }, context) => {
+      return delay(context.authors.updateAuthor(id, author));
     },
     addBook: (_parent, { book }, context) => {
       const newBook = context.books.addBook(book);
       void pubsub.publish(NEW_BOOK, { newBook });
-      return newBook;
+      return delay(newBook);
     },
     updateBook: (_parent, { id, book }, context) => {
-      return context.books.updateBook(id, book);
+      return delay(context.books.updateBook(id, book));
     }
   },
   Subscription: {
     newBook: {
-      subscribe: (parent, args, context, info) => {
-        return {
-          [Symbol.asyncIterator]: () => withFilter(
-            (_parent, _args, _context, _info) => {
-              return pubsub.asyncIterator([NEW_BOOK]);
-            },
-            (payload: Book, variables: SubscriptionNewBookArgs) => {
-              return typeof variables.authorId !== 'string' || payload.authorId === variables.authorId;
-            }
-          )(parent, args, context, info)
-        };
-      }
+      subscribe: withFilter(
+        (_parent, _args, _context, _info) => {
+          return pubsub.asyncIterableIterator([NEW_BOOK]);
+        },
+        (payload, variables) => {
+          return typeof variables?.authorId !== 'string' || (payload as Subscription).newBook.authorId === variables.authorId;
+        }
+      )
     },
     newAuthor: {
       subscribe: (_parent, _args, _context, _info) => {
         return {
-          [Symbol.asyncIterator]: () => pubsub.asyncIterator([NEW_AUTHOR])
+          [Symbol.asyncIterator]: () => pubsub.asyncIterableIterator([NEW_AUTHOR])
         };
       }
     }

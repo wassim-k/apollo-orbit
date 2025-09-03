@@ -14,19 +14,19 @@ fragment AuthorWithBooksFragment on Author {
 }
 
 query Authors {
-  authors @client {
+  authors {
     ...AuthorFragment
   }
 }
 
 query Author($id: ID!) {
-  author(id: $id) @client {
+  author(id: $id) {
     ...AuthorFragment
   }
 }
 
 mutation AddAuthor($author: AuthorInput!) {
-  addAuthor(author: $author) @client {
+  addAuthor(author: $author) {
     ...AuthorFragment
   }
 }

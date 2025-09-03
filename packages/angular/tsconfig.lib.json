@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "files": [
     "src/index.ts",
-    "core/src/index.ts",
+    "state/src/index.ts",
     "fetch/src/index.ts",
     "http/src/index.ts",
     "batch-http/src/index.ts"

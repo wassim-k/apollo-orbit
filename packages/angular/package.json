@@ -1,7 +1,7 @@
 {
   "name": "@apollo-orbit/angular",
-  "version": "0.0.0",
-  "description": "A fully-featured GraphQL client for Angular with modular state management.",
+  "version": "2.0.0",
+  "description": "A full-featured GraphQL client for Angular",
   "license": "MIT",
   "sideEffects": false,
   "repository": {
@@ -25,25 +25,27 @@
     "build": "ng-packagr --config ./tsconfig.lib.json -p ng-package.json",
     "clean": "rimraf dist",
     "codegen:test": "graphql-codegen --config ./tests/graphql/codegen.ts",
-    "prebuild": "yarn clean"
+    "types:sync": "tsx ../../scripts/syncApolloTypes.ts",
+    "prebuild": "yarn clean && yarn types:sync"
   },
   "peerDependencies": {
-    "@angular/common": ">=8.0.0",
-    "@angular/core": ">=8.0.0",
-    "@apollo/client": "^3.11.0",
+    "@angular/common": ">=19.0.0",
+    "@angular/core": ">=19.0.0",
+    "@apollo/client": "^4.0.0",
     "graphql": ">=0.11",
     "rxjs": ">=7.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^1.0.0"
+    "@apollo-orbit/core": "^2.0.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^18.0.0",
-    "@angular/platform-browser": "^18.0.0",
-    "@angular/platform-browser-dynamic": "^18.0.0",
-    "@angular/router": "^18.0.0",
-    "jest-preset-angular": "^14.2.2",
-    "shortid": "^2.2.16",
-    "ts-jest": "^29.2.3"
+    "@angular-devkit/build-angular": "^20.2.1",
+    "@angular/platform-browser": "^20.2.3",
+    "@angular/platform-browser-dynamic": "^20.2.3",
+    "@angular/router": "^20.2.3",
+    "jest-preset-angular": "^15.0.0",
+    "jsdom": "^26.1.0",
+    "ts-jest": "^29.4.1",
+    "uuid": "^11.1.0"
   }
 }

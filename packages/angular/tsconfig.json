@@ -3,8 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@apollo-orbit/angular/core": [
-        "./core/src/index.ts"
+      "@apollo-orbit/angular": [
+        "./src/index.ts"
+      ],
+      "@apollo-orbit/angular/state": [
+        "./state/src/index.ts"
       ],
       "@apollo-orbit/angular/http": [
         "./http/src/index.ts"

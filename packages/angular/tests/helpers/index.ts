@@ -1,1 +1,1 @@
-export * from './apollo-mock.module';
+export * from './apollo-mock.provider';

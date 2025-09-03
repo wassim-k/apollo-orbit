@@ -9,6 +9,11 @@
     "source.fixAll.eslint": "explicit",
     "source.organizeImports": "explicit"
   },
+  "[mdx]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "never"
+    },
+  },
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.exclude": {

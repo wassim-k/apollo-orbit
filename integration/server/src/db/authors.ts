@@ -10,6 +10,17 @@ export const authorsContext: AuthorContext = {
     data.authors.push(newAuthor);
     return newAuthor as Author;
   },
+  updateAuthor: (id: string, input: AuthorInput): Author => {
+    const index = data.authors.findIndex(a => a.id === id);
+
+    if (index === -1) {
+      throw new Error(`Author (id: ${id}) does not exist`);
+    }
+
+    data.authors[index] = { id, name: input.name, age: input.age };
+
+    return data.authors[index] as Author;
+  },
   getById: (id: string): Author => {
     return data.authors.find(author => author.id === id) as Author;
   },

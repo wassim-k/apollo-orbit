@@ -1,4 +1,6 @@
-import { gql } from '@apollo/client/core';
+import { plugin as angularPlugin } from '@apollo-orbit/codegen/angular';
+import { plugin as corePlugin } from '@apollo-orbit/codegen/core';
+import { gql } from '@apollo/client';
 import { mergeOutputs, Types } from '@graphql-codegen/plugin-helpers';
 import { validateTs } from '@graphql-codegen/testing';
 import { plugin as tsPlugin } from '@graphql-codegen/typescript';
@@ -6,7 +8,6 @@ import { plugin as tsDocumentsPlugin } from '@graphql-codegen/typescript-operati
 import fs from 'fs';
 import { buildSchema, GraphQLSchema } from 'graphql';
 import path from 'path';
-import { plugin } from '../src/index';
 
 describe('Codegen', () => {
   const schemaPath = path.join(__dirname, './graphql/schema.graphql');
@@ -25,52 +26,103 @@ describe('Codegen', () => {
     validateTs(merged, undefined, true);
   };
 
-  it('should be allowed to define custom operation suffixes in config', async () => {
-    const books = gql(`
-            query Books {
-              books {
-                id
-              }
-            }
-          `);
-
-    const addBook = gql(`
-            mutation AddBook($book: BookInput!) {
-                addBook(book: $book) {
-                  id
-                }
-              }
-          `);
-
-    const newBook = gql(`
-          subscription NewBook {
-            newBook {
-              id
-            }
+  describe('Core', () => {
+    it('should codegen', async () => {
+      const books = gql`
+        query Books {
+          books {
+            id
           }
-        `);
+        }`;
 
-    const docs = [
-      { location: '', document: books },
-      { location: '', document: addBook },
-      { location: '', document: newBook }
-    ];
-    const content = (await plugin(
-      schema,
-      docs,
-      {
-        querySuffix: 'Query',
-        mutationSuffix: 'Mutation',
-        subscriptionSuffix: 'Subscription'
-      },
-      {
-        outputFile: 'graphql.ts'
-      }
-    )) as Types.ComplexPluginOutput;
+      const book = gql`
+        query Book($id: ID!) {
+          book(id: $id) {
+            id
+          }
+        }`;
 
-    expect(content.content).toContain('export class BooksQuery');
-    expect(content.content).toContain('export class AddBookMutation');
-    expect(content.content).toContain('export class NewBookSubscription');
-    await validateTypeScript(content, schema, docs, {});
+      const addBook = gql`
+        mutation AddBook($book: BookInput!) {
+          addBook(book: $book) {
+            id
+          }
+        }`;
+
+      const newBook = gql`
+        subscription NewBook {
+          newBook {
+            id
+          }
+        }`;
+
+      const docs = [
+        { location: '', document: books },
+        { location: '', document: book },
+        { location: '', document: addBook },
+        { location: '', document: newBook }
+      ];
+      const content = (await corePlugin(
+        schema,
+        docs,
+        {},
+        {
+          outputFile: 'graphql.ts'
+        }
+      )) as Types.ComplexPluginOutput;
+
+      await validateTypeScript(content, schema, docs, {});
+      expect(content).toMatchSnapshot();
+    });
+  });
+
+  describe('Angular', () => {
+    it('should codegen', async () => {
+      const books = gql`
+      query Books {
+        books {
+          id
+        }
+      }`;
+
+      const book = gql`
+      query Book($id: ID!) {
+        book(id: $id) {
+          id
+        }
+      }`;
+
+      const addBook = gql`
+      mutation AddBook($book: BookInput!) {
+        addBook(book: $book) {
+          id
+        }
+      }`;
+
+      const newBook = gql`
+      subscription NewBook {
+        newBook {
+          id
+        }
+      }`;
+
+      const docs = [
+        { location: '', document: books },
+        { location: '', document: book },
+        { location: '', document: addBook },
+        { location: '', document: newBook }
+      ];
+      const content = (await angularPlugin(
+        schema,
+        docs,
+        {},
+        {
+          outputFile: 'graphql.ts'
+        }
+      )) as Types.ComplexPluginOutput;
+
+      await validateTypeScript(content, schema, docs, {});
+      expect(content).toMatchSnapshot();
+    });
   });
 });

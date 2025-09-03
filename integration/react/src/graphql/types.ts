@@ -1,6 +1,6 @@
 /* eslint-disable */
+import { gql } from '@apollo/client';
 import { TypedDocumentNode as DocumentNode } from '@apollo/client';
-import gql from 'graphql-tag';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -15,6 +15,12 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+};
+
+export type AddBookInput = {
+  authorId: Scalars['ID']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };
 
 export type Author = {
@@ -40,16 +46,11 @@ export type Book = {
   name: Scalars['String']['output'];
 };
 
-export type BookInput = {
-  authorId: Scalars['ID']['input'];
-  genre?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-};
-
 export type Mutation = {
   __typename?: 'Mutation';
   addAuthor: Author;
   addBook: Book;
+  updateAuthor: Author;
   updateBook: Book;
 };
 
@@ -60,12 +61,18 @@ export type MutationAddAuthorArgs = {
 
 
 export type MutationAddBookArgs = {
-  book: BookInput;
+  book: AddBookInput;
+};
+
+
+export type MutationUpdateAuthorArgs = {
+  author: AuthorInput;
+  id: Scalars['ID']['input'];
 };
 
 
 export type MutationUpdateBookArgs = {
-  book: BookInput;
+  book: UpdateBookInput;
   id: Scalars['ID']['input'];
 };
 
@@ -75,13 +82,18 @@ export type Query = {
   authors: Array<Author>;
   book: Book;
   books: Array<Book>;
-  lazy: Scalars['String']['output'];
+  lazy: Scalars['Boolean']['output'];
   theme: Theme;
 };
 
 
 export type QueryAuthorArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryAuthorsArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -119,10 +131,15 @@ export enum ThemeName {
   LightTheme = 'LIGHT_THEME'
 }
 
+export type UpdateBookInput = {
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
 export type LazyQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type LazyQuery = { __typename?: 'Query', lazy: string };
+export type LazyQuery = { __typename?: 'Query', lazy: boolean };
 
 export type AuthorFragment = { __typename?: 'Author', id: string, name: string, age: number | null, books: Array<(
     { __typename?: 'Book' }
@@ -180,7 +197,7 @@ export type BookQuery = { __typename?: 'Query', book: (
   ) };
 
 export type AddBookMutationVariables = Exact<{
-  book: BookInput;
+  book: AddBookInput;
 }>;
 
 
@@ -220,7 +237,7 @@ export const BookFragmentDoc = gql`
   authorId
   displayName @client
 }
-    ` as unknown as DocumentNode<BookFragment, unknown>;
+    ` as DocumentNode<BookFragment, unknown>;
 export const AuthorFragmentDoc = gql`
     fragment AuthorFragment on Author {
   id
@@ -230,69 +247,69 @@ export const AuthorFragmentDoc = gql`
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}` as unknown as DocumentNode<AuthorFragment, unknown>;
-export const LazyDocument = gql`
+    ${BookFragmentDoc}` as DocumentNode<AuthorFragment, unknown>;
+export const LAZY_QUERY = gql`
     query Lazy {
   lazy @client
 }
-    ` as unknown as DocumentNode<LazyQuery, LazyQueryVariables>;
-export const AuthorsDocument = gql`
+    ` as DocumentNode<LazyQuery, LazyQueryVariables>;
+export const AUTHORS_QUERY = gql`
     query Authors {
   authors {
     ...AuthorFragment
   }
 }
-    ${AuthorFragmentDoc}` as unknown as DocumentNode<AuthorsQuery, AuthorsQueryVariables>;
-export const AddAuthorDocument = gql`
+    ${AuthorFragmentDoc}` as DocumentNode<AuthorsQuery, AuthorsQueryVariables>;
+export const ADD_AUTHOR_MUTATION = gql`
     mutation AddAuthor($author: AuthorInput!) {
   addAuthor(author: $author) {
     ...AuthorFragment
   }
 }
-    ${AuthorFragmentDoc}` as unknown as DocumentNode<AddAuthorMutation, AddAuthorMutationVariables>;
-export const NewAuthorDocument = gql`
+    ${AuthorFragmentDoc}` as DocumentNode<AddAuthorMutation, AddAuthorMutationVariables>;
+export const NEW_AUTHOR_SUBSCRIPTION = gql`
     subscription NewAuthor {
   newAuthor {
     ...AuthorFragment
   }
 }
-    ${AuthorFragmentDoc}` as unknown as DocumentNode<NewAuthorSubscription, NewAuthorSubscriptionVariables>;
-export const BooksDocument = gql`
+    ${AuthorFragmentDoc}` as DocumentNode<NewAuthorSubscription, NewAuthorSubscriptionVariables>;
+export const BOOKS_QUERY = gql`
     query Books($name: String, $genre: String, $authorId: ID) {
   books(name: $name, genre: $genre, authorId: $authorId) {
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}` as unknown as DocumentNode<BooksQuery, BooksQueryVariables>;
-export const BookDocument = gql`
+    ${BookFragmentDoc}` as DocumentNode<BooksQuery, BooksQueryVariables>;
+export const BOOK_QUERY = gql`
     query Book($id: ID!) {
   book(id: $id) {
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}` as unknown as DocumentNode<BookQuery, BookQueryVariables>;
-export const AddBookDocument = gql`
-    mutation AddBook($book: BookInput!) {
+    ${BookFragmentDoc}` as DocumentNode<BookQuery, BookQueryVariables>;
+export const ADD_BOOK_MUTATION = gql`
+    mutation AddBook($book: AddBookInput!) {
   addBook(book: $book) {
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}` as unknown as DocumentNode<AddBookMutation, AddBookMutationVariables>;
-export const NewBookDocument = gql`
+    ${BookFragmentDoc}` as DocumentNode<AddBookMutation, AddBookMutationVariables>;
+export const NEW_BOOK_SUBSCRIPTION = gql`
     subscription NewBook {
   newBook {
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}` as unknown as DocumentNode<NewBookSubscription, NewBookSubscriptionVariables>;
-export const NewBookByAuthorDocument = gql`
+    ${BookFragmentDoc}` as DocumentNode<NewBookSubscription, NewBookSubscriptionVariables>;
+export const NEW_BOOK_BY_AUTHOR_SUBSCRIPTION = gql`
     subscription NewBookByAuthor($id: ID) {
   newBook(authorId: $id) {
     ...BookFragment
   }
 }
-    ${BookFragmentDoc}` as unknown as DocumentNode<NewBookByAuthorSubscription, NewBookByAuthorSubscriptionVariables>;
-export const ThemeDocument = gql`
+    ${BookFragmentDoc}` as DocumentNode<NewBookByAuthorSubscription, NewBookByAuthorSubscriptionVariables>;
+export const THEME_QUERY = gql`
     query Theme {
   theme @client {
     name
@@ -300,4 +317,4 @@ export const ThemeDocument = gql`
     displayName
   }
 }
-    ` as unknown as DocumentNode<ThemeQuery, ThemeQueryVariables>;
+    ` as DocumentNode<ThemeQuery, ThemeQueryVariables>;

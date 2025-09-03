@@ -1,6 +1,6 @@
 /* eslint-disable */
-import { gql } from '@apollo-orbit/angular/core';
-import { Context, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable, TypedDocumentNode as DocumentNode } from '@apollo-orbit/angular/core';
+import { gql } from '@apollo-orbit/angular';
+import { TypedDocumentNode as DocumentNode } from '@apollo-orbit/angular';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -15,6 +15,12 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+};
+
+export type AddBookInput = {
+  authorId: Scalars['ID']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };
 
 export type Author = {
@@ -39,16 +45,11 @@ export type Book = {
   name: Scalars['String']['output'];
 };
 
-export type BookInput = {
-  authorId: Scalars['ID']['input'];
-  genre?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-};
-
 export type Mutation = {
   __typename?: 'Mutation';
   addAuthor: Author;
   addBook: Book;
+  updateAuthor: Author;
   updateBook: Book;
 };
 
@@ -59,12 +60,18 @@ export type MutationAddAuthorArgs = {
 
 
 export type MutationAddBookArgs = {
-  book: BookInput;
+  book: AddBookInput;
+};
+
+
+export type MutationUpdateAuthorArgs = {
+  author: AuthorInput;
+  id: Scalars['ID']['input'];
 };
 
 
 export type MutationUpdateBookArgs = {
-  book: BookInput;
+  book: UpdateBookInput;
   id: Scalars['ID']['input'];
 };
 
@@ -79,6 +86,11 @@ export type Query = {
 
 export type QueryAuthorArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryAuthorsArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -104,12 +116,19 @@ export type SubscriptionNewBookArgs = {
   authorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
+export type UpdateBookInput = {
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
 export type AuthorFragment = { __typename?: 'Author', id: string, name: string, age: number | null, books: Array<(
     { __typename?: 'Book' }
     & BookFragment
   )> };
 
-export type AuthorsQueryVariables = Exact<{ [key: string]: never; }>;
+export type AuthorsQueryVariables = Exact<{
+  name?: InputMaybe<Scalars['String']['input']>;
+}>;
 
 
 export type AuthorsQueryData = { __typename?: 'Query', authors: Array<(
@@ -160,7 +179,7 @@ export type BookQueryData = { __typename?: 'Query', book: (
   ) };
 
 export type AddBookMutationVariables = Exact<{
-  book: BookInput;
+  book: AddBookInput;
 }>;
 
 
@@ -205,23 +224,25 @@ export const AuthorFragmentDoc = gql`
   }
 }
     ${BookFragmentDoc}` as DocumentNode<AuthorFragment, unknown>;
-export const AuthorsDocument = gql`
-    query Authors {
-  authors {
+export const AUTHORS_QUERY = gql`
+    query Authors($name: String) {
+  authors(name: $name) {
     ...AuthorFragment
   }
 }
     ${AuthorFragmentDoc}` as DocumentNode<AuthorsQueryData, AuthorsQueryVariables>;
 
-export class AuthorsQuery extends PureQueryOptions<AuthorsQueryData, AuthorsQueryVariables> {
-  public constructor(context?: Context) {
-    super(AuthorsDocument, undefined, context);
-  }
+export function gqlAuthorsQuery(): { query: typeof AUTHORS_QUERY };
+export function gqlAuthorsQuery(variables?: AuthorsQueryVariables): { query: typeof AUTHORS_QUERY, variables: typeof variables };
+export function gqlAuthorsQuery(variables: () => AuthorsQueryVariables | undefined): { query: typeof AUTHORS_QUERY, variables: typeof variables };
+export function gqlAuthorsQuery(variables?: any): any {
+  return {
+    query: AUTHORS_QUERY,
+    variables
+  };
 }
 
-export type AuthorsQueryObservable = QueryObservable<AuthorsQueryData, AuthorsQueryVariables>
-
-export const AddAuthorDocument = gql`
+export const ADD_AUTHOR_MUTATION = gql`
     mutation AddAuthor($author: AuthorInput!) {
   addAuthor(author: $author) {
     ...AuthorFragment
@@ -229,13 +250,14 @@ export const AddAuthorDocument = gql`
 }
     ${AuthorFragmentDoc}` as DocumentNode<AddAuthorMutationData, AddAuthorMutationVariables>;
 
-export class AddAuthorMutation extends PureMutationOptions<AddAuthorMutationData, AddAuthorMutationVariables> {
-  public constructor(variables: AddAuthorMutationVariables, context?: Context) {
-    super(AddAuthorDocument, variables, context);
-  }
+export function gqlAddAuthorMutation(variables: AddAuthorMutationVariables): { mutation: typeof ADD_AUTHOR_MUTATION, variables: typeof variables } {
+  return {
+    mutation: ADD_AUTHOR_MUTATION,
+    variables
+  };
 }
 
-export const NewAuthorDocument = gql`
+export const NEW_AUTHOR_SUBSCRIPTION = gql`
     subscription NewAuthor {
   newAuthor {
     ...AuthorFragment
@@ -243,13 +265,13 @@ export const NewAuthorDocument = gql`
 }
     ${AuthorFragmentDoc}` as DocumentNode<NewAuthorSubscriptionData, NewAuthorSubscriptionVariables>;
 
-export class NewAuthorSubscription extends PureSubscriptionOptions<NewAuthorSubscriptionData, NewAuthorSubscriptionVariables> {
-  public constructor() {
-    super(NewAuthorDocument);
-  }
+export function gqlNewAuthorSubscription(): { subscription: typeof NEW_AUTHOR_SUBSCRIPTION } {
+  return {
+    subscription: NEW_AUTHOR_SUBSCRIPTION
+  };
 }
 
-export const BooksDocument = gql`
+export const BOOKS_QUERY = gql`
     query Books($name: String, $genre: String, $authorId: ID) {
   books(name: $name, genre: $genre, authorId: $authorId) {
     ...BookFragment
@@ -257,15 +279,17 @@ export const BooksDocument = gql`
 }
     ${BookFragmentDoc}` as DocumentNode<BooksQueryData, BooksQueryVariables>;
 
-export class BooksQuery extends PureQueryOptions<BooksQueryData, BooksQueryVariables> {
-  public constructor(variables?: BooksQueryVariables, context?: Context) {
-    super(BooksDocument, variables, context);
-  }
+export function gqlBooksQuery(): { query: typeof BOOKS_QUERY };
+export function gqlBooksQuery(variables?: BooksQueryVariables): { query: typeof BOOKS_QUERY, variables: typeof variables };
+export function gqlBooksQuery(variables: () => BooksQueryVariables | undefined): { query: typeof BOOKS_QUERY, variables: typeof variables };
+export function gqlBooksQuery(variables?: any): any {
+  return {
+    query: BOOKS_QUERY,
+    variables
+  };
 }
 
-export type BooksQueryObservable = QueryObservable<BooksQueryData, BooksQueryVariables>
-
-export const BookDocument = gql`
+export const BOOK_QUERY = gql`
     query Book($id: ID!) {
   book(id: $id) {
     ...BookFragment
@@ -273,29 +297,31 @@ export const BookDocument = gql`
 }
     ${BookFragmentDoc}` as DocumentNode<BookQueryData, BookQueryVariables>;
 
-export class BookQuery extends PureQueryOptions<BookQueryData, BookQueryVariables> {
-  public constructor(variables: BookQueryVariables, context?: Context) {
-    super(BookDocument, variables, context);
-  }
+export function gqlBookQuery(variables: BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: () => BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: any): any {
+  return {
+    query: BOOK_QUERY,
+    variables
+  };
 }
 
-export type BookQueryObservable = QueryObservable<BookQueryData, BookQueryVariables>
-
-export const AddBookDocument = gql`
-    mutation AddBook($book: BookInput!) {
+export const ADD_BOOK_MUTATION = gql`
+    mutation AddBook($book: AddBookInput!) {
   addBook(book: $book) {
     ...BookFragment
   }
 }
     ${BookFragmentDoc}` as DocumentNode<AddBookMutationData, AddBookMutationVariables>;
 
-export class AddBookMutation extends PureMutationOptions<AddBookMutationData, AddBookMutationVariables> {
-  public constructor(variables: AddBookMutationVariables, context?: Context) {
-    super(AddBookDocument, variables, context);
-  }
+export function gqlAddBookMutation(variables: AddBookMutationVariables): { mutation: typeof ADD_BOOK_MUTATION, variables: typeof variables } {
+  return {
+    mutation: ADD_BOOK_MUTATION,
+    variables
+  };
 }
 
-export const NewBookDocument = gql`
+export const NEW_BOOK_SUBSCRIPTION = gql`
     subscription NewBook {
   newBook {
     ...BookFragment
@@ -303,13 +329,13 @@ export const NewBookDocument = gql`
 }
     ${BookFragmentDoc}` as DocumentNode<NewBookSubscriptionData, NewBookSubscriptionVariables>;
 
-export class NewBookSubscription extends PureSubscriptionOptions<NewBookSubscriptionData, NewBookSubscriptionVariables> {
-  public constructor() {
-    super(NewBookDocument);
-  }
+export function gqlNewBookSubscription(): { subscription: typeof NEW_BOOK_SUBSCRIPTION } {
+  return {
+    subscription: NEW_BOOK_SUBSCRIPTION
+  };
 }
 
-export const NewBookByAuthorDocument = gql`
+export const NEW_BOOK_BY_AUTHOR_SUBSCRIPTION = gql`
     subscription NewBookByAuthor($id: ID) {
   newBook(authorId: $id) {
     ...BookFragment
@@ -317,8 +343,12 @@ export const NewBookByAuthorDocument = gql`
 }
     ${BookFragmentDoc}` as DocumentNode<NewBookByAuthorSubscriptionData, NewBookByAuthorSubscriptionVariables>;
 
-export class NewBookByAuthorSubscription extends PureSubscriptionOptions<NewBookByAuthorSubscriptionData, NewBookByAuthorSubscriptionVariables> {
-  public constructor(variables?: NewBookByAuthorSubscriptionVariables) {
-    super(NewBookByAuthorDocument, variables);
-  }
+export function gqlNewBookByAuthorSubscription(): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION };
+export function gqlNewBookByAuthorSubscription(variables?: NewBookByAuthorSubscriptionVariables): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
+export function gqlNewBookByAuthorSubscription(variables: () => NewBookByAuthorSubscriptionVariables | undefined): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
+export function gqlNewBookByAuthorSubscription(variables?: any): any {
+  return {
+    subscription: NEW_BOOK_BY_AUTHOR_SUBSCRIPTION,
+    variables
+  };
 }

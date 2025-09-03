@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { makeFetch } from '@apollo-orbit/angular/fetch';
-import { HttpLink, HttpOptions } from '@apollo/client/link/http';
+import { HttpLink } from '@apollo/client/link/http';
 
 @Injectable()
 export class HttpLinkFactory {
@@ -9,7 +9,7 @@ export class HttpLinkFactory {
     private readonly httpClient: HttpClient
   ) { }
 
-  public create(options: HttpOptions = {}): HttpLink {
+  public create(options: HttpLink.Options = {}): HttpLink {
     return new HttpLink({
       ...options,
       fetch: makeFetch(this.httpClient) as typeof fetch

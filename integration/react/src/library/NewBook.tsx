@@ -1,23 +1,26 @@
-import { useLazyQuery, useMutation } from '@apollo/client';
+import { useLazyQuery, useMutation } from '@apollo/client/react';
 import { FormEvent, useEffect, useState } from 'react';
-import { AddBookDocument, AuthorsDocument } from '../graphql';
+import { ADD_BOOK_MUTATION, AUTHORS_QUERY } from '../graphql';
 
 export function NewBook({
   onClose
 }: {
   onClose: () => void;
 }) {
-  const [addBook, { loading: submitting }] = useMutation(AddBookDocument);
-  const [getAuthors, { data: authorsData, loading: loadingAuthors }] = useLazyQuery(AuthorsDocument);
+  const [addBook, { loading: submitting }] = useMutation(ADD_BOOK_MUTATION);
+  const [getAuthors, authorsResult] = useLazyQuery(AUTHORS_QUERY, {
+    notifyOnNetworkStatusChange: true,
+    fetchPolicy: 'no-cache'
+  });
   const [name, setName] = useState<string | undefined>();
   const [genre, setGenre] = useState<string | undefined>();
   const [authorId, setAuthorId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (authorsData && authorsData.authors.length > 0 && !authorId) {
-      setAuthorId(authorsData.authors[0].id);
+    if (authorsResult.data && authorsResult.data.authors.length > 0 && !authorId) {
+      setAuthorId(authorsResult.data.authors[0].id);
     }
-  }, [authorId, authorsData]);
+  }, [authorId, authorsResult.data]);
 
   const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
@@ -42,17 +45,20 @@ export function NewBook({
           <input type="text" onChange={event => setGenre(event.target.value)} />
         </div>
 
-        {!authorsData && <div><button onClick={() => getAuthors()}>Load authors</button></div>}
-        {loadingAuthors && <div>Loading authors...</div>}
-        {authorsData && <div>
-          <label>Author:&nbsp;</label>
-          <select onChange={event => setAuthorId(event.target.value)}>
-            {authorsData.authors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}
-          </select>
-        </div>}
+        {!authorsResult.called
+          ? <div><button onClick={() => getAuthors()}>Load authors</button></div>
+          : <>
+            {authorsResult.loading && <div>Loading authors...</div>}
+            {authorsResult.data && <div>
+              <label>Author:&nbsp;</label>
+              <select onChange={event => setAuthorId(event.target.value)}>
+                {authorsResult.data.authors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}
+              </select>
+            </div>}
+          </>}
         <br />
-        <input style={{ margin: '0 0.25em' }} type="submit" value="Submit" disabled={!name || !authorId} />
-        <button style={{ margin: '0 0.25em' }} onClick={() => onClose()}>Close</button>
+        <button disabled={!name || !authorId}>Submit</button>
+        <button type="button" onClick={() => onClose()}>Close</button>
       </form>
     </>
   );

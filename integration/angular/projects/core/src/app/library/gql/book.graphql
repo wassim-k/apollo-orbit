@@ -17,7 +17,7 @@ query Book($id: ID!) {
   }
 }
 
-mutation AddBook($book: BookInput!) {
+mutation AddBook($book: AddBookInput!) {
   addBook(book: $book) {
     ...BookFragment
   }

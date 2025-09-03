@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/codegen",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "description": "GraphQL Code Generator plugin for Apollo Orbit",
   "license": "MIT",
   "sideEffects": false,
@@ -9,8 +9,7 @@
     "url": "git+https://github.com/wassim-k/apollo-orbit.git"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "postbuild": "node ./scripts/postbuild.js",
+    "build": "bob build",
     "clean": "rimraf dist",
     "prebuild": "yarn clean"
   },
@@ -18,17 +17,73 @@
     "graphql": ">=0.11"
   },
   "dependencies": {
-    "@graphql-codegen/plugin-helpers": "^5.0.4",
-    "@graphql-codegen/visitor-plugin-common": "^5.3.1",
+    "@graphql-codegen/plugin-helpers": "^5.1.1",
+    "@graphql-codegen/visitor-plugin-common": "^5.8.0",
     "auto-bind": "~4.0.0",
-    "pascal-case": "3.1.2",
-    "tslib": "^2.6.3"
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "@graphql-codegen/testing": "^3.0.3",
-    "jest-diff": "^29.7.0"
+    "@graphql-codegen/testing": "^3.0.4",
+    "bob-the-bundler": "^7.0.1",
+    "jest-diff": "^29.0.0"
+  },
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/typings/index.d.cts",
+        "default": "./dist/cjs/index.js"
+      },
+      "import": {
+        "types": "./dist/typings/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "default": {
+        "types": "./dist/typings/index.d.ts",
+        "default": "./dist/esm/index.js"
+      }
+    },
+    "./core": {
+      "require": {
+        "types": "./dist/typings/core/index.d.cts",
+        "default": "./dist/cjs/core/index.js"
+      },
+      "import": {
+        "types": "./dist/typings/core/index.d.ts",
+        "default": "./dist/esm/core/index.js"
+      },
+      "default": {
+        "types": "./dist/typings/core/index.d.ts",
+        "default": "./dist/esm/core/index.js"
+      }
+    },
+    "./angular": {
+      "require": {
+        "types": "./dist/typings/angular/index.d.cts",
+        "default": "./dist/cjs/angular/index.js"
+      },
+      "import": {
+        "types": "./dist/typings/angular/index.d.ts",
+        "default": "./dist/esm/angular/index.js"
+      },
+      "default": {
+        "types": "./dist/typings/angular/index.d.ts",
+        "default": "./dist/esm/angular/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "typings": "dist/typings/index.d.ts",
+  "typescript": {
+    "definition": "dist/typings/index.d.ts"
   },
   "publishConfig": {
-    "directory": "dist"
+    "directory": "dist",
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=16"
   }
 }

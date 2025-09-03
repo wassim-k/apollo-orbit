@@ -6,6 +6,7 @@ yarn-error.log
 .yarnrc
 .yarn
 .eslintcache
+.bob
 
 !packages
 packages/*/dist

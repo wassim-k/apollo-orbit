@@ -1,2 +1,14 @@
-export { APOLLO_CLIENT_FACTORY, APOLLO_MULTI_ROOT, ApolloCache, ApolloCacheEx, ApolloClient, ApolloClientFactory, ApolloError, ApolloOptions, ApolloOrbitFeature, ApolloQueryResult, Cache, CacheWatchQueryOptions, CacheWatchQueryResult, Context, DataProxy, DefaultOptions, DocumentNode, FetchMoreOptions, FetchMoreQueryOptions, InMemoryCache, MutationOptions, MutationResult, NetworkStatus, NormalizedCache, NormalizedCacheObject, PureMutationOptions, PureQueryOptions, PureSubscriptionOptions, QueryObservable, QueryOptions, QueryResult, StoreObject, SubscribeToMoreOptions, SubscriptionOptions, SubscriptionResult, TypedDocumentNode, UpdateQueryOptions, Variables, WatchFragmentOptions, WatchFragmentResult, WatchQueryOptions, gql, mapMutation, mapQuery, mapSubscription, provideApolloInstance, withApolloOptions } from '@apollo-orbit/angular/core';
-export * from './effects';
+export { ApolloCache, ApolloClient, Cache, CombinedGraphQLErrors, CombinedProtocolErrors, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, gql, InMemoryCache, LinkError, MissingFieldError, NetworkStatus, NormalizedCache, NormalizedCacheObject, OperationVariables, ServerError, ServerParseError, StoreObject, TypedDocumentNode, UnconventionalError, UpdateQueryOptions } from '@apollo/client';
+export type { DeepPartial } from '@apollo/client/utilities';
+export { Apollo } from './apollo';
+export { ApolloCacheEx, CacheWatchQueryCompleteResult, CacheWatchQueryOptions, CacheWatchQueryPartialResult, CacheWatchQueryResult } from './cacheEx';
+export { APOLLO_CLIENT_FACTORY, ApolloClientFactory } from './clientFactory';
+export * from './gql';
+export { ApolloRegistry as ɵApolloRegistry } from './internal/apolloRegistry';
+export { APOLLO_INSTANCE_FACTORY as ɵAPOLLO_INSTANCE_FACTORY, ApolloInstanceFactory as ɵApolloInstanceFactory } from './internal/instanceFactory';
+export * from './map';
+export { ApolloOrbitFeature, provideApollo, provideApolloInstance, withApolloOptions } from './providers';
+export { QueryObservable } from './queryObservable';
+export * from './signals';
+export { APOLLO_MULTI_ROOT } from './tokens';
+export * from './types';

@@ -1,15 +1,19 @@
-import { Component, NgZone } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, inject, NgZone } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Apollo, InMemoryCache, provideApolloInstance, provideApolloOrbit, state, withStates } from '@apollo-orbit/angular';
+import { Apollo, InMemoryCache, provideApollo, provideApolloInstance } from '@apollo-orbit/angular';
+import { state, withState } from '@apollo-orbit/angular/state';
+import { ApolloLink } from '@apollo/client/link';
+import { MockLink } from '@apollo/client/testing';
 import { take } from 'rxjs/operators';
-import shortid from 'shortid';
-import { AddAuthorMutation, AddBookMutation, AuthorInput, AuthorsQuery, BookInput, BooksQuery, Mutation, MutationAddAuthorArgs, MutationAddBookArgs } from './graphql';
+import { v4 as uuid } from 'uuid';
+import { ADD_AUTHOR_MUTATION, ADD_BOOK_MUTATION, AddBookInput, AuthorInput, gqlAddAuthorMutation, gqlAddBookMutation, gqlAuthorsQuery, gqlBooksQuery } from './graphql';
 
-const authorId = shortid.generate();
+const authorId = uuid();
 
 const sharedCache = new InMemoryCache();
-sharedCache.writeQuery({ ...new BooksQuery(), data: { books: [] } });
-sharedCache.writeQuery({ ...new AuthorsQuery(), data: { authors: [] } });
+sharedCache.writeQuery({ ...gqlBooksQuery(), data: { books: [] } });
+sharedCache.writeQuery({ ...gqlAuthorsQuery(), data: { authors: [] } });
 
 /******************************
  *            Book            *
@@ -18,19 +22,10 @@ class ApolloBook extends Apollo { }
 
 const bookState = () => state(descriptor => descriptor
   .clientId('book')
-  .resolver(['Mutation', 'addBook'], (rootValue, { book }: MutationAddBookArgs, context, info): Mutation['addBook'] => {
-    return {
-      __typename: 'Book',
-      id: shortid.generate(),
-      name: book.name,
-      authorId: book.authorId,
-      genre: book.genre ?? null
-    };
-  })
-  .mutationUpdate(AddBookMutation, (cache, info) => {
+  .mutationUpdate(ADD_BOOK_MUTATION, (cache, info) => {
     if (info.data) {
       const { addBook } = info.data;
-      cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, addBook] } : data);
+      cache.updateQuery(gqlBooksQuery(), data => data ? { books: [...data.books, addBook] } : data);
     }
   })
 );
@@ -42,51 +37,67 @@ class ApolloAuthor extends Apollo { }
 
 const authorState = () => state(descriptor => descriptor
   .clientId('author')
-  .resolver(['Mutation', 'addAuthor'], (rootValue, { author }: MutationAddAuthorArgs, context): Mutation['addAuthor'] => {
-    return {
-      __typename: 'Author',
-      id: authorId,
-      books: [],
-      ...author
-    };
-  })
-  .mutationUpdate(AddAuthorMutation, (cache, info) => {
+  .mutationUpdate(ADD_AUTHOR_MUTATION, (cache, info) => {
     if (info.data) {
       const { addAuthor } = info.data;
-      cache.updateQuery(new AuthorsQuery(), data => data ? { authors: [...data.authors, addAuthor] } : data);
+      cache.updateQuery(gqlAuthorsQuery(), data => data ? { authors: [...data.authors, addAuthor] } : data);
     }
   })
 );
 
 @Component({
   template: `
-    <div id="books" *ngIf="booksQuery | async as booksResult">{{ booksResult.data.books[0]?.name }}</div>
-    <div id="authors" *ngIf="authorsQuery | async as authorsResult">{{ authorsResult.data.authors[0]?.name }}</div>
-  `
+    @if (booksQuery | async; as booksResult) { <div id="books">{{ booksResult.data.books[0]?.name }}</div> }
+    @if (authorsQuery | async; as authorsResult) { <div id="authors">{{ authorsResult.data.authors[0]?.name }}</div> }
+  `,
+  imports: [AsyncPipe]
 })
 class TestComponent {
-  public readonly booksQuery = this.apolloBook.watchQuery(new BooksQuery());
-  public readonly authorsQuery = this.apolloAuthor.watchQuery(new AuthorsQuery());
+  private readonly apolloBook = inject(ApolloBook);
+  private readonly apolloAuthor = inject(ApolloAuthor);
 
-  public constructor(
-    private readonly apolloBook: ApolloBook,
-    private readonly apolloAuthor: ApolloAuthor
-  ) { }
+  public readonly booksQuery = this.apolloBook.watchQuery(gqlBooksQuery());
+  public readonly authorsQuery = this.apolloAuthor.watchQuery(gqlAuthorsQuery());
 
-  public addBook(book: BookInput): void {
-    this.apolloBook.mutate(new AddBookMutation({ book })).subscribe();
+  public addBook(book: AddBookInput): void {
+    this.apolloBook.mutate(gqlAddBookMutation({ book })).subscribe();
   }
 
   public addAuthor(author: AuthorInput): void {
-    this.apolloAuthor.mutate(new AddAuthorMutation({ author })).subscribe();
+    this.apolloAuthor.mutate(gqlAddAuthorMutation({ author })).subscribe();
   }
 }
 
 describe('Multi', () => {
+  let link: ApolloLink;
+
+  beforeEach(() => {
+    MockLink.defaultOptions = { delay: 0 };
+
+    link = new MockLink([
+      {
+        request: { query: ADD_BOOK_MUTATION, variables: variables => variables },
+        result: variables => ({
+          data: {
+            addBook: { __typename: 'Book', id: uuid(), ...variables.book, genre: null }
+          }
+        })
+      },
+      {
+        request: { query: ADD_AUTHOR_MUTATION, variables: variables => variables },
+        result: variables => ({
+          data: {
+            addAuthor: { __typename: 'Author', id: authorId, books: [], ...variables.author }
+          }
+        })
+      }
+    ]);
+  });
+
   it('should throw if options was not passed', () => {
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit()
+        provideApollo(withState())
       ]
     });
 
@@ -95,11 +106,11 @@ describe('Multi', () => {
 
   it('should render component with result', async () => {
     TestBed.configureTestingModule({
-      declarations: [TestComponent],
+      imports: [TestComponent],
       providers: [
-        provideApolloOrbit(withStates(bookState, authorState)),
-        provideApolloInstance(ApolloBook, { id: 'book', cache: sharedCache }),
-        provideApolloInstance(ApolloAuthor, { id: 'author', cache: sharedCache })
+        provideApollo(withState(bookState, authorState)),
+        provideApolloInstance(ApolloBook, { id: 'book', cache: sharedCache, link }),
+        provideApolloInstance(ApolloAuthor, { id: 'author', cache: sharedCache, link })
       ]
     });
     const fixture = TestBed.createComponent(TestComponent);
@@ -121,9 +132,9 @@ describe('Multi', () => {
   it('should throw error with duplicate default clients', async () => {
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit(),
-        provideApolloInstance(ApolloBook, { cache: sharedCache }),
-        provideApolloInstance(ApolloAuthor, { cache: sharedCache })
+        provideApollo(withState()),
+        provideApolloInstance(ApolloBook, { cache: sharedCache, link: ApolloLink.empty() }),
+        provideApolloInstance(ApolloAuthor, { cache: sharedCache, link: ApolloLink.empty() })
       ]
     });
     expect(() => {
@@ -135,9 +146,9 @@ describe('Multi', () => {
   it('should throw error with duplicate named clients', async () => {
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit(),
-        provideApolloInstance(ApolloBook, { id: 'duplicate', cache: sharedCache }),
-        provideApolloInstance(ApolloAuthor, { id: 'duplicate', cache: sharedCache })
+        provideApollo(withState()),
+        provideApolloInstance(ApolloBook, { id: 'duplicate', cache: sharedCache, link: ApolloLink.empty() }),
+        provideApolloInstance(ApolloAuthor, { id: 'duplicate', cache: sharedCache, link: ApolloLink.empty() })
       ]
     });
     expect(() => {

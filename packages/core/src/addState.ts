@@ -1,19 +1,28 @@
-import { Policies } from '@apollo/client/cache/inmemory/policies';
-import { ApolloCache, ApolloClient, Resolvers } from '@apollo/client/core';
-import { State } from './state';
+import type { ApolloCache, ApolloClient } from '@apollo/client';
+import { Policies } from '@apollo/client/cache';
+import type { LocalState } from '@apollo/client/local-state';
+import type { State } from './state';
 
-export const addStateToClient = (client: ApolloClient<any>) =>
-  (definition: Pick<State, 'resolvers' | 'typeDefs'>): void => {
-    client.addResolvers(definition.resolvers.reduce<Resolvers>(
+export const addStateToClient = (client: ApolloClient) =>
+  (definition: Pick<State, 'resolvers'>): void => {
+    const resolvers = definition.resolvers.reduce<LocalState.Resolvers>(
       (resolvers, [[type, field], resolver]) => {
-        resolvers[type] ??= {}; // eslint-disable-line @typescript-eslint/no-unnecessary-condition
+        resolvers[type] ??= {};
         resolvers[type][field] = resolver;
         return resolvers;
       },
-      {}));
+      {});
+
+    if (Object.keys(resolvers).length > 0) {
+      if (client.localState === undefined) {
+        throw new Error('Attempted to add resolvers to ApolloClient instance that does not support local state. Consider setting `localState` option.');
+      }
+
+      client.localState.addResolvers(resolvers);
+    }
   };
 
-export const addStateToCache = (cache: ApolloCache<any>) =>
+export const addStateToCache = (cache: ApolloCache) =>
   (definition: Pick<State, 'typePolicies' | 'possibleTypes'>): void => {
     if (definition.typePolicies.length > 0 || definition.possibleTypes.length > 0) {
       const policies = getCachePolicies(cache);
@@ -22,10 +31,10 @@ export const addStateToCache = (cache: ApolloCache<any>) =>
     }
   };
 
-const getCachePolicies = (cache: ApolloCache<any>): Policies => {
+const getCachePolicies = (cache: ApolloCache): Policies => {
   if ('policies' in cache) {
     return (cache as any)['policies']; // eslint-disable-line dot-notation
   } else {
-    throw new Error('The cache used in ApolloClient instance does not support \'typePolicies\' or \'possibleTypes\', consider using \'InMemoryCache\'');
+    throw new Error('The cache used in ApolloClient instance does not support \'typePolicies\' or \'possibleTypes\'. Consider using \'InMemoryCache\'');
   }
 };

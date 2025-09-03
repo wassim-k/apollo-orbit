@@ -1,33 +1,32 @@
-import { Component } from '@angular/core';
-import { NewAuthorComponent } from './new-author/new-author.component';
-import { NewBookComponent } from './new-book/new-book.component';
+import { Component, signal } from '@angular/core';
 import { AuthorsComponent } from './authors/authors.component';
 import { BooksComponent } from './books/books.component';
+import { NewAuthorComponent } from './new-author/new-author.component';
+import { NewBookComponent } from './new-book/new-book.component';
 
 @Component({
-    selector: 'app-library',
-    templateUrl: './library.component.html',
-    styleUrls: ['./library.component.scss'],
-    standalone: true,
-    imports: [BooksComponent, AuthorsComponent, NewBookComponent, NewAuthorComponent]
+  selector: 'app-library',
+  templateUrl: './library.component.html',
+  styleUrls: ['./library.component.scss'],
+  imports: [BooksComponent, AuthorsComponent, NewBookComponent, NewAuthorComponent]
 })
 export class LibraryComponent {
-  public isAddingBook = false;
-  public isAddingAuthor = false;
+  protected isAddingBook = signal(false);
+  protected isAddingAuthor = signal(false);
 
-  public addBook(): void {
-    this.isAddingBook = true;
+  protected addBook(): void {
+    this.isAddingBook.set(true);
   }
 
-  public cancelAddBook(): void {
-    this.isAddingBook = false;
+  protected cancelAddBook(): void {
+    this.isAddingBook.set(false);
   }
 
-  public addAuthor(): void {
-    this.isAddingAuthor = true;
+  protected addAuthor(): void {
+    this.isAddingAuthor.set(true);
   }
 
-  public cancelAddAuthor(): void {
-    this.isAddingAuthor = false;
+  protected cancelAddAuthor(): void {
+    this.isAddingAuthor.set(false);
   }
 }

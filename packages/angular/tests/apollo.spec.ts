@@ -1,9 +1,9 @@
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Apollo } from '@apollo-orbit/angular/core';
-import { ApolloError, gql } from '@apollo/client/core';
-import { MockLink, MockSubscriptionLink } from '@apollo/client/testing/core';
+import { Apollo } from '@apollo-orbit/angular';
+import { ErrorLike, gql } from '@apollo/client';
+import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
-import { ApolloMockModule } from './helpers';
+import { provideApolloMock } from './helpers';
 
 interface Value {
   value: string;
@@ -16,7 +16,7 @@ describe('Apollo', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ApolloMockModule]
+      providers: [provideApolloMock()]
     });
 
     apollo = TestBed.inject(Apollo);
@@ -37,7 +37,7 @@ describe('Apollo', () => {
       });
     });
 
-    it('should emit graphql errors (errorPolicy: none)', waitForAsync(() => {
+    it('should throw graphql errors (errorPolicy: none)', waitForAsync(() => {
       const query = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
@@ -83,9 +83,9 @@ describe('Apollo', () => {
   describe('subscribe', () => {
     it('should subscribe', fakeAsync(() => {
       const mockFn = jest.fn();
-      const query = gql`subscription { newNotification }`;
+      const subscription = gql`subscription { newNotification }`;
 
-      apollo.subscribe<{ newNotification: string }>({ query }).subscribe(result => {
+      apollo.subscribe<{ newNotification: string }>({ subscription }).subscribe(result => {
         mockFn(result.data?.newNotification);
 
         if (mockFn.mock.calls.length === 2) {
@@ -123,7 +123,7 @@ describe('Apollo', () => {
       });
 
       apollo.mutate<{ update: string }>({ mutation, errorPolicy: 'none' }).subscribe({
-        error: (error: ApolloError) => {
+        error: (error: ErrorLike) => {
           expect(error.message).toEqual('Invalid query');
         }
       });
@@ -166,7 +166,7 @@ describe('Apollo', () => {
       });
 
       apollo.mutate<{ update: string }>({ mutation, errorPolicy: 'all' }).subscribe({
-        error: (error: ApolloError) => {
+        error: (error: ErrorLike) => {
           expect(error.message).toEqual('An unexpected error has occurred');
         }
       });

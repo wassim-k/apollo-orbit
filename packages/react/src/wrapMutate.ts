@@ -1,32 +1,26 @@
 import { MutationManager } from '@apollo-orbit/core';
-import { ApolloCache, ApolloClient, ApolloError, DefaultContext, FetchResult, MutationOptions, OperationVariables } from '@apollo/client';
+import { ApolloCache, ApolloClient, MaybeMasked, OperationVariables } from '@apollo/client';
 
 export function wrapMutate(mutationManager: MutationManager, mutate: typeof ApolloClient.prototype['mutate']) {
   return <
-    TData = any,
+    TData = unknown,
     TVariables extends OperationVariables = OperationVariables,
-    TContext extends Record<string, any> = DefaultContext,
-    TCache extends ApolloCache<any> = ApolloCache<any>,
-  >(
-    options: MutationOptions<TData, TVariables, TContext>
-  ): Promise<FetchResult<TData>> => {
-    const wrappedOptions = mutationManager.withMutationOptions<TData, TVariables, TContext, TCache>(options);
+    TCache extends ApolloCache = ApolloCache
+  >(options: ApolloClient.MutateOptions<TData, TVariables>): Promise<ApolloClient.MutateResult<MaybeMasked<TData>>> => {
+    const wrappedOptions = mutationManager.withMutationOptions<TData, TVariables, TCache>(options);
 
-    return mutate({ ...options, ...wrappedOptions } as MutationOptions<TData, TVariables, TContext>).then(result => {
-      const { errors } = result;
-      const error = errors && errors.length > 0
-        ? new ApolloError({ graphQLErrors: errors })
-        : void 0;
+    return mutate({ ...options, ...wrappedOptions } as ApolloClient.MutateOptions<TData, TVariables>).then(result => {
+      const { error } = result;
 
       if (error) {
-        mutationManager.runEffects<TData, TVariables, TContext>(options, result, error);
+        mutationManager.runEffects<TData, TVariables>(options, result, error);
       } else {
-        mutationManager.runEffects<TData, TVariables, TContext>(options, result, undefined);
+        mutationManager.runEffects<TData, TVariables>(options, result, undefined);
       }
 
       return result;
-    }).catch((error: ApolloError) => {
-      mutationManager.runEffects<TData, TVariables, TContext>(options, undefined, error);
+    }).catch((error: Error) => {
+      mutationManager.runEffects<TData, TVariables>(options, undefined, error);
       throw error;
     });
   };

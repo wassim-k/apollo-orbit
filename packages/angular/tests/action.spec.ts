@@ -1,18 +1,20 @@
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Apollo, InMemoryCache, ofActionComplete, ofActionDispatched, ofActionError, ofActionSuccess, provideApolloOrbit, state, withApolloOptions, withStates } from '@apollo-orbit/angular';
-import { forkJoin, noop, throwError, timer } from 'rxjs';
+import { Apollo, InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+import { ApolloActions, ofActionComplete, ofActionDispatched, ofActionError, ofActionSuccess, state, withState } from '@apollo-orbit/angular/state';
+import { ApolloLink } from '@apollo/client/link';
+import { forkJoin, from, noop, throwError, timer } from 'rxjs';
 import { map, mergeMap, tap } from 'rxjs/operators';
-import shortid from 'shortid';
-import { Author, Book, BookFragment, BookInput, BooksQuery } from './graphql';
+import { v4 as uuid } from 'uuid';
+import { AddBookInput, Author, Book, BookFragment, gqlBooksQuery } from './graphql';
 
-const author1Id = shortid.generate();
-const author2Id = shortid.generate();
+const author1Id = uuid();
+const author2Id = uuid();
 
 class AddBook {
   public static readonly type = '[Test] AddBook';
 
   public constructor(
-    public readonly book: BookInput
+    public readonly book: AddBookInput
   ) { }
 }
 
@@ -24,7 +26,7 @@ class AddBookObservable {
   public static readonly type = '[Test] AddBookObservable';
 
   public constructor(
-    public readonly book: BookInput
+    public readonly book: AddBookInput
   ) { }
 }
 
@@ -32,7 +34,7 @@ class AddBookPromise {
   public static readonly type = '[Test] AddBookPromise';
 
   public constructor(
-    public readonly book: BookInput
+    public readonly book: AddBookInput
   ) { }
 }
 
@@ -56,7 +58,7 @@ const testState = () => state(descriptor => descriptor
   .action(AddBook, (action, { cache, dispatch }) => {
     if (action.book.name === 'Error') throw new Error();
     const book = createNewBook(action.book);
-    cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data);
+    cache.updateQuery(gqlBooksQuery(), data => data ? { books: [...data.books, book] } : data);
     dispatch(new AddBookSuccess());
   })
   .action(AddBookSuccess, (action, context) => {
@@ -66,30 +68,30 @@ const testState = () => state(descriptor => descriptor
     if (action.book.name === 'Error') return throwError(() => new Error());
     return timer(10).pipe(
       map(() => createNewBook(action.book)),
-      tap(book => cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data))
+      tap(book => cache.updateQuery(gqlBooksQuery(), data => data ? { books: [...data.books, book] } : data))
     );
   })
   .action(AddBookPromise, (action, { cache }) => {
     return new Promise((resolve, reject) => setTimeout(() => {
       if (action.book.name === 'Error') reject(new Error());
       const book = createNewBook(action.book);
-      cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data);
+      cache.updateQuery(gqlBooksQuery(), data => data ? { books: [...data.books, book] } : data);
       resolve(void 0);
     }, 10));
   })
 );
 
-function createNewBook(book: BookInput): BookFragment {
-  return { __typename: 'Book' as const, id: shortid.generate(), ...book, genre: null };
+function createNewBook(book: AddBookInput): BookFragment {
+  return { __typename: 'Book' as const, id: uuid(), ...book, genre: null };
 }
 
 describe('Action', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit(
-          withApolloOptions({ cache: new InMemoryCache() }),
-          withStates(testState)
+        provideApollo(
+          withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty() }),
+          withState(testState)
         )
       ]
     });
@@ -98,48 +100,47 @@ describe('Action', () => {
   describe('update', () => {
     it('should call update method and update cache (single success)', waitForAsync(() => {
       const apollo = TestBed.inject(Apollo);
-      const newBook: BookInput = { name: 'New Book', authorId: author1Id };
+      const actions = TestBed.inject(ApolloActions);
+      const newBook: AddBookInput = { name: 'New Book', authorId: author1Id };
 
-      apollo.dispatch(new AddBookObservable(newBook))
-        .pipe(
-          mergeMap(() => apollo.query(new BooksQuery()))
-        ).subscribe(({ data }) => {
-          expect(data?.books.some(b => b.name === newBook.name)).toBe(true);
-        });
+      from(actions.dispatch(new AddBookObservable(newBook))).pipe(
+        mergeMap(() => apollo.query(gqlBooksQuery()))
+      ).subscribe(({ data }) => {
+        expect(data?.books.some(b => b.name === newBook.name)).toBe(true);
+      });
     }));
 
-    it('should call update method and update cache (single error)', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
+    it('should call update method and update cache (single error)', async () => {
+      const actions = TestBed.inject(ApolloActions);
       const errorFn = jest.fn();
 
-      apollo.dispatch(new AddBookObservable({ name: 'Error', authorId: author1Id }))
-        .subscribe({ error: errorFn });
-
-      tick(10);
+      await actions.dispatch(new AddBookObservable({ name: 'Error', authorId: author1Id }))
+        .catch(errorFn);
 
       expect(errorFn).toHaveBeenCalled();
-    }));
+    });
 
     it('should call update method and update cache (multiple success)', waitForAsync(() => {
       const apollo = TestBed.inject(Apollo);
+      const actions = TestBed.inject(ApolloActions);
 
       const newBook1 = { name: 'New Book 1', authorId: author1Id };
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
       const newBook3 = { name: 'New Book 2', authorId: author2Id };
 
       forkJoin([
-        apollo.dispatch(new AddBook(newBook1)),
-        apollo.dispatch(new AddBookPromise(newBook2)),
-        apollo.dispatch(new AddBookObservable(newBook3))
+        actions.dispatch(new AddBook(newBook1)),
+        actions.dispatch(new AddBookPromise(newBook2)),
+        actions.dispatch(new AddBookObservable(newBook3))
       ]).pipe(
-        mergeMap(() => apollo.query(new BooksQuery()))
+        mergeMap(() => apollo.query(gqlBooksQuery()))
       ).subscribe(({ data }) => {
         expect([newBook1, newBook2, newBook3].every(newBook => data?.books.some(b => b.name === newBook.name))).toBe(true);
       });
     }));
 
     it('should call update method and update cache (multiple error)', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
+      const actions = TestBed.inject(ApolloActions);
       const errorFn = jest.fn();
 
       const newBook1 = { name: 'Error', authorId: author1Id };
@@ -147,9 +148,9 @@ describe('Action', () => {
       const newBook3 = { name: 'Error', authorId: author2Id };
 
       forkJoin([
-        apollo.dispatch(new AddBook(newBook1)),
-        apollo.dispatch(new AddBookPromise(newBook2)),
-        apollo.dispatch(new AddBookObservable(newBook3))
+        actions.dispatch(new AddBook(newBook1)),
+        actions.dispatch(new AddBookPromise(newBook2)),
+        actions.dispatch(new AddBookObservable(newBook3))
       ]).subscribe({ error: errorFn });
 
       tick(10);
@@ -160,14 +161,15 @@ describe('Action', () => {
 
   describe('ofAction', () => {
     it('ofActionDispatched', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
+      const actions = TestBed.inject(ApolloActions);
+
       const dispatchedFn = jest.fn();
 
       const newBook1 = { name: 'New Book 1', authorId: author1Id };
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
       const newBook3 = { name: 'New Book 2', authorId: author2Id };
 
-      apollo.actions.pipe(
+      actions.pipe(
         ofActionDispatched(AddBook, AddBookPromise, AddBookObservable)
       ).subscribe(action => {
         if (action instanceof AddBook) {
@@ -179,9 +181,9 @@ describe('Action', () => {
         }
       });
 
-      apollo.dispatch(new AddBook(newBook1));
-      apollo.dispatch(new AddBookPromise(newBook2));
-      apollo.dispatch(new AddBookObservable(newBook3));
+      actions.dispatch(new AddBook(newBook1));
+      actions.dispatch(new AddBookPromise(newBook2));
+      actions.dispatch(new AddBookObservable(newBook3));
 
       tick(10);
 
@@ -189,14 +191,14 @@ describe('Action', () => {
     }));
 
     it('ofActionSuccess', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
+      const actions = TestBed.inject(ApolloActions);
       const successFn = jest.fn();
 
       const newBook1 = { name: 'New Book 1', authorId: author1Id };
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
       const newBook3 = { name: 'New Book 2', authorId: author2Id };
 
-      apollo.actions.pipe(
+      actions.pipe(
         ofActionSuccess(AddBook, AddBookPromise, AddBookObservable)
       ).subscribe(action => {
         if (action instanceof AddBook) {
@@ -208,9 +210,9 @@ describe('Action', () => {
         }
       });
 
-      apollo.dispatch(new AddBook(newBook1));
-      apollo.dispatch(new AddBookPromise(newBook2));
-      apollo.dispatch(new AddBookObservable(newBook3));
+      actions.dispatch(new AddBook(newBook1));
+      actions.dispatch(new AddBookPromise(newBook2));
+      actions.dispatch(new AddBookObservable(newBook3));
 
       tick(10);
 
@@ -218,14 +220,14 @@ describe('Action', () => {
     }));
 
     it('ofActionError', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
+      const actions = TestBed.inject(ApolloActions);
       const errorFn = jest.fn();
 
       const newBook1 = { name: 'Error', authorId: author1Id };
       const newBook2 = { name: 'Error', authorId: author1Id };
       const newBook3 = { name: 'Error', authorId: author2Id };
 
-      apollo.actions.pipe(
+      actions.pipe(
         ofActionError(AddBook, AddBookPromise, AddBookObservable)
       ).subscribe(action => {
         if (action instanceof AddBook) {
@@ -237,9 +239,9 @@ describe('Action', () => {
         }
       });
 
-      apollo.dispatch(new AddBook(newBook1)).subscribe({ error: noop });
-      apollo.dispatch(new AddBookPromise(newBook2)).subscribe({ error: noop });
-      apollo.dispatch(new AddBookObservable(newBook3)).subscribe({ error: noop });
+      actions.dispatch(new AddBook(newBook1)).catch(noop);
+      actions.dispatch(new AddBookPromise(newBook2)).catch(noop);
+      actions.dispatch(new AddBookObservable(newBook3)).catch(noop);
 
       tick(10);
 
@@ -247,21 +249,21 @@ describe('Action', () => {
     }));
 
     it('ofActionComplete', fakeAsync(() => {
-      const apollo = TestBed.inject(Apollo);
+      const actions = TestBed.inject(ApolloActions);
       const completeFn = jest.fn();
 
-      apollo.actions.pipe(
+      actions.pipe(
         ofActionComplete(AddBook, AddBookSuccess, AddBookPromise, AddBookObservable)
       ).subscribe(result => {
         completeFn(result);
       });
 
-      apollo.dispatch(new AddBook({ name: 'Error', authorId: author1Id })).subscribe({ error: noop });
-      apollo.dispatch(new AddBookPromise({ name: 'Error', authorId: author1Id })).subscribe({ error: noop });
-      apollo.dispatch(new AddBookObservable({ name: 'Error', authorId: author1Id })).subscribe({ error: noop });
-      apollo.dispatch(new AddBook({ name: 'New Book 1', authorId: author1Id })).subscribe({ error: noop });
-      apollo.dispatch(new AddBookPromise({ name: 'New Book 2', authorId: author1Id })).subscribe({ error: noop });
-      apollo.dispatch(new AddBookObservable({ name: 'New Book 3', authorId: author1Id })).subscribe({ error: noop });
+      actions.dispatch(new AddBook({ name: 'Error', authorId: author1Id })).catch(noop);
+      actions.dispatch(new AddBookPromise({ name: 'Error', authorId: author1Id })).catch(noop);
+      actions.dispatch(new AddBookObservable({ name: 'Error', authorId: author1Id })).catch(noop);
+      actions.dispatch(new AddBook({ name: 'New Book 1', authorId: author1Id })).catch(noop);
+      actions.dispatch(new AddBookPromise({ name: 'New Book 2', authorId: author1Id })).catch(noop);
+      actions.dispatch(new AddBookObservable({ name: 'New Book 3', authorId: author1Id })).catch(noop);
 
       tick(10);
 

@@ -7,8 +7,8 @@ fragment AuthorFragment on Author {
   }
 }
 
-query Authors {
-  authors {
+query Authors($name: String) {
+  authors(name: $name) {
     ...AuthorFragment
   }
 }

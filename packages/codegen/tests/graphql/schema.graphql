@@ -1,18 +1,23 @@
 input AuthorInput {
 	name: String!
-	age: Int!
+	age: Int
 }
 
 input BookInput {
 	name: String!
-	genre: String!
+	genre: String
 	authorId: ID!
+}
+
+input UpdateBookInput {
+	name: String!
+	genre: String
 }
 
 type Book {
 	id: ID!
 	name: String!
-	genre: String!
+	genre: String
 	author: Author!
 	authorId: ID!
 }
@@ -34,6 +39,7 @@ type Query {
 type Mutation {
 	addAuthor(author: AuthorInput!): Author!
 	addBook(book: BookInput!): Book!
+	updateBook(id: ID!, book: UpdateBookInput!): Book!
 }
 
 type Subscription {

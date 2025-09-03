@@ -1,5 +1,6 @@
+import { ApolloClient } from '@apollo/client';
 import { DocumentNode, OperationDefinitionNode } from 'graphql';
-import { MutationIdentifier, PureMutationOptions, Type } from '../types';
+import { MutationIdentifier } from '../types';
 
 const isDocument = (doc: any): doc is DocumentNode => doc?.kind === 'Document';
 const isMutationDocument = (def: any): def is OperationDefinitionNode => def.kind === 'OperationDefinition' && def.operation === 'mutation';
@@ -8,7 +9,7 @@ export function nameOfMutation(mutation: MutationIdentifier<any, any>): string {
   if (typeof mutation === 'string') {
     return mutation;
   } else if (typeof mutation === 'function') {
-    return nameOfMutationDocument(documentOfOptionsType(mutation));
+    return nameOfMutationDocument(documentOfGqlFunction(mutation));
   } else if (isDocument(mutation)) {
     return nameOfMutationDocument(mutation);
   } else {
@@ -16,8 +17,8 @@ export function nameOfMutation(mutation: MutationIdentifier<any, any>): string {
   }
 }
 
-export function documentOfOptionsType(DataType: Type<PureMutationOptions<any, any>>): DocumentNode {
-  const instance = new DataType();
+export function documentOfGqlFunction(dataType: (() => Pick<ApolloClient.MutateOptions, 'mutation'>)): DocumentNode {
+  const instance = dataType();
   return instance.mutation;
 }
 

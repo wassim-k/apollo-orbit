@@ -1,0 +1,54 @@
+<div>
+  @if (bookFragment.result(); as bookResult) {
+  @if (bookResult.complete) {
+  <h4>Book Details</h4>
+  <div class="form">
+    <div>
+      <p><strong>ID:</strong> {{ bookResult.data.id }}</p>
+      <p><strong>Name:</strong> {{ bookResult.data.name }}</p>
+      <p><strong>Genre:</strong> {{ bookResult.data.genre || 'None' }}</p>
+      <p><strong>Author ID:</strong> {{ bookResult.data.authorId }}</p>
+      <p><strong>Display Name:</strong> {{ bookResult.data.displayName }}</p>
+    </div>
+  </div>
+  }
+  }
+
+  <div>
+    <h4>Update Book</h4>
+    <form class="form" [formGroup]="bookForm" (ngSubmit)="onSubmit()">
+      <div class="form-field">
+        <label for="name">Name *</label>
+        <input id="name" type="text" formControlName="name">
+      </div>
+      @if (bookForm.controls.name.invalid && bookForm.controls.name.touched) {
+      <div class="error-well">Name is required</div>
+      }
+
+      <div class="form-field">
+        <label for="genre">Genre</label>
+        <input id="genre" type="text" formControlName="genre">
+      </div>
+
+      <div class="actions-container">
+        <button type="submit" [disabled]="bookForm.invalid || updateBookMutation.loading()">
+          {{ updateBookMutation.loading() ? 'Updating...' : 'Update Book' }}
+        </button>
+        <button type="button" (click)="resetForm()">Reset</button>
+        <button type="button" (click)="closed.emit()">Close</button>
+      </div>
+    </form>
+  </div>
+
+  @if (updateBookMutation.called()) {
+  @if (updateBookMutation.error()) {
+  <div>
+    <div class="error-well">Error: {{ updateBookMutation.error()?.message }}</div>
+  </div>
+  } @else if (updateBookMutation.data()) {
+  <div>
+    <div class="notification">Book updated successfully!</div>
+  </div>
+  }
+  }
+</div>

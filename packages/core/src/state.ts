@@ -1,20 +1,21 @@
-import { ApolloCache, DocumentNode, PossibleTypesMap, TypePolicies, OperationVariables as Variables } from '@apollo/client/core';
+import { ApolloCache, DefaultContext, DocumentNode, PossibleTypesMap, TypePolicies, OperationVariables as Variables } from '@apollo/client';
+import type { LocalState } from '@apollo/client/local-state';
+import { identity, lastValueFrom, Observable } from 'rxjs';
 import { nameOfMutation } from './internal';
-import { Action, ActionFn, ActionType, EffectFn, MutationIdentifier, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, Resolver, TypeField } from './types';
+import { Action, ActionFn, ActionType, EffectFn, MutationIdentifier, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, TypeField } from './types';
 import { createSymbol } from './utils/symbol';
 
 export interface State {
   clientId: string;
-  typeDefs: Array<string | DocumentNode>;
   typePolicies: Array<TypePolicies>;
   possibleTypes: Array<PossibleTypesMap>;
-  resolvers: Array<[TypeField, Resolver]>;
-  mutationUpdates: Array<[string, MutationUpdateFn<any, any, any, any>]>;
-  refetchQueries: Array<[string, RefetchQueriesFn<any, any, any>]>;
+  resolvers: Array<[TypeField, LocalState.Resolver<any, any, any, any>]>;
+  mutationUpdates: Array<[string, MutationUpdateFn<any, any, any>]>;
+  refetchQueries: Array<[string, RefetchQueriesFn<any, any>]>;
   optimisticResponses: Array<[string, OptimisticResponseFn<any, any>]>;
   actions: Array<[string, ActionFn<any>]>;
   effects: Array<[string, EffectFn<any, any>]>;
-  onInit?: (cache: ApolloCache<any>) => void;
+  onInit?: (cache: ApolloCache) => void;
 }
 
 export const STATE_DEFINITION_SYMBOL: unique symbol = createSymbol('STATE_DEFINITION') as any;
@@ -44,8 +45,13 @@ export class StateDescriptor {
     return this;
   }
 
+  /**
+   * Declares client-side GraphQL schema definitions.
+   *
+   * This method is a no-op. It only serves as a virtual container for client-side GraphQL schema definitions.
+   */
   public typeDefs(typeDefs: string | Array<string> | DocumentNode | Array<DocumentNode>): this {
-    this.definition.typeDefs.push(...(Array.isArray(typeDefs) ? typeDefs : [typeDefs]));
+    identity(typeDefs);
     return this;
   }
 
@@ -59,42 +65,51 @@ export class StateDescriptor {
     return this;
   }
 
-  public onInit(onInit: (cache: ApolloCache<any>) => void): this {
+  public onInit(onInit: (cache: ApolloCache) => void): this {
     this.definition.onInit = onInit;
     return this;
   }
 
-  public resolver(typeField: TypeField, resolver: Resolver): this {
-    this.definition.resolvers.push([typeField, resolver]);
+  public resolver<TResult = unknown, TParent = unknown, TContext = DefaultContext, TArgs = Record<string, unknown>>(typeField: TypeField, resolver: LocalState.Resolver<TResult, TParent, TContext, TArgs>): this {
+    this.definition.resolvers.push([typeField, transformResolver(resolver)]);
     return this;
   }
 
-  public mutationUpdate<T = any, V = Variables>(mutation: MutationIdentifier<T, V>, update: MutationUpdateFn<T, V>): this {
+  public mutationUpdate<TData = unknown, TVariables = Variables>(mutation: MutationIdentifier<TData, TVariables>, update: MutationUpdateFn<TData, TVariables>): this {
     this.definition.mutationUpdates.push([nameOfMutation(mutation), update]);
     return this;
   }
 
-  public refetchQueries<T = any, V = Variables>(mutation: MutationIdentifier<T, V>, refetchQueries: RefetchQueriesFn<T, V>): this {
+  public refetchQueries<TData = unknown, TVariables = Variables>(mutation: MutationIdentifier<TData, TVariables>, refetchQueries: RefetchQueriesFn<TData, TVariables>): this {
     this.definition.refetchQueries.push([nameOfMutation(mutation), refetchQueries]);
     return this;
   }
 
-  public optimisticResponse<T = any, V = Variables>(mutation: MutationIdentifier<T, V>, optimisticResponse: OptimisticResponseFn<T, V>): this {
+  public optimisticResponse<TData = unknown, TVariables = Variables>(mutation: MutationIdentifier<TData, TVariables>, optimisticResponse: OptimisticResponseFn<TData, TVariables>): this {
     this.definition.optimisticResponses.push([nameOfMutation(mutation), optimisticResponse]);
     return this;
   }
 
-  public effect<T = any, V = Variables>(mutation: MutationIdentifier<T, V>, effect: EffectFn<T, V>): this {
+  public effect<TData = unknown, TVariables = Variables>(mutation: MutationIdentifier<TData, TVariables>, effect: EffectFn<TData, TVariables>): this {
     this.definition.effects.push([nameOfMutation(mutation), effect]);
     return this;
   }
 
-  public action<T = any>(action: ActionType<T>, actionFn: ActionFn<T>): this;
+  public action<TAction = any>(action: ActionType<TAction>, actionFn: ActionFn<TAction>): this;
   public action<TAction extends Action>(type: TAction['type'], actionFn: ActionFn<TAction>): this;
-  public action<T = any>(actionType: ActionType<T> | string, actionFn: ActionFn<T>): this {
+  public action<TAction = any>(actionType: ActionType<TAction> | string, actionFn: ActionFn<TAction>): this {
     this.definition.actions.push([typeof actionType === 'string' ? actionType : actionType.type, actionFn]);
     return this;
   }
+}
+
+function transformResolver(fn: LocalState.Resolver<any, any, any, any>): LocalState.Resolver {
+  return function (...args: Parameters<LocalState.Resolver>) {
+    const result = fn(...args);
+    return result instanceof Observable
+      ? lastValueFrom(result, { defaultValue: void 0 })
+      : result;
+  };
 }
 
 function createDefaultStateDefinition(): State {
@@ -107,7 +122,6 @@ function createDefaultStateDefinition(): State {
     refetchQueries: [],
     optimisticResponses: [],
     possibleTypes: [],
-    typeDefs: [],
     typePolicies: []
   };
 }

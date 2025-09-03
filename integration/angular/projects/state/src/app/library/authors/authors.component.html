@@ -1,0 +1,31 @@
+<div class="flex-row gap-10">
+  <div>
+    <h3>Authors <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
+    <div>
+      <input type="text" placeholder="Author name" [formControl]="nameControl" />
+    </div>
+    @if (authorsQuery | async; as authorsResult) {
+    @if (authorsResult.loading) { Loading... }
+    @if (authorsResult.error) { {{ authorsResult.error.message }} }
+    @if ((authorsResult.data || authorsResult.previousData)?.authors; as authors) {
+    @for (author of authors; track author.id) {
+    <div>
+      <span>{{ author.name }}</span>
+      <button type="button" class="icon-btn" href="javascript: void 0" (click)="edit(author)">✏️</button>
+      <ul>
+        @for (book of author.books; track book) {
+        <li>{{ book.name }}</li>
+        }
+      </ul>
+    </div>
+    }
+    }
+    }
+  </div>
+
+  @if (authorId !== undefined) {
+  <div>
+    <app-edit-author [authorId]="authorId" (closed)="authorId = undefined"></app-edit-author>
+  </div>
+  }
+</div>

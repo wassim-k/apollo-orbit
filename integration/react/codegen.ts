@@ -29,7 +29,7 @@ const config: CodegenConfig = {
         },
         'typescript',
         'typescript-operations',
-        'typed-document-node'
+        '@apollo-orbit/codegen/core'
       ]
     }
   }

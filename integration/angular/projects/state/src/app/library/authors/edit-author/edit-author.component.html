@@ -1,0 +1,52 @@
+<div>
+  @if (authorResult$ | async; as authorResult) {
+  @let author = authorResult.data;
+
+  <h4>Author Details</h4>
+  <div class="form">
+    <div>
+      <p><strong>ID:</strong> {{ author.id }}</p>
+      <p><strong>Name:</strong> {{ author.name }}</p>
+      <p><strong>Age:</strong> {{ author.age || 'Not specified' }}</p>
+    </div>
+  </div>
+  }
+
+  <div>
+    <h4>Update Author</h4>
+    <form class="form" [formGroup]="authorForm" (ngSubmit)="onSubmit()">
+      <div class="form-field">
+        <label for="name">Name *</label>
+        <input id="name" type="text" formControlName="name">
+      </div>
+      @if (authorForm.controls.name.invalid && authorForm.controls.name.touched) {
+      <div class="form-field">Name is required</div>
+      }
+
+      <div class="form-field">
+        <label for="age">Age</label>
+        <input id="age" type="number" formControlName="age">
+      </div>
+
+      <div class="actions-container">
+        <button type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Updating...' : 'Update Author' }}
+        </button>
+        <button type="button" (click)="resetForm()">Reset</button>
+        <button type="button" (click)="closed.emit()">Close</button>
+      </div>
+    </form>
+  </div>
+
+  @if (newBookSubscription.data()?.newBook; as newBook) {
+  <div class="notification">
+    <p>New book '{{ newBook.name }}' was added for this author.</p>
+  </div>
+  }
+
+  @if (error(); as error) {
+  <div>
+    <div class="error-well">Error: {{ error?.message }}</div>
+  </div>
+  }
+</div>

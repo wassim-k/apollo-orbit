@@ -7,5 +7,6 @@ export interface ToggleThemeAction {
 
 export interface ThemeToggledAction {
   type: 'theme/toggled';
+  theme: ThemeName;
   toggles: number;
 }

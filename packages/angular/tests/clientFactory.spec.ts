@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { APOLLO_CLIENT_FACTORY, Apollo, ApolloClient, ApolloClientFactory, InMemoryCache, NormalizedCacheObject, provideApolloOrbit, withApolloOptions } from '@apollo-orbit/angular';
-import { ApolloClientOptions } from '@apollo/client/core';
+import { APOLLO_CLIENT_FACTORY, Apollo, ApolloClient, ApolloClientFactory, InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+import { ApolloLink } from '@apollo/client';
 
-class ApolloClientCustom extends ApolloClient<NormalizedCacheObject> { }
+class ApolloClientCustom extends ApolloClient { }
 
-const apolloClientCustomFactory: ApolloClientFactory = (options: ApolloClientOptions<NormalizedCacheObject>): ApolloClient<NormalizedCacheObject> => {
+const apolloClientCustomFactory: ApolloClientFactory = (options: ApolloClient.Options): ApolloClient => {
   return new ApolloClientCustom(options);
 };
 
@@ -12,7 +12,7 @@ describe('ApolloClientFactory', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideApolloOrbit(withApolloOptions({ cache: new InMemoryCache() })),
+        provideApollo(withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty() })),
         { provide: APOLLO_CLIENT_FACTORY, useValue: apolloClientCustomFactory }
       ]
     });

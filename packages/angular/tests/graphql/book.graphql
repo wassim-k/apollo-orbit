@@ -13,13 +13,13 @@ query Book($id: ID!) {
 }
 
 query Books($genre: String) {
-  books(genre: $genre) @client {
+  books(genre: $genre) {
     ...BookFragment
   }
 }
 
-mutation AddBook($book: BookInput!) {
-  addBook(book: $book) @client {
+mutation AddBook($book: AddBookInput!) {
+  addBook(book: $book) {
     ...BookFragment
   }
 }

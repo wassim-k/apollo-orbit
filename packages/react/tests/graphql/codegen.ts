@@ -1,4 +1,3 @@
-
 import { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
@@ -10,9 +9,6 @@ const config: CodegenConfig = {
   config: {
     dedupeOperationSuffix: true,
     operationResultSuffix: 'Data',
-    querySuffix: 'Query',
-    mutationSuffix: 'Mutation',
-    subscriptionSuffix: 'Subscription',
     inlineFragmentTypes: 'combine',
     avoidOptionals: {
       field: true
@@ -28,7 +24,7 @@ const config: CodegenConfig = {
         },
         'typescript',
         'typescript-operations',
-        'typed-document-node'
+        '@apollo-orbit/codegen/core'
       ]
     }
   }

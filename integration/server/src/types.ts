@@ -15,6 +15,12 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type AddBookInput = {
+  authorId: Scalars['ID']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
 export type Author = {
   __typename?: 'Author';
   age?: Maybe<Scalars['Int']['output']>;
@@ -37,16 +43,11 @@ export type Book = {
   name: Scalars['String']['output'];
 };
 
-export type BookInput = {
-  authorId: Scalars['ID']['input'];
-  genre?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-};
-
 export type Mutation = {
   __typename?: 'Mutation';
   addAuthor: Author;
   addBook: Book;
+  updateAuthor: Author;
   updateBook: Book;
 };
 
@@ -57,12 +58,18 @@ export type MutationAddAuthorArgs = {
 
 
 export type MutationAddBookArgs = {
-  book: BookInput;
+  book: AddBookInput;
+};
+
+
+export type MutationUpdateAuthorArgs = {
+  author: AuthorInput;
+  id: Scalars['ID']['input'];
 };
 
 
 export type MutationUpdateBookArgs = {
-  book: BookInput;
+  book: UpdateBookInput;
   id: Scalars['ID']['input'];
 };
 
@@ -77,6 +84,11 @@ export type Query = {
 
 export type QueryAuthorArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryAuthorsArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -100,4 +112,9 @@ export type Subscription = {
 
 export type SubscriptionNewBookArgs = {
   authorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type UpdateBookInput = {
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };

@@ -18,6 +18,12 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type AddBookInput = {
+  authorId: Scalars['ID']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
 export type Author = {
   __typename?: 'Author';
   age?: Maybe<Scalars['Int']['output']>;
@@ -40,16 +46,11 @@ export type Book = {
   name: Scalars['String']['output'];
 };
 
-export type BookInput = {
-  authorId: Scalars['ID']['input'];
-  genre?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-};
-
 export type Mutation = {
   __typename?: 'Mutation';
   addAuthor: Author;
   addBook: Book;
+  updateAuthor: Author;
   updateBook: Book;
 };
 
@@ -60,12 +61,18 @@ export type MutationAddAuthorArgs = {
 
 
 export type MutationAddBookArgs = {
-  book: BookInput;
+  book: AddBookInput;
+};
+
+
+export type MutationUpdateAuthorArgs = {
+  author: AuthorInput;
+  id: Scalars['ID']['input'];
 };
 
 
 export type MutationUpdateBookArgs = {
-  book: BookInput;
+  book: UpdateBookInput;
   id: Scalars['ID']['input'];
 };
 
@@ -80,6 +87,11 @@ export type Query = {
 
 export type QueryAuthorArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryAuthorsArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -103,6 +115,11 @@ export type Subscription = {
 
 export type SubscriptionNewBookArgs = {
   authorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type UpdateBookInput = {
+  genre?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };
 
 
@@ -176,10 +193,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AddBookInput: AddBookInput;
   Author: ResolverTypeWrapper<Author>;
   AuthorInput: AuthorInput;
   Book: ResolverTypeWrapper<Book>;
-  BookInput: BookInput;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
@@ -187,14 +204,15 @@ export type ResolversTypes = {
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   Subscription: ResolverTypeWrapper<{}>;
+  UpdateBookInput: UpdateBookInput;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AddBookInput: AddBookInput;
   Author: Author;
   AuthorInput: AuthorInput;
   Book: Book;
-  BookInput: BookInput;
   Boolean: Scalars['Boolean']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
@@ -202,6 +220,7 @@ export type ResolversParentTypes = {
   Query: {};
   String: Scalars['String']['output'];
   Subscription: {};
+  UpdateBookInput: UpdateBookInput;
 };
 
 export type AuthorResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Author'] = ResolversParentTypes['Author']> = {
@@ -224,12 +243,13 @@ export type BookResolvers<ContextType = Context, ParentType extends ResolversPar
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   addAuthor?: Resolver<ResolversTypes['Author'], ParentType, ContextType, RequireFields<MutationAddAuthorArgs, 'author'>>;
   addBook?: Resolver<ResolversTypes['Book'], ParentType, ContextType, RequireFields<MutationAddBookArgs, 'book'>>;
+  updateAuthor?: Resolver<ResolversTypes['Author'], ParentType, ContextType, RequireFields<MutationUpdateAuthorArgs, 'author' | 'id'>>;
   updateBook?: Resolver<ResolversTypes['Book'], ParentType, ContextType, RequireFields<MutationUpdateBookArgs, 'book' | 'id'>>;
 };
 
 export type QueryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   author?: Resolver<ResolversTypes['Author'], ParentType, ContextType, RequireFields<QueryAuthorArgs, 'id'>>;
-  authors?: Resolver<Array<ResolversTypes['Author']>, ParentType, ContextType>;
+  authors?: Resolver<Array<ResolversTypes['Author']>, ParentType, ContextType, Partial<QueryAuthorsArgs>>;
   book?: Resolver<ResolversTypes['Book'], ParentType, ContextType, RequireFields<QueryBookArgs, 'id'>>;
   books?: Resolver<Array<ResolversTypes['Book']>, ParentType, ContextType, Partial<QueryBooksArgs>>;
 };

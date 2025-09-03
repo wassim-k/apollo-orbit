@@ -1,6 +1,6 @@
-import { useMutation } from '@apollo/client';
+import { useMutation } from '@apollo/client/react';
 import { FormEvent, useState } from 'react';
-import { AddAuthorDocument } from '../graphql';
+import { ADD_AUTHOR_MUTATION } from '../graphql';
 
 export function NewAuthor({
   onClose
@@ -9,7 +9,7 @@ export function NewAuthor({
 }) {
   const [name, setName] = useState<string | undefined>();
   const [age, setAge] = useState<number | undefined>();
-  const [addAuthor, { loading: submitting }] = useMutation(AddAuthorDocument, {
+  const [addAuthor, { loading: submitting }] = useMutation(ADD_AUTHOR_MUTATION, {
     onError: () => void 0
   });
 
@@ -36,8 +36,8 @@ export function NewAuthor({
           <input type="text" onChange={event => setAge(event.target.valueAsNumber)} />
         </div>
         <br />
-        <input style={{ margin: '0 0.25em' }} type="submit" value="Submit" disabled={!name} />
-        <button style={{ margin: '0 0.25em' }} onClick={() => onClose()}>Close</button>
+        <button disabled={!name}>Submit</button>
+        <button type="button" onClick={() => onClose()}>Close</button>
       </form>
     </>
   );

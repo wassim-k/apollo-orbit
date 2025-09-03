@@ -1,6 +1,6 @@
 import { State, createSymbol } from '@apollo-orbit/core';
-import { useApolloClient } from '@apollo/client';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useApolloClient } from '@apollo/client/react';
+import React, { JSX, useContext, useEffect, useRef, useState } from 'react';
 import { ApolloOrbitContext, ApolloOrbitContextValue } from './context';
 import { wrapMutate } from './wrapMutate';
 

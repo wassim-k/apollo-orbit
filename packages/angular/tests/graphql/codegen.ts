@@ -1,18 +1,15 @@
-
 import { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
   schema: 'tests/graphql/schema.graphql',
   documents: [
     'tests/graphql/book.graphql',
-    'tests/graphql/author.graphql'
+    'tests/graphql/author.graphql',
+    'tests/graphql/client.graphql'
   ],
   config: {
     dedupeOperationSuffix: true,
     operationResultSuffix: 'Data',
-    querySuffix: 'Query',
-    mutationSuffix: 'Mutation',
-    subscriptionSuffix: 'Subscription',
     inlineFragmentTypes: 'combine',
     avoidOptionals: {
       field: true

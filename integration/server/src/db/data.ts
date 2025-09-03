@@ -1,5 +1,5 @@
 import shortid from 'shortid';
-import { Author, Book } from '../types';
+import { Author, Book } from '../types.js';
 
 export type BookData = Omit<Book, 'author'>;
 export type AuthorData = Omit<Author, 'books'>;

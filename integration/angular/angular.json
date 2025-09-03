@@ -10,15 +10,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular/build:application",
           "options": {
             "preserveSymlinks": true,
             "outputPath": "dist/core",
             "index": "projects/core/src/index.html",
             "browser": "projects/core/src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
             "tsConfig": "projects/core/tsconfig.app.json",
             "assets": [
               "projects/core/src/favicon.ico",
@@ -37,10 +34,10 @@
               "graphql-tag"
             ],
             "server": "projects/core/src/main.server.ts",
-            "prerender": true,
             "ssr": {
-              "entry": "projects/core/server.ts"
-            }
+              "entry": "projects/core/src/server.ts"
+            },
+            "outputMode": "server"
           },
           "configurations": {
             "development": {},
@@ -73,7 +70,7 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
+          "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
               "buildTarget": "core:build:production"
@@ -85,71 +82,38 @@
           "defaultConfiguration": "development"
         },
         "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "builder": "@angular/build:extract-i18n",
           "options": {
             "buildTarget": "core:build"
           }
-        },
-        "server": {
-          "builder": "@angular-devkit/build-angular:server",
-          "options": {
-            "preserveSymlinks": true,
-            "outputPath": "dist/core/server",
-            "main": "projects/core/server.ts",
-            "tsConfig": "projects/core/tsconfig.server.json",
-            "sourceMap": true,
-            "optimization": false,
-            "buildOptimizer": false
-          },
-          "configurations": {
-            "production": {
-              "outputHashing": "media",
-              "fileReplacements": [
-                {
-                  "replace": "projects/core/src/environments/environment.ts",
-                  "with": "projects/core/src/environments/environment.prod.ts"
-                }
-              ],
-              "sourceMap": false,
-              "optimization": true,
-              "buildOptimizer": true
-            },
-            "development": {
-              "vendorChunk": true
-            }
-          },
-          "defaultConfiguration": "development"
         }
       }
     },
-    "effects": {
+    "state": {
       "projectType": "application",
-      "root": "projects/effects",
-      "sourceRoot": "projects/effects/src",
+      "root": "projects/state",
+      "sourceRoot": "projects/state/src",
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular/build:application",
           "options": {
             "preserveSymlinks": true,
-            "outputPath": "dist/effects",
-            "index": "projects/effects/src/index.html",
-            "browser": "projects/effects/src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
-            "tsConfig": "projects/effects/tsconfig.app.json",
+            "outputPath": "dist/state",
+            "index": "projects/state/src/index.html",
+            "browser": "projects/state/src/main.ts",
+            "tsConfig": "projects/state/tsconfig.app.json",
             "assets": [
-              "projects/effects/src/favicon.ico",
-              "projects/effects/src/assets",
+              "projects/state/src/favicon.ico",
+              "projects/state/src/assets",
               {
                 "glob": "app-config.json",
-                "input": "projects/effects/src/app/config",
+                "input": "projects/state/src/app/config",
                 "output": "/"
               }
             ],
             "styles": [
-              "projects/effects/src/styles.scss"
+              "projects/state/src/styles.scss"
             ],
             "scripts": [],
             "extractLicenses": false,
@@ -166,8 +130,8 @@
             "production": {
               "fileReplacements": [
                 {
-                  "replace": "projects/effects/src/environments/environment.ts",
-                  "with": "projects/effects/src/environments/environment.prod.ts"
+                  "replace": "projects/state/src/environments/environment.ts",
+                  "with": "projects/state/src/environments/environment.prod.ts"
                 }
               ],
               "optimization": true,
@@ -192,53 +156,67 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
+          "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "effects:build:production"
+              "buildTarget": "state:build:production"
             },
             "development": {
-              "buildTarget": "effects:build:development"
+              "buildTarget": "state:build:development"
             }
           },
           "defaultConfiguration": "development"
         },
         "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "builder": "@angular/build:extract-i18n",
           "options": {
-            "buildTarget": "effects:build"
+            "buildTarget": "state:build"
           }
         }
       }
     }
   },
   "cli": {
+    "cache": {
+      "enabled": false
+    },
     "packageManager": "yarn",
     "analytics": false
   },
   "schematics": {
     "@schematics/angular:component": {
       "style": "scss",
-      "skipTests": true
+      "skipTests": true,
+      "type": "component"
     },
     "@schematics/angular:class": {
       "skipTests": true
     },
     "@schematics/angular:directive": {
-      "skipTests": true
+      "skipTests": true,
+      "type": "directive"
     },
     "@schematics/angular:guard": {
-      "skipTests": true
+      "skipTests": true,
+      "typeSeparator": "."
     },
     "@schematics/angular:interceptor": {
-      "skipTests": true
+      "skipTests": true,
+      "typeSeparator": "."
     },
-    "@schematics/angular:module": {},
+    "@schematics/angular:module": {
+      "typeSeparator": "."
+    },
     "@schematics/angular:pipe": {
-      "skipTests": true
+      "skipTests": true,
+      "typeSeparator": "."
     },
     "@schematics/angular:service": {
-      "skipTests": true
+      "skipTests": true,
+      "type": "service"
+    },
+    "@schematics/angular:resolver": {
+      "typeSeparator": "."
     }
   }
 }

@@ -1,13 +1,34 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "incremental": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "module": "commonjs",
-    "target": "es2018"
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "importHelpers": true,
+    "experimentalDecorators": true,
+    "module": "esnext",
+    "target": "es2021",
+    "lib": [
+      "es6",
+      "esnext",
+      "es2021",
+      "dom"
+    ],
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "sourceMap": true,
+    "declaration": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "files": [
     "src/index.ts",
-    "src/angular/index.ts"
+    "src/angular/index.ts",
+    "src/core/index.ts"
   ]
 }

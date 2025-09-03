@@ -1,0 +1,34 @@
+<form class="form" [formGroup]="form" autocomplete="off" (ngSubmit)="submit()">
+  @if (addBookMutation.error(); as error) {
+  <div class="error-well">An error has occurred: {{ error.message }}</div>
+  }
+  <div class="form-field">
+    <label for="name">Name *</label>
+    <input name="name" type="text" formControlName="name" />
+  </div>
+  <div class="form-field">
+    <label for="genre">Genre</label>
+    <input name="genre" type="text" formControlName="genre" />
+  </div>
+  @if (!authorsQuery.active()) {
+  <button type="button" (click)="authorsQuery.execute()">Load authors</button>
+  } @else {
+  @if (authorsQuery.loading()) { Loading... }
+  @if (authorsQuery.error(); as error) { <div class="error-well">{{ error.message }}</div> }
+  @if (authorsQuery.data()?.authors; as authors) {
+  <div class="form-field">
+    <label for="author">Author *</label>
+    <select name="author" formControlName="authorId">
+      @for (author of authors; track author) {
+      <option [value]="author.id">{{ author.name }}
+      </option>
+      }
+    </select>
+  </div>
+  }
+  }
+  <div class="form-buttons">
+    <button type="submit" [disabled]="addBookMutation.loading()">Submit</button>
+    <button type="button" (click)="onClose.next()">Close</button>
+  </div>
+</form>

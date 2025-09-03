@@ -1,35 +1,38 @@
-import { Component, NgModule } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, inject, NgModule } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
-import { RouterModule, provideRouter } from '@angular/router';
+import { provideRouter, RouterModule } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { Apollo, InMemoryCache, provideApolloOrbit, provideStates, state, withApolloOptions, withStates } from '@apollo-orbit/angular';
-import { timer } from 'rxjs';
+import { Apollo, InMemoryCache, provideApollo, provideApolloInstance, withApolloOptions, ɵApolloRegistry } from '@apollo-orbit/angular';
+import { ApolloActions, provideStates, state, withState } from '@apollo-orbit/angular/state';
+import { ApolloLink } from '@apollo/client';
+import { LocalState } from '@apollo/client/local-state';
+import { from, timer } from 'rxjs';
 import { map, mergeMap, tap } from 'rxjs/operators';
-import shortid from 'shortid';
-import { AddBookMutation, AuthorQuery, AuthorsQuery, BookInput, BooksQuery, MutationAddBookArgs, Query } from './graphql';
+import { v4 as uuid } from 'uuid';
+import { ADD_BOOK_CLIENT_MUTATION, AddBookInput, gqlAddBookClientMutation, gqlAuthorClientQuery, gqlAuthorsClientQuery, gqlBooksClientQuery, MutationAddBookArgs, Query } from './graphql';
 
-const author1Id = shortid.generate();
-const author2Id = shortid.generate();
+const author1Id = uuid();
+const author2Id = uuid();
 
 class AddBook {
   public static readonly type = '[Test] AddBook';
 
   public constructor(
-    public readonly book: BookInput
+    public readonly book: AddBookInput
   ) { }
 }
 
 @Component({
   template: `
-    <div id="test" *ngIf="booksQuery | async as result">{{ result.data.books.length }}</div>
-  `
+    @if (booksQuery | async; as result) { <div id="test">{{ result.data.books.length }}</div> }
+  `,
+  imports: [AsyncPipe]
 })
 class TestComponent {
-  public readonly booksQuery = this.apollo.query(new BooksQuery());
+  private readonly apollo = inject(Apollo);
 
-  public constructor(
-    private readonly apollo: Apollo
-  ) { }
+  public readonly booksQuery = this.apollo.query(gqlBooksClientQuery());
 }
 
 const testState = () => state(descriptor => descriptor
@@ -46,7 +49,7 @@ const testState = () => state(descriptor => descriptor
   })
   .onInit(cache => {
     cache.writeQuery({
-      ...new BooksQuery(),
+      ...gqlBooksClientQuery(),
       data: {
         books: [
           { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: author1Id },
@@ -66,19 +69,19 @@ const testState = () => state(descriptor => descriptor
   })
   .resolver(['Mutation', 'addBook'], (rootValue, { book }: MutationAddBookArgs, context, info) => {
     return timer(10).pipe(
-      map(() => ({ __typename: 'Book', id: shortid.generate(), ...book, genre: null }))
+      map(() => ({ __typename: 'Book', id: uuid(), ...book, genre: null }))
     );
   })
-  .mutationUpdate(AddBookMutation, (cache, info) => {
+  .mutationUpdate(ADD_BOOK_CLIENT_MUTATION, (cache, info) => {
     if (info.data) {
       const { addBook } = info.data;
-      cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, addBook] } : data);
+      cache.updateQuery(gqlBooksClientQuery(), data => data ? { books: [...data.books, addBook] } : data);
     }
   })
   .action(AddBook, (action, { cache }) => {
     return timer(10).pipe(
-      map(() => ({ __typename: 'Book' as const, id: shortid.generate(), ...action.book, genre: null })),
-      tap(book => cache.updateQuery(new BooksQuery(), data => data ? { books: [...data.books, book] } : data))
+      map(() => ({ __typename: 'Book' as const, id: uuid(), ...action.book, genre: null })),
+      tap(book => cache.updateQuery(gqlBooksClientQuery(), data => data ? { books: [...data.books, book] } : data))
     );
   })
 );
@@ -87,11 +90,11 @@ describe('State', () => {
   describe('rootState', () => {
     beforeEach(() => {
       TestBed.configureTestingModule({
-        declarations: [TestComponent],
+        imports: [TestComponent],
         providers: [
-          provideApolloOrbit(
-            withApolloOptions({ cache: new InMemoryCache() }),
-            withStates(testState)
+          provideApollo(
+            withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty(), localState: new LocalState() }),
+            withState(testState)
           )
         ]
       });
@@ -107,15 +110,15 @@ describe('State', () => {
 
       it('should run client resolvers', waitForAsync(() => {
         const apollo = TestBed.inject(Apollo);
-        apollo.query(new AuthorsQuery()).subscribe(result => {
+        apollo.query(gqlAuthorsClientQuery()).subscribe(result => {
           expect(result.data?.authors).toHaveLength(2);
         });
       }));
 
       it('should call type policies read function', waitForAsync(() => {
         const apollo = TestBed.inject(Apollo);
-        apollo.query(new AuthorsQuery()).pipe(
-          mergeMap(() => apollo.query(new AuthorQuery({ id: author1Id })))
+        apollo.query(gqlAuthorsClientQuery()).pipe(
+          mergeMap(() => apollo.query(gqlAuthorClientQuery({ id: author1Id })))
         ).subscribe(result => {
           expect(result.data?.author.id).toEqual(author1Id);
         });
@@ -125,9 +128,9 @@ describe('State', () => {
     describe('update', () => {
       it('should call update method and update cache', waitForAsync(() => {
         const apollo = TestBed.inject(Apollo);
-        const book: BookInput = { name: 'New Book', authorId: author1Id };
-        apollo.mutate(new AddBookMutation({ book })).pipe(
-          mergeMap(() => apollo.query(new BooksQuery()))
+        const book: AddBookInput = { name: 'New Book', authorId: author1Id };
+        apollo.mutate(gqlAddBookClientMutation({ book })).pipe(
+          mergeMap(() => apollo.query(gqlBooksClientQuery()))
         ).subscribe(({ data }) => {
           expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
         });
@@ -137,9 +140,10 @@ describe('State', () => {
     describe('dispatch', () => {
       it('should call action handler', waitForAsync(() => {
         const apollo = TestBed.inject(Apollo);
-        const book: BookInput = { name: 'New Book', authorId: author1Id };
-        apollo.dispatch(new AddBook(book)).pipe(
-          mergeMap(() => apollo.query(new BooksQuery()))
+        const actions = TestBed.inject(ApolloActions);
+        const book: AddBookInput = { name: 'New Book', authorId: author1Id };
+        from(actions.dispatch(new AddBook(book))).pipe(
+          mergeMap(() => apollo.query(gqlBooksClientQuery()))
         ).subscribe(({ data }) => {
           expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
         });
@@ -173,7 +177,7 @@ describe('State', () => {
     it('should provide child states using provideStates (standalone)', async () => {
       TestBed.configureTestingModule({
         providers: [
-          provideApolloOrbit(withApolloOptions({ cache: new InMemoryCache() }), withStates(rootState)),
+          provideApollo(withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty(), localState: new LocalState() }), withState(rootState)),
           provideRouter([
             {
               path: 'child1',
@@ -192,8 +196,8 @@ describe('State', () => {
       const harness = await RouterTestingHarness.create('child1');
       await harness.navigateByUrl('/child2');
 
-      const apollo = TestBed.inject(Apollo);
-      apollo.dispatch(new AddBook({ name: 'New Book', authorId: author1Id }));
+      const actions = TestBed.inject(ApolloActions);
+      actions.dispatch(new AddBook({ name: 'New Book', authorId: author1Id }));
 
       expect(rootFn).toHaveBeenCalledTimes(1);
       expect(child1Fn).toHaveBeenCalledTimes(1);
@@ -225,9 +229,9 @@ describe('State', () => {
 
       TestBed.configureTestingModule({
         providers: [
-          provideApolloOrbit(
-            withApolloOptions({ cache: new InMemoryCache() }),
-            withStates(rootState)
+          provideApollo(
+            withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty(), localState: new LocalState() }),
+            withState(rootState)
           ),
           provideRouter([
             {
@@ -245,12 +249,55 @@ describe('State', () => {
       const harness = await RouterTestingHarness.create('child1');
       await harness.navigateByUrl('/child2');
 
-      const apollo = TestBed.inject(Apollo);
-      apollo.dispatch(new AddBook({ name: 'New Book', authorId: author1Id }));
+      const actions = TestBed.inject(ApolloActions);
+      actions.dispatch(new AddBook({ name: 'New Book', authorId: author1Id }));
 
       expect(rootFn).toHaveBeenCalledTimes(1);
       expect(child1Fn).toHaveBeenCalledTimes(1);
       expect(child2Fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should dispatch actions to lazy loaded apollo instances', async () => {
+      class ApolloCustom extends Apollo { }
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideApollo(
+            withApolloOptions({ cache: new InMemoryCache(), link: ApolloLink.empty(), localState: new LocalState() }),
+            withState()
+          ),
+          provideRouter([
+            {
+              path: 'child1',
+              children: []
+            },
+            {
+              path: 'child2',
+              loadChildren: () => [
+                {
+                  path: '',
+                  providers: [
+                    provideApolloInstance(ApolloCustom, { id: 'custom', cache: new InMemoryCache(), link: ApolloLink.empty(), localState: new LocalState() })
+                  ],
+                  children: []
+                }
+              ]
+            }
+          ])
+        ]
+      });
+
+      const harness = await RouterTestingHarness.create('/child1');
+      {
+        const registry = TestBed.inject(ɵApolloRegistry);
+        expect(registry.instances).toHaveLength(1);
+      }
+
+      await harness.navigateByUrl('/child2');
+      {
+        const registry = TestBed.inject(ɵApolloRegistry);
+        expect(registry.instances).toHaveLength(2);
+      }
     });
   });
 });

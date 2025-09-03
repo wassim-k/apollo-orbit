@@ -1,4 +1,4 @@
-import { gql, InMemoryCache } from '@apollo/client/core';
+import { gql, InMemoryCache } from '@apollo/client';
 
 export const BookFragmentDoc = gql`
     fragment BookFragment on Book {
@@ -37,13 +37,13 @@ describe('Cache', () => {
       expect(value).toEqual(null);
     });
 
-    it('should return an empty object for a fragment with null value', () => {
+    it('should return null for a fragment with null value', () => {
       const cache = new InMemoryCache();
       const object = { __typename: 'Author', id: 1, name: 'old' };
       const id = cache.identify(object) as string;
       cache.writeFragment({ id, fragment: AuthorFragmentDoc, data: null });
       const value = cache.readFragment({ id, fragment: AuthorFragmentDoc });
-      expect(value).toEqual({});
+      expect(value).toEqual(null);
     });
 
     it('should modify fragment', () => {
