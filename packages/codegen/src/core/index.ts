@@ -6,6 +6,8 @@ import { prepareDocuments } from '../internal/prepareDocuments.js';
 import { ApolloOrbitPluginConfig, ApolloOrbitRawPluginConfig } from './config.js';
 import { ApolloOrbitVisitor } from './visitor.js';
 
+export { ApolloOrbitVisitor } from './visitor.js';
+
 export const plugin: PluginFunction<ApolloOrbitRawPluginConfig> = (
   schema: GraphQLSchema,
   documents: Array<Types.DocumentFile>,
