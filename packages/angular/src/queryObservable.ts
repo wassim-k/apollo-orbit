@@ -113,7 +113,7 @@ export class QueryObservable<
    * @param variables: The new set of variables. If there are missing variables,
    * the previous values of those variables will be used.
    */
-  public setVariables(variables: TVariables): Promise<SingleQueryResult<TData> | void> {
+  public setVariables(variables: TVariables): Promise<SingleQueryResult<TData>> {
     return this.observableQuery.setVariables(variables);
   }
 

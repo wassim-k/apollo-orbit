@@ -1,4 +1,4 @@
-import { computed, DestroyRef, effect, Injector, PendingTasks, signal, Signal, untracked, WritableSignal } from '@angular/core';
+import { computed, DestroyRef, effect, Injector, linkedSignal, PendingTasks, signal, Signal, untracked, WritableSignal } from '@angular/core';
 import { ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, NetworkStatus, ObservableQuery, RefetchWritePolicy, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
 import { equal } from '@wry/equality';
 import { noop, Subscription } from 'rxjs';
@@ -181,9 +181,9 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   public readonly error: Signal<ErrorLike | undefined> = computed(() => this.result().error);
 
   /**
-   * The current variables being used by the query.
+   * A writable signal that represents the current query variables.
    */
-  public readonly variables: Signal<TVariables | undefined>;
+  public readonly variables: WritableSignal<TVariables | undefined>;
 
   /**
    * If `true`, the query is currently active (subscribed to updates). `false` if terminated or if lazy and not yet executed.
@@ -202,12 +202,11 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   ) {
     const { variables, lazy = false, notifyOnLoading = true } = options;
 
-    this.variables = variables !== undefined ? computed(variables, { equal }) : signal(variables);
+    this.variables = variables !== undefined ? linkedSignal(variables, { equal }) : signal(variables);
 
     this._result = signal<QueryResult<TData, TStates>>(!lazy && notifyOnLoading
       ? { data: undefined, dataState: 'empty', loading: true, networkStatus: NetworkStatus.loading } as QueryResult<TData, TStates>
       : { data: undefined, dataState: 'empty', loading: false, networkStatus: NetworkStatus.ready } as QueryResult<TData, TStates>);
-
     this.result = this._result.asReadonly();
 
     this._active = signal(!lazy);
@@ -237,6 +236,11 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     this._active.set(true);
 
     const { query, lazy = false, notifyOnLoading = true, notifyOnNetworkStatusChange = true, errorPolicy = 'all', ...rest } = this.options;
+
+    if ('variables' in execOptions) {
+      this.variables.set(execOptions.variables);
+    }
+
     const newOptions = {
       ...rest,
       ...execOptions,
@@ -244,9 +248,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
       notifyOnLoading,
       notifyOnNetworkStatusChange,
       query,
-      variables: 'variables' in execOptions
-        ? (execOptions.variables ?? {}) as TVariables
-        : untracked(this.variables)
+      variables: untracked(this.variables)
     } as WatchQueryOptions<TData, TVariables>;
 
     this.observable ??= this.apollo.watchQuery<TData, TVariables>(newOptions) as QueryObservable<TData, TVariables, any>;

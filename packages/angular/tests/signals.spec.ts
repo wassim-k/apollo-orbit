@@ -150,6 +150,40 @@ describe('Signals', () => {
       expect(signalQuery.data()).toEqual({ value: 'value-2' });
     }));
 
+    it('should keep variables signal in sync with execute options variables', fakeAsync(() => {
+      const id = '1';
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      // First request with id=1
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '1' } },
+        result: { data: { value: 'value-1' } }
+      });
+
+      // Second request with id=2
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '2' } },
+        result: { data: { value: 'value-2' } }
+      });
+
+      const variables = signal(({ id }));
+
+      const signalQuery = apollo.signal.query({
+        query,
+        variables,
+        injector
+      });
+
+      tick();
+      expect(signalQuery.data()).toEqual({ value: 'value-1' });
+
+      signalQuery.execute({ variables: { id: '2' } });
+      tick();
+
+      expect(signalQuery.variables()).toEqual({ id: '2' });
+      expect(signalQuery.data()).toEqual({ value: 'value-2' });
+    }));
+
     for (const notifyOnLoading of [true, false]) {
       it(`notifyOnLoading: ${notifyOnLoading}`, fakeAsync(() => {
         const query = gql`query { value }`;
