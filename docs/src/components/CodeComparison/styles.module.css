@@ -1,0 +1,35 @@
+.comparisonContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.comparisonColumn {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.comparisonColumn h4 {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--ifm-color-content-secondary);
+}
+
+.comparisonColumn>div[class*='codeBlockContainer'] {
+  flex-grow: 1;
+}
+
+@media (max-width: 768px) {
+  .comparisonContainer {
+    flex-direction: column;
+  }
+
+  .comparisonColumn {
+    min-width: 100%;
+  }
+}

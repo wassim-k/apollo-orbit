@@ -1,0 +1,133 @@
+---
+sidebar_position: 2.1
+---
+
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+import CodegenTip from '../../shared/_codegen-tip.mdx';
+
+# Setup Environment
+The following steps will get you fully setup with `@apollo-orbit/angular` and `@apollo-orbit/codegen`.  
+All the code samples in the docs assume that the following steps were completed successfully.
+
+### Setup `@apollo-orbit/angular`
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+  ```bash
+  yarn add @apollo-orbit/angular @apollo/client graphql
+  ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm install @apollo-orbit/angular @apollo/client graphql
+    ```
+  </TabItem>
+</Tabs>
+
+
+### Setup `@apollo-orbit/codegen`
+<CodegenTip />
+
+#### Install codegen dependencies
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+    ```bash
+    yarn add --dev @apollo-orbit/codegen @graphql-codegen/add @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/visitor-plugin-common concurrently @parcel/watcher
+    ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm install --save-dev @apollo-orbit/codegen @graphql-codegen/add @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/visitor-plugin-common concurrently
+    ```
+  </TabItem>
+</Tabs>
+
+
+#### Update package.json
+
+```jsx title="package.json"
+"scripts": {
+  "start": "concurrently --raw \"yarn codegen --watch\" \"ng serve\"",
+  "codegen": "graphql-codegen --config ./codegen.ts",
+  ...
+}
+```
+
+:::info
+**concurrently** is used here in order to run codegen in watch mode side by side with your Angular application when running `yarn start`.  
+`yarn codegen` can also be executed manually to trigger GraphQL codegen.
+:::
+
+#### Create codegen.ts
+
+```typescript title="codegen.ts"
+import { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: [
+    'http://localhost:4000/graphql',
+    {
+      './src/app/**/*.state.ts': {
+        noRequire: true
+      }
+    }
+  ],
+  config: {
+    operationResultSuffix: 'Data',
+    dedupeOperationSuffix: true,
+    inlineFragmentTypes: 'combine',
+    avoidOptionals: {
+      field: true
+    }
+  },
+  generates: {
+    './src/app/graphql/types.ts': {
+      documents: './src/app/**/*.graphql',
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
+        'typescript',
+        'typescript-operations',
+        '@apollo-orbit/codegen'
+      ]
+    }
+  }
+};
+
+export default config;
+```
+
+More information on `@apollo-orbit/codegen` can be found in the [Codegen guide](../../codegen/intro/).
+
+### Setup GraphQL syntax highlighting & auto-complete
+
+#### Install VSCode extension
+<Link to="https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql">GraphQL: Language Feature Support</Link>
+
+#### Create graphql.config.js
+Create the following file in the root folder of your project.  
+
+```javascript title="graphql.config.js"
+module.exports = {
+  schema: [
+    'http://localhost:4000/graphql',
+    'src/app/**/*.state.ts'
+  ],
+  documents: [
+    'src/app/**/*.graphql'
+  ],
+  extensions: {
+    customDirectives: [
+      'directive @client on FIELD' // required for Apollo Client local schema
+    ]
+  }
+};
+```
+
+For more information, visit <Link to="https://github.com/graphql/graphiql/blob/main/packages/graphql-language-service-server/README.md#graphql-configuration-file">configuration documentation</Link>

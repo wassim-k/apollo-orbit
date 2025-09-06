@@ -1,0 +1,50 @@
+---
+title: 'resolver'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`resolver` is analogous to <Link to="https://www.apollographql.com/docs/react/local-state/local-resolvers#local-resolvers">`resolvers`</Link> option passed to `LocalState`.  
+
+## Usage
+Let's modify `bookState` to to return `displayName` for each `Book` which is a concatenation of the book name and genre.
+
+```typescript title="library/states/book.state.ts"
+import { gql } from '@apollo-orbit/angular';
+import { state } from '@apollo-orbit/angular/state';
+import { Book } from '../../graphql/types';
+
+export const bookState = state(descriptor => descriptor
+  .typeDefs(gql`
+    extend type Book {
+      displayName: String!
+    }
+  `)
+  .resolver(['Book', 'displayName'], (rootValue: Book, args, context, info): Book['displayName'] => {
+    const { name, genre } = rootValue;
+    return typeof genre === 'string' ? `${name} (${genre})` : name;
+  })
+);
+```
+
+Since `*.state.ts` files are included in our [codegen configuration](../../get-started/setup-environment/#setup-apollo-orbitcodegen), defining local schema using `typeDefs` will get automatically picked up by codegen.
+
+Next, we update `book.graphql` to include `displayName` field:
+```graphql title="library/gql/book.graphql"
+fragment BookFragment on Book {
+  id
+  name
+  genre
+  authorId
+  // code-add-line
+  displayName @client
+}
+
+...
+```
+
+Now, `displayName` can be used in the component to display the book name along with genre.
+
+## API
+`resolver` function can return a value, promise or observable.

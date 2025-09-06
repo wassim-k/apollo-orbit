@@ -1,0 +1,37 @@
+---
+title: 'refetchQueries'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`refetchQueries` is analogous to <Link to="https://www.apollographql.com/docs/react/data/mutations#options">`refetchQueries`</Link> option passed to [`mutate`](../../fetching/mutations/mutate) method in `Apollo`.  
+It enables <Link to="https://www.apollographql.com/docs/react/data/mutations/#refetching-queries">refetching queries</Link> after a mutation has executed.
+
+## Usage
+Let's modify `bookState` to refetch the full list of books from the server instead of modifying the cache on the client when `ADD_BOOK_MUTATION` is executed.
+
+```typescript title="library/states/book.state.ts"
+import { state } from '@apollo-orbit/angular/state';
+import { ADD_BOOK_MUTATION, BOOKS_QUERY } from '../../graphql/types';
+
+export const bookState = state(descriptor => descriptor
+  // code-add-line
+  .refetchQueries(ADD_BOOK_MUTATION, info => [BOOKS_QUERY])
+  // code-remove-start
+  .mutationUpdate(ADD_BOOK_MUTATION, (cache, info) => {
+    const addBook = info.data?.addBook;
+    if (!addBook) return;
+    cache.updateQuery({ query: BOOKS_QUERY }, data => data ? { books: [...data.books, addBook] } : data);
+  })
+  // code-remove-end
+);
+
+```
+
+Now, whenever `ADD_BOOK_MUTATION` is executed, `BOOKS_QUERY` will be refetched from the server and any components watching `BOOKS_QUERY` will be updated with the new data.
+
+## API
+```typescript
+type RefetchQueryDescriptor = Array<string | DocumentNode | PureQueryOptions | QueryOptions> | 'all' | 'active';
+```

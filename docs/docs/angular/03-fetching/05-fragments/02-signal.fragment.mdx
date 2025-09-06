@@ -1,0 +1,58 @@
+import Link from '@docusaurus/Link'
+import FromTypenameTip from './_from-typename-tip.mdx';
+import SignalFragmentOptions from '@site/src/components/api-tables/SignalFragmentOptions.md';
+import SignalFragmentSignals from '@site/src/components/api-tables/SignalFragmentSignals.md';
+
+Read and reactively track a GraphQL fragment in the cache using Signals.
+
+## API
+```typescript
+Apollo.signal.fragment<TData, TVariables>(
+  options: SignalFragmentOptions<TData, TVariables>
+): SignalFragment<TData, TVariables>
+```
+
+Returns a `SignalFragment` instance with reactive Signals (`result`, `data`, `complete`, `missing`).
+
+<details>
+  <summary>Options</summary>
+  <SignalFragmentOptions />
+</details>
+
+<details>
+  <summary>Signals</summary>
+  <SignalFragmentSignals />
+</details>
+
+## Watching a fragment
+Inject `Apollo` and call `signal.fragment`, providing the fragment document and the cache identifier (`from`).
+
+```typescript title="author-detail/author-detail.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { AuthorFragmentDoc } from '../graphql/types';
+
+@Component({
+  selector: 'app-author-detail',
+  template: `
+    <h3>Author Details</h3>
+    @if (authorFragment.data(); as author) {
+      <p>ID: {{ author.id }}</p>
+      <p>Name: {{ author.name }}</p>
+    }
+  `
+})
+export class AuthorDetailComponent {
+  private readonly apollo = inject(Apollo);
+
+  public readonly authorId = input.required<string>();
+
+  protected readonly authorFragment = this.apollo.signal.fragment({
+    fragment: AuthorFragmentDoc,
+    from: () => ({ __typename: 'Author', id: this.authorId() })
+  });
+}
+```
+
+<FromTypenameTip />
+
+`SignalFragment` automatically reacts to changes in the `from` and `variables` options if they are provided as signals or functions.

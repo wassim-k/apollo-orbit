@@ -1,0 +1,112 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+3');
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #6b46c1;
+  --ifm-color-primary-dark: #5f3bb1;
+  --ifm-color-primary-darker: #5a38a7;
+  --ifm-color-primary-darkest: #4a2e8a;
+  --ifm-color-primary-light: #7b5ac8;
+  --ifm-color-primary-lighter: #8364cb;
+  --ifm-color-primary-lightest: #9a81d5;
+
+  --ifm-sidebar-menu-color-active: #ffffff;
+  --ifm-sidebar-menu-color-background-active: var(--ifm-color-primary-dark);
+  --ifm-sidebar-menu-color-sublist-active: var(--ifm-color-primary-darkest);
+
+  --ifm-code-color: #D53F8C;
+  --ifm-code-padding-horizontal: 0.4rem;
+  --ifm-font-size-base: 16px;
+  --ifm-color-info-darkest: rgb(59 139 165 / 25%);
+  --ifm-font-family-base: 'Source Sans 3', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --ifm-pagination-nav-color-background: rgba(0, 0, 0, 0.04);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #ad9bf6;
+  --ifm-color-primary-dark: #8f76f3;
+  --ifm-color-primary-darker: #8064f1;
+  --ifm-color-primary-darkest: #522dec;
+  --ifm-color-primary-light: #cbc0f9;
+  --ifm-color-primary-lighter: #dad2fb;
+  --ifm-color-primary-lightest: #ffffff;
+
+  --ifm-menu-color-active: #ffffff;
+  --ifm-menu-color-background-active: #553C9A;
+  --ifm-menu-color-sublist-active: var(--ifm-color-primary);
+  --ifm-sidebar-menu-color-active: var(--ifm-menu-color-active);
+  --ifm-sidebar-menu-color-background-active: var(--ifm-menu-color-background-active);
+  --ifm-sidebar-menu-color-sublist-active: var(--ifm-sidebar-menu-color-active);
+
+  --ifm-code-color: #F687B3;
+  --ifm-code-background: #292f4d !important;
+
+  --ifm-color-secondary-contrast-background: rgba(255, 255, 255, 0.15) !important;
+  --ifm-background-color: #1B2240 !important;
+  --ifm-navbar-background-color: var(--ifm-background-color);
+  --ifm-color-info-contrast-background: var(--ifm-color-info-darkest) !important;
+  --ifm-footer-background-color: rgba(255, 255, 255, 0.05);
+  --ifm-pagination-nav-color-background: rgba(255, 255, 255, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.theme-doc-sidebar-menu .menu__link.menu__link--active {
+  color: var(--ifm-sidebar-menu-color-active);
+  background-color: var(--ifm-sidebar-menu-color-background-active);
+}
+
+.theme-doc-sidebar-menu .menu__link.menu__link--sublist.menu__link--active {
+  color: var(--ifm-sidebar-menu-color-sublist-active);
+  font-weight: bold;
+}
+
+nav {
+  font-size: 0.9rem;
+}
+
+.pagination-nav__link {
+  border: none;
+  transition: background-color 0.25s ease;
+}
+
+.pagination-nav__link:hover {
+  background-color: var(--ifm-pagination-nav-color-background);
+}
+
+code {
+  border: none;
+  color: var(--ifm-code-color);
+}
+
+.alert {
+  font-size: 0.95em;
+}
+
+.theme-code-add {
+  background-color: rgba(0, 255, 0, 0.15);
+  display: block;
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+  border-left: 3px solid var(--ifm-color-success);
+}
+
+.theme-code-remove {
+  background-color: rgba(255, 0, 0, 0.15);
+  display: block;
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+  border-left: 3px solid red;
+}
+
+details {
+  background-color: transparent !important;
+  --ifm-code-background: inherit !important;
+}

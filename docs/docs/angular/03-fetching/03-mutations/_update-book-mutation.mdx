@@ -1,0 +1,19 @@
+
+First, we'll create a GraphQL mutation named `UpdateBook`:
+
+```graphql title="library/gql/book.graphql"
+mutation UpdateBook($id: ID!, $book: UpdateBookInput!) {
+  updateBook(id: $id, book: $book) {
+    ...BookFragment
+  }
+}
+```
+
+Saving *book.graphql* will trigger codegen of `UPDATE_BOOK_MUTATION` typed gql document in */graphql/types.ts* file as per our setup.
+
+For more information about **codegen** and how it works, please refer to the [Codegen](../../../codegen/intro/) section.
+
+:::tip
+We have used the same `BookFragment` from our previous query example, that way **Apollo Client** will automatically normalize and update the cache with the new data returned from the mutation.  
+This will automatically update any active `QueryObservable` instances that are watching the same data, and the UI will display the new data without any additional effort by the developer.
+:::

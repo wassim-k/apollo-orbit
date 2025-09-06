@@ -1,0 +1,68 @@
+Watch data directly in the cache.
+
+Unlike `Apollo.watchQuery`, it can only query the cache and does not execute a network request or any of **Apollo Link**'s middleware.
+
+It is ideal when querying **local-only** data.
+
+## API
+```typescript
+Apollo.cache.watchQuery<TData, TVariables>(
+  options: CacheWatchQueryOptions<TData, TVariables>
+): Observable<CacheWatchQueryResult<TData>>
+```
+
+## Executing a cache query
+```typescript
+import { AsyncPipe } from '@angular/common';
+import { Apollo } from '@apollo-orbit/angular';
+import { map } from 'rxjs';
+import { THEME_QUERY } from '../graphql';
+
+@Component({
+  selector: 'app-theme',
+  template: `
+    <span>Current theme:</span>
+    @if (theme$ | async; as theme) {
+      <span>{{ theme.displayName }}</span>
+    }
+  `,
+  imports: [
+    AsyncPipe
+  ]
+})
+export class ThemeComponent {
+  private readonly apollo = inject(Apollo);
+
+  protected readonly theme$ = this.apollo.cache.watchQuery({ query: THEME_QUERY }).pipe(
+    map(({ data }) => data.theme)
+  );
+}
+```
+
+## Comparison
+`Apollo.cache.watchQuery` has few pros and cons compared to `Apollo.watchQuery` method.
+
+### Pros
+* By default `data` property returned by the observable is defined and does not require null-checking.
+  * Unless `returnPartialData` option is set to `true`.
+* There's no need to handle loading and error states.
+* Synchronous observable execution
+  * The data is returned instantly when the observable is subscribed to.
+  * When the observable is subscribed to from an Angular component template, the template will complete rendering in a single cycle.
+  * View children referenced in the component will be available in `ngAfterViewInit` lifecycle hook.
+
+### Cons
+* Does not execute a network request if the data is not available in the cache.
+* Throws an error if any selected field in the query is not available in the cache.
+  * Unless `returnPartialData` option is set to `true`.
+
+### Cyclic cache updates
+Because of the synchronous nature of `Apollo.cache.watchQuery`, attempting to update the cache in the observable's subscribe callback will cause **Apollo Client** to throw an `already computing` error.  
+This can be avoided by piping the observable through `observeOn(asyncScheduler)` which will queue the `observer.next` call after cache update operation is complete, mimicking the behaviour of `Apollo.watchQuery`.
+```typescript
+this.apollo.cache.watchQuery({ query: THEME_QUERY }).pipe(
+  observeOn(asyncScheduler),
+).subscribe(({ data }) => {
+  // Update cache
+});
+```

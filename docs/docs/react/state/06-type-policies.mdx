@@ -1,0 +1,54 @@
+---
+title: 'typePolicies'
+---
+
+import Link from '@docusaurus/Link';
+
+## Overview
+`typePolicies` is analogous to <Link to="https://www.apollographql.com/docs/react/caching/cache-configuration/#typepolicies">typePolicies</Link> option passed to `InMemoryCache`.  
+
+## Usage
+Let's modify `bookState` to to return `displayName` for each `Book` which is a concatenation of the book name and genre.
+
+```typescript title="library/states/book.state.ts"
+import { state } from '@apollo-orbit/react';
+import { gql } from '@apollo/client';
+import { Book } from '../../graphql';
+
+export const bookState = state(descriptor => descriptor
+  .typeDefs(gql`
+    extend type Book {
+      displayName: String!
+    }
+  `)
+  .typePolicies({
+    Book: {
+      fields: {
+        displayName: (_existing, { readField }) => {
+          const name = readField<Book['name']>('name');
+          const genre = readField<Book['genre']>('genre');
+          return typeof genre === 'string' ? `${name} (${genre})` : name;
+        }
+      }
+    }
+  })
+);
+```
+
+Since `*.state.ts` files are included in our [codegen configuration](../../get-started/#setup-graphql-codegen), defining local schema using `typeDefs` will get automatically picked up by codegen.
+
+Next, we update `book.graphql` to include `displayName` field:
+```graphql title="library/gql/book.graphql"
+fragment BookFragment on Book {
+  id
+  name
+  genre
+  authorId
+  // code-add-line
+  displayName @client
+}
+
+...
+```
+
+Now, `displayName` can be used in the component to display the book name along with genre.
