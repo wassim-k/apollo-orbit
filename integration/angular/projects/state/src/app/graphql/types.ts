@@ -303,7 +303,7 @@ export const AUTHORS_QUERY = gql`
 
 export function gqlAuthorsQuery(): { query: typeof AUTHORS_QUERY };
 export function gqlAuthorsQuery(variables?: AuthorsQueryVariables): { query: typeof AUTHORS_QUERY, variables: typeof variables };
-export function gqlAuthorsQuery(variables: () => AuthorsQueryVariables | undefined): { query: typeof AUTHORS_QUERY, variables: typeof variables };
+export function gqlAuthorsQuery(variables: () => AuthorsQueryVariables | undefined | null): { query: typeof AUTHORS_QUERY, variables: typeof variables };
 export function gqlAuthorsQuery(variables?: any): any {
   return {
     query: AUTHORS_QUERY,
@@ -365,7 +365,7 @@ export const BOOKS_QUERY = gql`
 
 export function gqlBooksQuery(): { query: typeof BOOKS_QUERY };
 export function gqlBooksQuery(variables?: BooksQueryVariables): { query: typeof BOOKS_QUERY, variables: typeof variables };
-export function gqlBooksQuery(variables: () => BooksQueryVariables | undefined): { query: typeof BOOKS_QUERY, variables: typeof variables };
+export function gqlBooksQuery(variables: () => BooksQueryVariables | undefined | null): { query: typeof BOOKS_QUERY, variables: typeof variables };
 export function gqlBooksQuery(variables?: any): any {
   return {
     query: BOOKS_QUERY,
@@ -382,7 +382,7 @@ export const BOOK_QUERY = gql`
     ${BookFragmentDoc}` as DocumentNode<BookQueryData, BookQueryVariables>;
 
 export function gqlBookQuery(variables: BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
-export function gqlBookQuery(variables: () => BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: () => BookQueryVariables | null): { query: typeof BOOK_QUERY, variables: typeof variables };
 export function gqlBookQuery(variables: any): any {
   return {
     query: BOOK_QUERY,
@@ -443,7 +443,7 @@ export const NEW_BOOK_BY_AUTHOR_SUBSCRIPTION = gql`
     ${BookFragmentDoc}` as DocumentNode<NewBookByAuthorSubscriptionData, NewBookByAuthorSubscriptionVariables>;
 
 export function gqlNewBookByAuthorSubscription(variables: NewBookByAuthorSubscriptionVariables): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
-export function gqlNewBookByAuthorSubscription(variables: () => NewBookByAuthorSubscriptionVariables): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
+export function gqlNewBookByAuthorSubscription(variables: () => NewBookByAuthorSubscriptionVariables | null): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
 export function gqlNewBookByAuthorSubscription(variables: any): any {
   return {
     subscription: NEW_BOOK_BY_AUTHOR_SUBSCRIPTION,

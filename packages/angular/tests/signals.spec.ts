@@ -47,6 +47,13 @@ describe('Signals', () => {
         injector
       });
 
+      expect(signalQuery.loading()).toBe(false);
+      expect(signalQuery.data()).toBeUndefined();
+      expect(signalQuery.error()).toBeUndefined();
+      expect(signalQuery.networkStatus()).toBe(NetworkStatus.ready);
+
+      tick(0);
+
       expect(signalQuery.loading()).toBe(true);
       expect(signalQuery.data()).toBeUndefined();
       expect(signalQuery.error()).toBeUndefined();
@@ -195,6 +202,8 @@ describe('Signals', () => {
 
         const signalQuery = apollo.signal.query<Value>({ injector, query, notifyOnLoading });
 
+        tick(0);
+
         expect(signalQuery.loading()).toBe(notifyOnLoading);
 
         tick(10);
@@ -300,12 +309,12 @@ describe('Signals', () => {
         const query = gql`query { value }`;
         const lazyQuery = apollo.signal.query<Value>({ injector, query, lazy: true });
 
-        expect(() => lazyQuery.refetch()).toThrow(/cannot be called before executing/);
-        expect(() => lazyQuery.fetchMore({})).toThrow(/cannot be called before executing/);
-        expect(() => lazyQuery.updateQuery(() => ({} as Value))).toThrow(/cannot be called before executing/);
-        expect(() => lazyQuery.startPolling(1000)).toThrow(/cannot be called before executing/);
-        expect(() => lazyQuery.stopPolling()).toThrow(/cannot be called before executing/);
-        expect(() => lazyQuery.subscribeToMore({ subscription: gql`subscription { newValue }` })).toThrow(/cannot be called before executing/);
+        expect(() => lazyQuery.refetch()).toThrow(/cannot be called while the query is not active/);
+        expect(() => lazyQuery.fetchMore({})).toThrow(/cannot be called while the query is not active/);
+        expect(() => lazyQuery.updateQuery(() => ({} as Value))).toThrow(/cannot be called while the query is not active/);
+        expect(() => lazyQuery.startPolling(1000)).toThrow(/cannot be called while the query is not active/);
+        expect(() => lazyQuery.stopPolling()).toThrow(/cannot be called while the query is not active/);
+        expect(() => lazyQuery.subscribeToMore({ subscription: gql`subscription { newValue }` })).toThrow(/cannot be called while the query is not active/);
       });
 
       it('should execute query with different variables', fakeAsync(() => {
@@ -343,8 +352,8 @@ describe('Signals', () => {
 
       it('should allow resetting variables to empty object', fakeAsync(() => {
         const query = gql`query GetBooks($limit: Int) { 
-        books(limit: $limit) { id name } 
-      }`;
+          books(limit: $limit) { id name } 
+        }`;
 
         mockLink.addMockedResponse({
           request: { query, variables: { limit: 1 } },
@@ -401,6 +410,237 @@ describe('Signals', () => {
           expect(lazyQuery.data()).toEqual({ value: 'test' });
         }));
       }
+    });
+
+    describe('variables nullability', () => {
+      it('should not execute query until variables are non-null', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) { 
+          book(id: $id) { id name } 
+        }`;
+
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 1 } },
+          result: { data: { book: { id: 1, name: 'Book 1' } } }
+        });
+
+        // Start with null variables
+        const id = signal<number | null>(null);
+
+        const signalQuery = apollo.signal.query({
+          query,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        // Query should remain in initial empty state when variables are null
+        expect(signalQuery.result()).toEqual({ data: undefined, dataState: 'empty', loading: false, networkStatus: NetworkStatus.ready });
+        tick();
+        expect(signalQuery.result()).toEqual({ data: undefined, dataState: 'empty', loading: false, networkStatus: NetworkStatus.ready });
+
+        // When variables become non-null, query should execute automatically
+        id.set(1);
+        tick();
+
+        expect(signalQuery.data()).toEqual({
+          book: { id: 1, name: 'Book 1' }
+        });
+      }));
+
+      it('should terminate query when variables are null', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) { 
+          book(id: $id) { id name } 
+        }`;
+
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 1 } },
+          result: { data: { book: { id: 1, name: 'Book 1' } } }
+        });
+
+        // Start with non-null variables
+        const id = signal<number | null>(1);
+
+        const signalQuery = apollo.signal.query({
+          query,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        // Query should execute immediately with non-null variables
+        expect(signalQuery.result()).toEqual({ data: undefined, dataState: 'empty', loading: false, networkStatus: NetworkStatus.ready });
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Cache updates should be reflected while query is active
+        apollo.cache.writeQuery({ query, data: { book: { id: 1, name: 'Book 1 v2' } }, variables: { id: 1 } });
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1 v2' } });
+
+        // Setting variables to null should terminate the query
+        id.set(null);
+        tick();
+
+        // Cache updates should NOT be reflected after query is terminated
+        apollo.cache.writeQuery({ query, data: { book: { id: 1, name: 'Book 1 v3' } }, variables: { id: 1 } });
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1 v2' } });
+
+        // When variables become non-null again, query should restart and get latest cache data
+        id.set(1);
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1 v3' } });
+      }));
+
+      it('should support variables nullability with manual execution/termination', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) { 
+          book(id: $id) { id name } 
+        }`;
+
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 1 } },
+          result: { data: { book: { id: 1, name: 'Book 1' } } }
+        });
+
+        // Start with non-null variables
+        const id = signal<number | null>(1);
+
+        const signalQuery = apollo.signal.query({
+          query,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        // Query executes automatically with non-null variables
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Manual termination stops the query
+        signalQuery.terminate();
+
+        // Changing variables while terminated has no effect
+        id.set(null);
+        tick();
+
+        id.set(2);
+        tick();
+        // Data remains unchanged from last successful query
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 2 } },
+          result: { data: { book: { id: 2, name: 'Book 2' } } }
+        });
+
+        // Manual execution restarts the query with current variables
+        signalQuery.execute();
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 2, name: 'Book 2' } });
+
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 3 } },
+          result: { data: { book: { id: 3, name: 'Book 3' } } }
+        });
+
+        // After manual execution, query responds to variable changes again
+        id.set(3);
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 3, name: 'Book 3' } });
+      }));
+
+      it('should handle variables nullability with lazy query', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) { 
+          book(id: $id) { id name } 
+        }`;
+
+        const id = signal<number | null>(null);
+
+        const lazyQuery = apollo.signal.query({
+          query,
+          lazy: true,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        // Should not start query when lazy and variables are null
+        tick();
+        expect(lazyQuery.active()).toBe(false);
+        expect(mockLink.operation).toBeUndefined();
+
+        // Set variables to non-null - should still not start (lazy)
+        id.set(1);
+        tick();
+        expect(lazyQuery.active()).toBe(false);
+        expect(mockLink.operation).toBeUndefined();
+
+        // Manually execute
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 1 } },
+          result: { data: { book: { id: 1, name: 'Book 1' } } }
+        });
+
+        lazyQuery.execute();
+        tick();
+        expect(lazyQuery.active()).toBe(true);
+        expect(lazyQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Variables become null - should terminate
+        id.set(null);
+        tick();
+        expect(lazyQuery.active()).toBe(false);
+        expect(lazyQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Variables become non-null again - should restart (since execute was called manually and intentionally)
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 2 } },
+          result: { data: { book: { id: 2, name: 'Book 2' } } }
+        });
+
+        id.set(2);
+        tick();
+        expect(lazyQuery.active()).toBe(true);
+        expect(lazyQuery.data()).toEqual({ book: { id: 2, name: 'Book 2' } });
+
+        // Test that cache updates are received while active
+        apollo.cache.writeQuery({
+          query,
+          variables: { id: 2 },
+          data: { book: { id: 2, name: 'Book 2 Updated' } }
+        });
+        tick();
+        expect(lazyQuery.data()).toEqual({ book: { id: 2, name: 'Book 2 Updated' } });
+
+        // Variables become null again - should terminate
+        id.set(null);
+        tick();
+        expect(lazyQuery.active()).toBe(false);
+
+        // Cache updates should not affect the query while terminated
+        apollo.cache.writeQuery({
+          query,
+          variables: { id: 2 },
+          data: { book: { id: 2, name: 'Book 2 Updated Again' } }
+        });
+        tick();
+        expect(lazyQuery.data()).toEqual({ book: { id: 2, name: 'Book 2 Updated' } });
+
+        // Manually terminate
+        lazyQuery.terminate();
+
+        // Variables become non-null - should NOT restart (manually terminated)
+        id.set(3);
+        tick();
+        expect(lazyQuery.active()).toBe(false);
+
+        // Manual execution should work again
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 3 } },
+          result: { data: { book: { id: 3, name: 'Book 3' } } }
+        });
+
+        lazyQuery.execute();
+        tick();
+        expect(lazyQuery.active()).toBe(true);
+        expect(lazyQuery.data()).toEqual({ book: { id: 3, name: 'Book 3' } });
+      }));
     });
 
     describe('variables type safety', () => {
@@ -710,15 +950,18 @@ describe('Signals', () => {
         injector
       });
 
-      expect(signalSubscription.loading()).toBe(true);
+      expect(signalSubscription.loading()).toBe(false);
       expect(signalSubscription.data()).toBeUndefined();
 
       mockSubscriptionLink.simulateResult({
-        result: { data: { newValue: 'value1' } }
+        result: { data: { newValue: 'value1' } },
+        delay: 10
       });
 
-      tick();
+      tick(0);
+      expect(signalSubscription.loading()).toBe(true);
 
+      tick(10);
       expect(signalSubscription.loading()).toBe(false);
       expect(signalSubscription.data()).toEqual({ newValue: 'value1' });
 
@@ -951,10 +1194,12 @@ describe('Signals', () => {
           injector
         });
 
+        tick();
         expect(signalSubscription.active()).toBe(true);
 
         signalSubscription.terminate();
 
+        tick();
         expect(signalSubscription.active()).toBe(false);
 
         mockSubscriptionLink.simulateResult({
@@ -968,6 +1213,217 @@ describe('Signals', () => {
         tick();
 
         expect(signalSubscription.data()).toEqual({ newValue: 'new-value-after-restart' });
+      }));
+    });
+
+    describe('variables nullability', () => {
+      it('should not execute subscription until variables are non-null', fakeAsync(() => {
+        const subscription = gql`subscription GetBookUpdates($id: Int!) { 
+          bookUpdated(id: $id) { id name } 
+        }`;
+
+        const id = signal<number | null>(null);
+
+        const signalSubscription = apollo.signal.subscription({
+          subscription,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        expect(signalSubscription.result()).toEqual({ loading: false, data: undefined, error: undefined });
+        expect(signalSubscription.active()).toBe(false);
+        tick();
+        expect(signalSubscription.result()).toEqual({ loading: false, data: undefined, error: undefined });
+        expect(signalSubscription.active()).toBe(false);
+
+        // Verify no subscription was initiated
+        expect(mockSubscriptionLink.operation).toBeUndefined();
+
+        // Set variables to non-null
+        id.set(1);
+        tick();
+
+        expect(signalSubscription.active()).toBe(true);
+        expect(signalSubscription.loading()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1' } } }
+        });
+
+        tick();
+
+        expect(signalSubscription.data()).toEqual({
+          bookUpdated: { id: 1, name: 'Book 1' }
+        });
+      }));
+
+      it('should terminate subscription when variables become null', fakeAsync(() => {
+        const subscription = gql`subscription GetBookUpdates($id: Int!) { 
+          bookUpdated(id: $id) { id name } 
+        }`;
+
+        const id = signal<number | null>(1);
+
+        const signalSubscription = apollo.signal.subscription({
+          subscription,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1' } } }
+        });
+
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1' } });
+
+        // Update data while subscription is active
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1 v2' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1 v2' } });
+
+        // Set variables to null - should terminate subscription
+        id.set(null);
+        tick();
+
+        expect(signalSubscription.active()).toBe(false);
+
+        // Data should remain from last successful result
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1 v2' } });
+
+        // Simulate new results - should not update since subscription is terminated
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1 v3' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1 v2' } });
+
+        // Set variables back to non-null - should restart subscription
+        id.set(1);
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1 v4' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1 v4' } });
+      }));
+
+      it('should support variables nullability with manual execution/termination', fakeAsync(() => {
+        const subscription = gql`subscription GetBookUpdates($id: Int!) { 
+          bookUpdated(id: $id) { id name } 
+        }`;
+
+        const id = signal<number | null>(1);
+
+        const signalSubscription = apollo.signal.subscription({
+          subscription,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1' } });
+
+        // Manually terminate
+        signalSubscription.terminate();
+        expect(signalSubscription.active()).toBe(false);
+
+        // Change variables while terminated
+        id.set(null);
+        tick();
+
+        id.set(2);
+        tick();
+
+        // Data should not update since subscription is terminated
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1' } });
+
+        // Manually execute with new variables
+        signalSubscription.execute();
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 2, name: 'Book 2' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 2, name: 'Book 2' } });
+
+        // Variables change should restart subscription automatically when active
+        id.set(3);
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 3, name: 'Book 3' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 3, name: 'Book 3' } });
+      }));
+
+      it('should handle variables nullability with lazy subscription', fakeAsync(() => {
+        const subscription = gql`subscription GetBookUpdates($id: Int!) { 
+          bookUpdated(id: $id) { id name } 
+        }`;
+
+        const id = signal<number | null>(null);
+
+        const signalSubscription = apollo.signal.subscription({
+          subscription,
+          lazy: true,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        // Should not start subscription when lazy and variables are null
+        tick();
+        expect(signalSubscription.active()).toBe(false);
+        expect(mockSubscriptionLink.operation).toBeUndefined();
+
+        // Set variables to non-null - should still not start (lazy)
+        id.set(1);
+        tick();
+        expect(signalSubscription.active()).toBe(false);
+
+        // Manually execute
+        signalSubscription.execute();
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 1, name: 'Book 1' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 1, name: 'Book 1' } });
+
+        // Variables become null - should terminate
+        id.set(null);
+        tick();
+        expect(signalSubscription.active()).toBe(false);
+
+        // Variables become non-null again - should start (since execute was called manually and intentionally)
+        id.set(2);
+        tick();
+        expect(signalSubscription.active()).toBe(true);
+
+        mockSubscriptionLink.simulateResult({
+          result: { data: { bookUpdated: { id: 2, name: 'Book 2' } } }
+        });
+        tick();
+        expect(signalSubscription.data()).toEqual({ bookUpdated: { id: 2, name: 'Book 2' } });
       }));
     });
 

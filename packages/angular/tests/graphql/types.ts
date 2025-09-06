@@ -272,7 +272,7 @@ export const AUTHOR_QUERY = gql`
     ${AuthorFragmentDoc}` as DocumentNode<AuthorQueryData, AuthorQueryVariables>;
 
 export function gqlAuthorQuery(variables: AuthorQueryVariables): { query: typeof AUTHOR_QUERY, variables: typeof variables };
-export function gqlAuthorQuery(variables: () => AuthorQueryVariables): { query: typeof AUTHOR_QUERY, variables: typeof variables };
+export function gqlAuthorQuery(variables: () => AuthorQueryVariables | null): { query: typeof AUTHOR_QUERY, variables: typeof variables };
 export function gqlAuthorQuery(variables: any): any {
   return {
     query: AUTHOR_QUERY,
@@ -304,7 +304,7 @@ export const BOOK_QUERY = gql`
     ${BookFragmentDoc}` as DocumentNode<BookQueryData, BookQueryVariables>;
 
 export function gqlBookQuery(variables: BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
-export function gqlBookQuery(variables: () => BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: () => BookQueryVariables | null): { query: typeof BOOK_QUERY, variables: typeof variables };
 export function gqlBookQuery(variables: any): any {
   return {
     query: BOOK_QUERY,
@@ -322,7 +322,7 @@ export const BOOKS_QUERY = gql`
 
 export function gqlBooksQuery(): { query: typeof BOOKS_QUERY };
 export function gqlBooksQuery(variables?: BooksQueryVariables): { query: typeof BOOKS_QUERY, variables: typeof variables };
-export function gqlBooksQuery(variables: () => BooksQueryVariables | undefined): { query: typeof BOOKS_QUERY, variables: typeof variables };
+export function gqlBooksQuery(variables: () => BooksQueryVariables | undefined | null): { query: typeof BOOKS_QUERY, variables: typeof variables };
 export function gqlBooksQuery(variables?: any): any {
   return {
     query: BOOKS_QUERY,
@@ -355,7 +355,7 @@ export const NEW_BOOK_BY_AUTHOR_SUBSCRIPTION = gql`
 
 export function gqlNewBookByAuthorSubscription(): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION };
 export function gqlNewBookByAuthorSubscription(variables?: NewBookByAuthorSubscriptionVariables): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
-export function gqlNewBookByAuthorSubscription(variables: () => NewBookByAuthorSubscriptionVariables | undefined): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
+export function gqlNewBookByAuthorSubscription(variables: () => NewBookByAuthorSubscriptionVariables | undefined | null): { subscription: typeof NEW_BOOK_BY_AUTHOR_SUBSCRIPTION, variables: typeof variables };
 export function gqlNewBookByAuthorSubscription(variables?: any): any {
   return {
     subscription: NEW_BOOK_BY_AUTHOR_SUBSCRIPTION,
@@ -373,7 +373,7 @@ export const BOOKS_CLIENT_QUERY = gql`
 
 export function gqlBooksClientQuery(): { query: typeof BOOKS_CLIENT_QUERY };
 export function gqlBooksClientQuery(variables?: BooksClientQueryVariables): { query: typeof BOOKS_CLIENT_QUERY, variables: typeof variables };
-export function gqlBooksClientQuery(variables: () => BooksClientQueryVariables | undefined): { query: typeof BOOKS_CLIENT_QUERY, variables: typeof variables };
+export function gqlBooksClientQuery(variables: () => BooksClientQueryVariables | undefined | null): { query: typeof BOOKS_CLIENT_QUERY, variables: typeof variables };
 export function gqlBooksClientQuery(variables?: any): any {
   return {
     query: BOOKS_CLIENT_QUERY,
@@ -419,7 +419,7 @@ export const AUTHOR_CLIENT_QUERY = gql`
     ${AuthorFragmentDoc}` as DocumentNode<AuthorClientQueryData, AuthorClientQueryVariables>;
 
 export function gqlAuthorClientQuery(variables: AuthorClientQueryVariables): { query: typeof AUTHOR_CLIENT_QUERY, variables: typeof variables };
-export function gqlAuthorClientQuery(variables: () => AuthorClientQueryVariables): { query: typeof AUTHOR_CLIENT_QUERY, variables: typeof variables };
+export function gqlAuthorClientQuery(variables: () => AuthorClientQueryVariables | null): { query: typeof AUTHOR_CLIENT_QUERY, variables: typeof variables };
 export function gqlAuthorClientQuery(variables: any): any {
   return {
     query: AUTHOR_CLIENT_QUERY,

@@ -6,6 +6,33 @@
 @if (booksQuery.error(); as error) { {{ error.message }} }
 @if ((booksQuery.data() ?? booksQuery.previousData())?.books; as books) {
 @for (book of books; track book.id) {
-<div>{{ book.name }}</div>
+<div>
+  <span>{{ book.name }}</span>
+  &nbsp;
+  <a href="javascript: void 0" (click)="selectedBookId.set(book.id)"><small>Select</small></a>
+</div>
 }
+}
+
+@if (bookQuery.active()) {
+@if (bookQuery.data()?.book; as selectedBook) {
+<div style="margin-top: 0.5em;">
+  <h4 style="margin-bottom: 0;">Selected Book</h4>
+  <div>
+    <span>{{ selectedBook.name }} ({{ selectedBook.genre }})</span>
+    &nbsp;
+    <a href="javascript: void 0" (click)="selectedBookId.set(null)"><small>Unselect</small></a>
+  </div>
+</div>
+}
+}
+
+@if (bookQuery.enabled()) {
+<div style="margin-top: 0.5em;">
+  <a href="javascript: void 0" (click)="bookQuery.terminate()"><small>Terminate book query</small></a>
+</div>
+} @else {
+<div style="margin-top: 0.5em;">
+  <a href="javascript: void 0" (click)="bookQuery.execute()"><small>Execute book query</small></a>
+</div>
 }

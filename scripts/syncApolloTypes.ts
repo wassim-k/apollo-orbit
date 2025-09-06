@@ -225,8 +225,9 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
       *
       * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.
       *
+      * When \`null\` is returned, the query will be terminated until a non-null value is returned again.
       */
-      variables?: () => TVariables | undefined;
+      variables?: () => TVariables | undefined | null;
     }
     | SignalVariablesOption<NoInfer<TVariables>>
   );`);
@@ -278,9 +279,11 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
     /**
     * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
     *
-    * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.
+    * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.*
+    *
+    * When \`null\` is returned, the subscription will be terminated until a non-null value is returned again.
     */
-    variables?: () => TVariables | undefined;
+    variables?: () => TVariables | undefined | null;
   }
   | SignalVariablesOption<NoInfer<TVariables>>
 )`);

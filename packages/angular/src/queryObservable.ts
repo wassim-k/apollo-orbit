@@ -64,6 +64,13 @@ export class QueryObservable<
    * Update the variables of this observable query, and fetch the new results.
    * This method should be preferred over `setVariables` in most use cases.
    *
+   * Returns a `ResultPromise` with an additional `.retain()` method. Calling
+   * `.retain()` keeps the network operation running even if the `ObservableQuery`
+   * no longer requires the result.
+   *
+   * Note: `refetch()` guarantees that a value will be emitted from the
+   * observable, even if the result is deep equal to the previous value.
+   *
    * @param variables - The new set of variables. If there are missing variables,
    * the previous values of those variables will be used.
    */
@@ -99,40 +106,50 @@ export class QueryObservable<
    * `setVariables` in order to to be properly notified of results even when
    * they come from the cache.
    *
-   * Note: the `next` callback will *not* fire if the variables have not changed
-   * or if the result is coming from cache.
+   * Note: `setVariables()` guarantees that a value will be emitted from the
+   * observable, even if the result is deeply equal to the previous value.
    *
-   * Note: the promise will return the old results immediately if the variables
-   * have not changed.
+   * Note: the promise will resolve with the last emitted result
+   * when either the variables match the current variables or there
+   * are no subscribers to the query.
    *
-   * Note: the promise will return null immediately if the query is not active
-   * (there are no subscribers).
-   *
-   * @private
-   *
-   * @param variables: The new set of variables. If there are missing variables,
+   * @param variables - The new set of variables. If there are missing variables,
    * the previous values of those variables will be used.
    */
   public setVariables(variables: TVariables): Promise<SingleQueryResult<TData>> {
     return this.observableQuery.setVariables(variables);
   }
 
+  /**
+   * A function that enables you to update the query's cached result without executing a followup GraphQL operation.
+   *
+   * See [using updateQuery and updateFragment](https://www.apollographql.com/docs/react/caching/cache-interaction/#using-updatequery-and-updatefragment) for additional information.
+   */
   public updateQuery(mapFn: UpdateQueryMapFn<TData, TVariables>): void {
     return this.observableQuery.updateQuery(mapFn);
   }
 
+  /**
+   * A function that instructs the query to begin re-executing at a specified interval (in milliseconds).
+   */
   public startPolling(pollInterval: number): void {
     this.observableQuery.startPolling(pollInterval);
   }
 
+  /**
+   * A function that instructs the query to stop polling after a previous call to `startPolling`.
+   */
   public stopPolling(): void {
     return this.observableQuery.stopPolling();
   }
 
   /**
-    * Reevaluate the query, optionally against new options. New options will be
-    * merged with the current options when given.
-    */
+   * Reevaluate the query, optionally against new options. New options will be
+   * merged with the current options when given.
+   *
+   * Note: `variables` can be reset back to their defaults (typically empty) by calling `reobserve` with
+   * `variables: undefined`.
+   */
   public reobserve(newOptions?: Partial<WatchQueryOptions<TData, TVariables>>): Promise<SingleQueryResult<TData>> {
     return this.observableQuery.reobserve(newOptions);
   }

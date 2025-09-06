@@ -103,7 +103,7 @@ export class ApolloOrbitVisitor<
               content.push(`export function ${functionName}(): ${this.createDocumentOnlyReturnType(documentFieldName, documentNodeVariable)};`);
             }
             content.push(`export function ${functionName}(variables${isOptional ? '?' : ''}: ${variablesTypes}): ${this.createDocumentReturnType(documentFieldName, documentNodeVariable)};
-export function ${functionName}(variables: () => ${variablesTypes}${isOptional ? ' | undefined' : ''}): ${this.createDocumentReturnType(documentFieldName, documentNodeVariable)};
+export function ${functionName}(variables: () => ${variablesTypes}${isOptional ? ' | undefined' : ''} | null): ${this.createDocumentReturnType(documentFieldName, documentNodeVariable)};
 export function ${functionName}(variables${isOptional ? '?' : ''}: any): any {
   return {
     ${documentFieldName}: ${documentNodeVariable},

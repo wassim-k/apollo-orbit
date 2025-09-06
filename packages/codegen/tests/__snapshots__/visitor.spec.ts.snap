@@ -26,7 +26,7 @@ export const BOOK_QUERY = gql\`
     \` as DocumentNode<BookQuery, BookQueryVariables>;
 
 export function gqlBookQuery(variables: BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
-export function gqlBookQuery(variables: () => BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: () => BookQueryVariables | null): { query: typeof BOOK_QUERY, variables: typeof variables };
 export function gqlBookQuery(variables: any): any {
   return {
     query: BOOK_QUERY,
