@@ -1,0 +1,32 @@
+---
+title: 'optimisticResponse'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`optimisticResponse` is analogous to <Link to="https://www.apollographql.com/docs/react/data/mutations#options">`optimisticResponse`</Link> option passed to [`mutate`](../../fetching/mutations/mutate) method in `Apollo`.  
+It enables <Link to="https://www.apollographql.com/docs/react/performance/optimistic-ui">optimistic UI</Link>, allowing for immediate UI updates before the server responds.
+
+## Usage
+Let's extend `bookState` to return an optimistic response when `ADD_BOOK_MUTATION` is executed.
+
+```typescript title="library/states/book.state.ts"
+import { state } from '@apollo-orbit/angular/state';
+import shortid from 'shortid';
+import { ADD_BOOK_MUTATION } from '../../graphql/types';
+
+export const bookState = state(descriptor => descriptor
+  .optimisticResponse(ADD_BOOK_MUTATION, ({ book }) => ({
+    __typename: 'Mutation' as const,
+    addBook: {
+      __typename: 'Book' as const,
+      id: shortid.generate(),
+      genre: book.genre ?? null,
+      name: book.name,
+      authorId: book.authorId
+    }
+  }))
+);
+
+```

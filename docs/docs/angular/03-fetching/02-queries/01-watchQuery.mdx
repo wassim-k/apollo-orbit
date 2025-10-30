@@ -1,0 +1,150 @@
+import Link from '@docusaurus/Link'
+import BooksQuery from './_books-query.mdx';
+
+Fetch data from the GraphQL server then watch the cache for updates. Ideal for reactive components. Returns a non-terminating Observable.
+
+## API
+```typescript
+Apollo.watchQuery<TData, TVariables>(
+  options: WatchQueryOptions<TVariables, TData>
+): QueryObservable<TData, TVariables>
+```
+
+Returns a `QueryObservable<TData, TVariables>` which extends **RxJS**'s standard `Observable<QueryResult<TData>>` and is a wrapper around **Apollo Client**'s underlying `ObservableQuery<TData, TVariables>`.  
+This allows direct calls to `Observable` members like `subscribe` and `pipe` and also `ObservableQuery` members like `variables`, `refetch`, <Link to="https://www.apollographql.com/docs/react/pagination/core-api/#the-fetchmore-function">`fetchMore`</Link> and <Link to="https://www.apollographql.com/docs/react/data/subscriptions/#subscribing-to-updates-for-a-query">`subscribeToMore`</Link>...
+
+For the complete list of options available, please refer to <Link to="https://www.apollographql.com/docs/react/data/queries/#options">Apollo Client docs</Link>
+
+## Executing a query
+To execute a query within an Angular component, inject `Apollo` and pass it a GraphQL query document. When your component renders, `watchQuery` observable emits a `QueryResult` object that contains `loading`, `error`, `data` and `previousData` properties you can use to render your UI.
+
+Let's look at an example.
+
+<BooksQuery />
+
+Next, we define the query in our component:
+```typescript title="library/books/books.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { BOOKS_QUERY } from '../graphql/types';
+
+@Component({
+  selector: 'app-books',
+  templateUrl: './books.component.html'
+})
+export class BooksComponent {
+  private readonly apollo = inject(Apollo);
+  
+  protected readonly booksQuery = this.apollo.watchQuery({ query: BOOKS_QUERY });
+
+  protected refetch(): void {
+    this.booksQuery.refetch();
+  }
+}
+```
+Then, we subscribe to the query using `async` pipe and handle the different query states:
+```html title="library/books/books.component.html"
+<h3>Books</h3>
+@if (booksQuery | async; as booksResult) {
+  @if (booksResult.loading) { Loading... }
+  @if (booksResult.error) { {{ booksResult.error.message }} }
+  @if (booksResult.data?.books; as books) {
+    @for (book of books; track book.id) {
+      <div>{{ book.name }}</div>
+    }
+  }
+}
+```
+
+## Variables
+A variables object may be passed to `watchQuery` options:
+
+```typescript title="library/books/books.component.ts"
+import { BOOKS_QUERY } from '../graphql/types';
+
+@Component({
+  ...
+})
+export class BooksComponent {
+  protected readonly booksQuery = this.apollo.watchQuery({
+    query: BOOKS_QUERY,
+    // code-add-line
+    variables: { genre: 'Fiction' }
+  });
+}
+```
+
+:::info
+In cases where the query has required variables, a compile time error will be thrown if the variables are not provided.
+:::
+
+## Refetching
+Let's modify the previous example to allow users to manually refetch the data:
+
+```typescript title="library/books/books.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { BOOKS_QUERY } from '../graphql/types';
+
+@Component({
+  selector: 'app-books',
+  templateUrl: './books.component.html'
+})
+export class BooksComponent {
+  private readonly apollo = inject(Apollo);
+  
+  protected readonly booksQuery = this.apollo.watchQuery({ query: BOOKS_QUERY });
+
+  // code-add-start
+  protected refetch(): void {
+    this.booksQuery.refetch();
+  }
+  // code-add-end
+}
+```
+
+Then, we modify the template to include a button that calls `refetch`, and finally, we replace `booksResult.data?.books` with `booksResult.data?? booksResult.previousData`.  
+This is because while a refetch is in flight, the `QueryResult` object will have `{ loading: true, data: undefined, ... }` which can provide a jarring user experience as the data disappears off the screen until the new data arrives.  
+**Orbit** exposes a `previousData` property which stores the last non-nil value of the `data` property that can be used to provide a smoother user experience.
+
+```html title="library/books/books.component.html"
+<h3>
+  Books
+  // code-add-line
+  <button type="button" (click)="refetch()">⟳</button>
+</h3>
+@if (booksQuery | async; as booksResult) {
+  @if (booksResult.loading) { Loading... }
+  @if (booksResult.error) { {{ booksResult.error.message }} }
+  // code-remove-line
+  @if (booksResult.data?.books; as books) {
+  // code-add-line
+  @if ((booksResult.data ?? booksResult.previousData)?.books; as books) {
+    @for (book of books; track book.id) {
+      <div>{{ book.name }}</div>
+    }
+  }
+}
+```
+
+## `query`
+```typescript
+Apollo.query<TData, TVariables>(options: QueryOptions<TVariables, TData>): Observable<QueryResult<TData>>;
+```
+
+Unlike `watchQuery`, `query`'s observable terminates once the data is fetched.
+
+Returns a standard **RxJS** observable that terminates after data is fetched.  
+By default, `query` does not emit the query's initial loading status (`notifyOnLoading = false`) and on failure it emits errors on the observable's **error** stream (`throwError = true`).
+
+It is ideal for once off queries, like inside an **Angular** route guard, resolver or within a component method.
+
+## `mapQuery`
+**Orbit** provides a `mapQuery` **RxJS** operator to map both `data` and `previousData` of a query result while preserving the other properties.  
+This is useful when you want to map the query result without dealing with the nullability of `data` and `previousData` properties.
+```typescript
+import { mapQuery } from '@apollo-orbit/angular';
+...
+protected readonly bookNames$ = this.apollo.watchQuery({ query: BOOKS_QUERY }).pipe(
+  // code-add-line
+  mapQuery(data => data.books.map(book => book.name))
+);
+```

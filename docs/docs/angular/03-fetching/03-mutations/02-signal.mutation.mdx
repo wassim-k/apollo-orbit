@@ -1,0 +1,96 @@
+import Link from '@docusaurus/Link'
+import UpdateBookMutation from './_update-book-mutation.mdx';
+import SignalMutationOptions from '@site/src/components/api-tables/SignalMutationOptions.md';
+import SignalMutationSignals from '@site/src/components/api-tables/SignalMutationSignals.md';
+import SignalMutationMethods from '@site/src/components/api-tables/SignalMutationMethods.md';
+
+Execute a GraphQL mutation and track its state using reactive Signals.
+
+## API
+```typescript
+Apollo.signal.mutation<TData, TVariables>(
+  mutation: DocumentNode | TypedDocumentNode<TData, TVariables>,
+  options?: SignalMutationOptions<TData, TVariables>
+): SignalMutation<TData, TVariables>
+```
+Accepts a required GraphQL mutation document and an optional `SignalMutationOptions` object.
+
+Returns a `SignalMutation<TData, TVariables>` instance. This object provides several reactive Signals (`result`, `data`, `loading`, `error`, `called`) that reflect the state of the mutation execution. It also includes methods for interaction, primarily `mutate` and `reset`.
+
+<details>
+  <summary>Options</summary>
+  <SignalMutationOptions />
+</details>
+
+<details>
+  <summary>Signals</summary>
+  <SignalMutationSignals />
+</details>
+
+<details>
+  <summary>Methods</summary>
+  <SignalMutationMethods />
+</details>
+
+## Executing a mutation
+To execute a mutation, inject `Apollo` and call `signal.mutation` with the GraphQL mutation document. Then, call the `mutate` method on the returned `SignalMutation` instance, passing execution options (like variables).
+
+
+<UpdateBookMutation />
+
+Next, define the mutation in your component:
+
+```typescript title="library/books/books.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { UPDATE_BOOK_MUTATION, UpdateBookInput } from '../graphql/types';
+
+@Component({
+  selector: 'app-books',
+  templateUrl: './books.component.html'
+})
+export class BooksComponent {
+  private readonly apollo = inject(Apollo);
+  private readonly notificationService = inject(NotificationService);
+
+  protected readonly updateBookMutation = this.apollo.signal.mutation(UPDATE_BOOK_MUTATION);
+
+  protected async updateBook(id: string, book: UpdateBookInput): Promise<void> {
+    const { error, data } = await this.updateBookMutation.mutate({ variables: { id, book } });
+
+    // Optionally handle the result
+    if (error) {
+      this.notificationService.error(`Failed to update book '${book.name}': ${error.message}`)
+    } else if (data) {
+      this.notificationService.success(`Book '${data.updateBook.name}' was updated successfully.`)
+    }
+  }
+}
+```
+
+:::info
+The promise returned by `mutate` **always** resolves without a rejection even if the mutation encounters errors, removing the need for `try...catch` or dealing with unhandled promise rejections.
+:::
+
+Finally, use the signals in the template to provide feedback:
+
+```html title="library/books/books.component.ts"
+<h3>Books</h3>
+
+@if (updateBookMutation.called()) { <!-- Optional check -->
+  @if (updateBookMutation.error(); as error) {
+    <div class="error">Error: {{ error.message }}</div>
+  } @else if (updateBookMutation.data(); as data) {
+    <div class="success">Book '{{ data.updateBook.name }}' was updated successfully.</div>
+  }
+}
+
+...
+
+<button (click)="updateBook(...)" [disabled]="updateBookMutation.loading()">
+  {{ updateBookMutation.loading() ? 'Updating...' : 'Update' }}
+</button>
+```
+
+:::note
+Compared to the observable-based `mutate` method, `signal.mutation` neatly encapsulates the mutation state into a single `SignalMutation` instance, removing the need for tracking state in separate `loading` and `error` signals as shown in the [`mutate` example](../mutate/#executing-a-mutation).
+:::

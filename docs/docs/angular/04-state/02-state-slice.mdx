@@ -1,0 +1,161 @@
+---
+title: 'state'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`state` function is used to create a state slice.
+
+`state` provides a `descriptor` which can be used to define one of the following:
+* [clientId](../../advanced/multi-client/)
+* [onInit](#oninit)
+* [mutationUpdate](../mutation-update/)
+* [effect](../effect/)
+* [optimisticResponse](../optimistic-response/)
+* [refetchQueries](../refetch-queries/)
+* [typePolicies](../type-policies/)
+* [resolver](../resolver/)
+* [action](../action/)
+* <Link to="https://www.apollographql.com/docs/react/caching/cache-configuration/#possibletypes">possibleTypes</Link>
+
+## Enable state feature
+To enable state feature, you need to provide `withState` imported from `@apollo-orbit/angular/state` entry point to `provideApollo`.
+
+```typescript
+import { provideApollo } from '@apollo-orbit/angular';
+import { withState } from '@apollo-orbit/angular/state';
+
+@NgModule({
+  providers: [
+    provideApollo(
+      withApolloOptions(...),
+      withHttpLink(),
+      // code-add-line
+      withState()
+    )
+  ]
+})
+```
+
+## Defining state
+Defining a state slice is as simple as calling `state` function.
+
+```typescript title="app/states/theme/theme.state.ts"
+export const themeState = state(descriptor => ...)
+```
+
+A state can also be defined as factory function that is executed in an injection context. It has access to `inject()` via the `EnvironmentInjector` from which they were configured.
+
+```typescript title="app/states/theme/theme.state.ts"
+export const themeState = () => {
+  const notificationService = inject(NotificationService);
+  return state(descriptor => ...);
+}
+```
+
+:::note
+A `state` slice file name should be in the format `<state-name>.state.ts`, this is a requirement as per our [environment setup](../../get-started/setup-environment/).  
+`<state-name>` is singular by convention for simplicity.
+:::
+
+## Adding state
+Once a `state` slice is created it needs to be provided to the Angular DI system using one of the following methods:
+
+### Root injector
+To add a state to the root injector, use the `withState` feature with `provideApollo`.  
+For example `themeState` can be provided as follows:
+
+```typescript
+import { themeState } from '../states/theme/theme.state';
+
+...
+
+providers: [
+  provideApollo(
+    withApolloOptions(...),
+    withHttpLink(),
+    // code-add-line
+    withState(themeState)
+  )
+]
+```
+
+### Module injector
+Typically, an **Angular** application is made up of multiple modules, each feature may have its own module and its own state logic.  
+States can be added to these child modules, using the `provideStates` function.
+
+```typescript title="library/library.module.ts"
+// code-add-line
+import { provideStates } from '@apollo-orbit/angular/state';
+import { authorState } from './states/author.state';
+import { bookState } from './states/book.state';
+
+...
+
+@NgModule({
+  providers: [
+    // code-add-line
+    provideStates(authorState, bookState)
+  ]
+  ...
+})
+export class LibraryModule { }
+```
+
+### Route injector
+States can also be provided as part of a route's configuration:
+
+```typescript title="library/library.routes.ts"
+import { Routes } from '@angular/router';
+import { LibraryComponent } from './library.component.ts';
+// code-add-start
+import { provideStates } from '@apollo-orbit/angular/state';
+import { authorState } from './library/states/author.state';
+import { bookState } from './library/states/book.state';
+// code-add-end
+
+export const LIBRARY_ROUTES: Routes = [
+  {
+    path: '',
+    component: LibraryComponent,
+    // code-add-start
+    providers: [
+      provideStates(authorState, bookState)
+    ]
+    // code-add-end
+  }
+];
+```
+
+
+```typescript title="app.routes.ts"
+import { Routes } from '@angular/router';
+
+export const LIBRARY_ROUTES: Routes = [
+  {
+    path: 'library',
+    loadChildren: () => import('./library/library.routes').then(m => m.LIBRARY_ROUTES)
+  }
+];
+```
+
+:::warning
+Route provided states should only handle mutations and actions that are defined within the route's module/component or any of its children modules/components.
+:::
+
+## `onInit`
+`onInit` defines a callback that is invoked when the state is initialised.
+
+```typescript title="app/states/theme/theme.state.ts"
+export const themeState = state(descriptor => descriptor
+  .onInit(cache => cache.writeQuery(...))
+);
+```
+
+`onInit` callback accepts the cache instance associated with the state and can be used to initialise cache data for that state. More on this in [local state guide](../local-state/).
+
+`onInit` callback is called only once when the state is initialised. This can occur at one of the following times:
+* When the Apollo instance associated with the state is first injected into the application.
+* When the lazy-loaded module that provides the state is loaded.
+* When the route that provides the state is first activated.

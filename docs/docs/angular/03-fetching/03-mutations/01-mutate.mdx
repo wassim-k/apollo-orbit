@@ -1,0 +1,81 @@
+import Link from '@docusaurus/Link'
+import UpdateBookMutation from './_update-book-mutation.mdx';
+
+Executes a mutation to modify server data.
+
+## API
+
+```typescript
+Apollo.mutate<TData, TVariables>(
+  options: MutationOptions<TData, TVariables>
+): Observable<MutationResult<TData>>
+```
+Returns a `MutationResult<TData>` observable. This observable terminates with a result when the mutation is successful or an an error when it it fails.
+:::note
+The observable must be **subscribed** to for the mutation to execute.
+:::
+
+For the complete list of options available, please refer to <Link to="https://www.apollographql.com/docs/react/data/mutations#options">Apollo Client docs</Link>
+
+## Executing a mutation
+To execute a mutation, inject `Apollo` and pass it a GraphQL mutation document.
+
+<UpdateBookMutation />
+
+Next, we execute the mutation and handle the result.
+```typescript title="library/books/books.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { UPDATE_BOOK_MUTATION, UpdateBookInput } from '../graphql/types';
+
+@Component({
+  selector: 'app-books',
+  templateUrl: './books.component.html'
+})
+export class BooksComponent {
+  private readonly apollo = inject(Apollo);
+  private readonly notificationService = inject(NotificationService);
+
+  protected readonly loading = signal<boolean>(false);
+  protected readonly error = signal<Error | undefined>(undefined);
+
+  ...
+
+  protected updateBook(id: string, book: UpdateBookInput): void {
+    this.loading.set(true);
+    this.error.set(undefined);
+    this.apollo.mutate({ mutation: UPDATE_BOOK_MUTATION, variables: { id, book } }).pipe(
+      finalize(() => this.loading.set(false)),
+    ).subscribe({
+      next: result => this.notificationService.success(`Book '${result.data!.updateBook.name}' was updated successfully.`),
+      error: (error) => this.error.set(error)
+    });
+  }
+}
+```
+:::note
+We apply non-null assertion `!` to `result.data` above because we know that, in this case, a successful mutation will always return data.  
+In some **edge** cases both `data` and `error` might be undefined, for example when `errorPolicy` is set to `ignore`.
+:::
+
+## `mapMutation`
+Similar to `mapQuery`, **Orbit** provides a `mapMutation` RxJS operator to map the `data` of a mutation result while preserving the other properties.  
+This is useful when you want to map the mutation result without dealing with the nullability of `data` property.
+```typescript
+import { mapMutation } from '@apollo-orbit/angular';
+...
+this.apollo.mutate({ mutation: UPDATE_BOOK_MUTATION, variables: { id, book } }).pipe(
+  // code-add-line
+  mapMutation(data => data.updateBook.name)
+).subscribe({
+  // code-add-line
+  next: name => this.notification.success(`Book '${name}' was updated successfully.`),
+  error: (error) => this.error.set(error)
+});
+```
+
+## Cache normalisation
+As we've seen above, **Apollo Client** automatically updates the cache with the new data returned from the mutation.  
+But this might not be as straight forward with other mutations like `addBook` or `deleteBook` where the cache needs to be updated manually because **Apollo Client** cannot identify which parts of the cache reference the list of books.  
+For example, we might need to add a book to an author's books list and to the full list of books in cache.
+
+This, including <Link to="https://www.apollographql.com/docs/react/performance/optimistic-ui/">optimistic UI</Link> & <Link to="https://www.apollographql.com/docs/react/data/refetching">refetching queries</Link>, will be covered in more detail in the [State](../../../state/intro/) section of the docs.

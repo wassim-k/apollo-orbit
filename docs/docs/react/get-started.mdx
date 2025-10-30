@@ -1,0 +1,105 @@
+---
+sidebar_position: 2
+---
+
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+import CodegenTip from '../shared/_codegen-tip.mdx';
+
+# Getting Started
+
+## Prerequisites
+In order to use **Orbit**, you'll need a **React** project setup with **Apollo Client**.  
+If not, please follow the <Link to="https://www.apollographql.com/docs/react/get-started/">Apollo Client setup guide</Link> before proceeding.
+
+## Install `@apollo-orbit/react`
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+  ```bash
+  yarn add @apollo-orbit/react
+  ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm install @apollo-orbit/react
+    ```
+  </TabItem>
+</Tabs>
+
+## Setup GraphQL Codegen
+<CodegenTip />
+
+You can follow <Link to="https://the-guild.dev/graphql/codegen/docs/guides/react-vue">GraphQL-Codegen React guide</Link> to setup codegen for your project.
+
+Then, update *codegen.ts* to include state files in the schema:
+
+```typescript title="codegen.ts"
+import { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: [
+    'http://localhost:4000/graphql',
+    // code-add-start
+    {
+      './src/**/*.state.ts': {
+        noRequire: true
+      }
+    }
+    // code-add-end
+  ],
+  ...
+};
+
+export default config;
+```
+
+## Setup GraphQL syntax highlighting & auto-complete
+
+### Install VSCode extension
+<Link to="https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql">GraphQL: Language Feature Support</Link>
+
+### Create graphql.config.js
+Create the following file in the root folder of your project.  
+
+```javascript title="graphql.config.js"
+module.exports = {
+  schema: [
+    'http://localhost:4000/graphql',
+    // code-add-line
+    'src/**/*.state.ts'
+  ],
+  documents: [
+    'src/**/*.graphql'
+  ],
+  extensions: {
+    customDirectives: [
+      'directive @client on FIELD' // required for Apollo Client local schema
+    ]
+  }
+};
+```
+
+If you already have the extension setup in your project, make sure to include state files in the schema by adding the highlighted line above.
+
+For more information, visit <Link to="https://github.com/graphql/graphiql/blob/main/packages/graphql-language-service-server/README.md#graphql-configuration-file">configuration documentation</Link>
+
+## Provide states
+Finally, we can provide states to **Orbit** by adding `ApolloOrbitProvider` under `ApolloProvider`:
+
+```tsx title="index.tsx" 
+import { themeState } from './states/theme.state';
+
+root.render(
+  <ApolloProvider client={client}>
+    // code-add-line
+    <ApolloOrbitProvider states={[themeState]}>
+      <App />
+    // code-add-line
+    </ApolloOrbitProvider>
+  </ApolloProvider>,
+);
+```
+
+The next section will cover in detail how to create and provide states in your **React** application.

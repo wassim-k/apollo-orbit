@@ -1,0 +1,100 @@
+---
+title: 'action'
+---
+
+import EventCommand from '../../shared/_event-command.mdx';
+
+## Overview
+Actions are simple objects that have a unique `type` property and, optionally, additional information.  
+
+Actions generally take one of two forms:
+* **Command**: A verb. For example, `theme/toggle`
+* **Event**: Past tense. For example, `library/bookSelected`
+
+<EventCommand />
+
+## Defining an action
+An action is required to have a unique `type`. By convention, `type` follows the format `domain/action` to uniquely identify the action throughout the app.
+
+```typescript title="states/theme/theme.actions.ts"
+import { ThemeName } from '../../graphql';
+
+export interface ToggleThemeAction {
+  type: 'theme/toggle';
+  force?: ThemeName;
+}
+```
+
+## Dispatching an action
+The `useDispatch()` hook returns a reference to a `dispatch` function that can be used to dispatch actions. For example:
+
+```tsx
+import { useDispatch } from '@apollo-orbit/react';
+import { useQuery } from '@apollo/client';
+import { ThemeDocument } from './graphql';
+import { ToggleThemeAction } from './states/theme/theme.actions';
+
+export function Theme() {
+  // code-add-line
+  const dispatch = useDispatch();
+  const { data: themeData } = useQuery(ThemeDocument);
+
+  return (
+    <div>
+      <span>Current theme:</span>
+      <b>{themeData?.theme.displayName}</b>
+      // code-add-line
+      <button onClick={() => dispatch<ToggleThemeAction>({ type: 'theme/toggle' })}>Toggle theme</button>
+    </div>
+  );
+}
+```
+
+`dispatch` returns a `Promise<void>` which completes when all states have completed handling the action. If any of the `action` handlers throws an error, then the promise is rejected with the error. This can be useful for executing some logic only after an action has completed, especially if some of the handlers are asynchronous.
+
+## Handling an action
+`action` is used in a `state` slice to define an action handler.
+
+An `action` handler can be synchronous or asynchronous and can be used to update the cache, execute a side-effect, or perform any other logic.
+
+Action handlers can be chained together to form a sequence of actions that are executed in order, by using the `dispatch` function which is available in the `ActionContext` parameter.
+
+### Usage
+Let's look at an example of how a `LogoutUserAction` can be handled asynchronously in the **user** `state` and chained with another action handler.
+
+```typescript title="states/user/user.state.ts"
+export const userState = state(descriptor => descriptor
+  .action<LogoutUserAction>('user/logout', async (action, { dispatch }) => {
+    await userSessionApi.endUserSession();
+    return dispatch<UserLoggedOutAction>({ type: 'user/logged-out' });
+  })
+  .action<UserLoggedOutAction>('user/logged-out', (action, { cache }) => {
+    cache.writeQuery({ query: CurrentUserDocument, data: { currentUser: null } });
+  })
+);
+```
+
+When `dispatch<LogoutUserAction>({ type: 'user/logout' })` is called from a component, it will:
+1. First, invoke the `LogoutUserAction` handler.
+2. Then, invoke the `UserLoggedOutAction` handler.
+3. Finally, resolve the promise returned by `dispatch<LogoutUserAction>({ type: 'user/logout' })` when both handlers have finished executing.
+
+:::note
+It is important to return the promise from an asynchronous action handler to ensure that the promise returned by `dispatch` completes only after the action handler has finished executing.
+:::
+
+### API
+```typescript
+type ActionFn<T> = (action: T, context: ActionContext) => void | Promise<any> | Observable<any>;
+
+interface Action {
+  type: string;
+}
+
+interface ActionContext {
+  cache: ApolloCache;
+  dispatch: <TAction extends Action>(action: TAction) => Promise<void>;
+}
+```
+
+In the next page we will see a complete example of how actions and their handlers can be used for managing [local state](../local-state/).

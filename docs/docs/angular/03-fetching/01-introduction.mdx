@@ -1,0 +1,52 @@
+import Link from '@docusaurus/Link';
+
+# Introduction
+
+## Overview
+
+Fetching data in **Orbit** refers to the process of interacting with your GraphQL API. This encompasses several key operations:
+
+* **Queries:** Used to read data from your GraphQL server.
+* **Mutations:** Used to modify data on your GraphQL server and fetch the results.
+* **Subscriptions:** Used to get real-time data updates from your GraphQL server.
+* **Fragments:** Used to read specific pieces of data already present in the client cache.
+
+**Orbit** provides dedicated methods for each of these operations, offering both **RxJS** **Observable**-based and Angular **Signal**-based approaches to handle the results reactively within your Angular application.
+
+## Methods
+
+**Orbit** offers parallel APIs for data fetching, one based on RxJS Observables and the other leveraging Angular Signals. Choose the API that best fits your component architecture and reactivity model.
+
+| Observable Method                                              | Signal Method                                                                | Description                                                                                     |
+| :------------------------------------------------------------- | :-------------------------------------------------------------------------   | :-----------------------------------------------------------------------------------------------|
+| <Link to="../queries/watchQuery#query">`query`</Link>          | -                                                                            | Executes a one-time query, ideal for route guards or resolvers.                                 |
+| <Link to="../queries/watchQuery">`watchQuery`</Link>           | <Link to="../queries/signal.query">`signal.query`</Link>                     | Executes a query and watches the cache for updates. Ideal for reactive components.              |
+| <Link to="../mutations/mutate">`mutate`</Link>                 | <Link to="../mutations/signal.mutation">`signal.mutation`</Link>             | Executes a mutation to modify server data.                                                      |
+| <Link to="../subscriptions/subscribe">`subscribe`</Link>       | <Link to="../subscriptions/signal.subscription">`signal.subscription`</Link> | Subscribes to real-time updates from the server.                                                |
+| <Link to="../fragments/watchFragment">`watchFragment`</Link>   | <Link to="../fragments/signal.fragment">`signal.fragment`</Link>             | Watches a specific data fragment within the Apollo cache.                                       |
+| <Link to="../cache/cache.watchQuery">`cache.watchQuery`</Link> | <Link to="../cache/signal.cacheQuery">`signal.cacheQuery`</Link>             | Watches data directly within the Apollo cache, without network requests. Ideal for local state. |
+
+## Signals vs. Observables
+
+With Angular v17+ establishing Signals as the primary reactive primitive, **Orbit**'s dual API offers flexibility. Here's a guide to help you choose the right approach:
+
+#### Signals (`signal.query`, `signal.mutation`, etc.) are ideal for:
+
+* **Direct template binding:** Using reactive state directly in templates, often eliminating the need for the `async` pipe.
+* **Fine-grained reactivity:** Allow Angular to efficiently track dependencies and update only the necessary parts of the DOM when signal values change.
+* **Signal-driven variables:** Use component signal inputs or component-defined signals to automatically trigger query updates when their values change.
+* **Derived state:** Easily creating computed values from your fetched data using `computed()`.
+* **Auto-cleanup:** Reduced boiler plate code by removing the need for manual subscription management (like `takeUntilDestroyed`) often required with Observables.
+* **OnPush and Zoneless:** Seamlessly integrating with `ChangeDetectionStrategy.OnPush` and enabling the development of `zoneless` applications by leveraging Angular's built-in signal reactivity for change detection.
+
+#### Observables (`watchQuery`, `mutate`, etc.) are ideal for:
+
+* **Complex asynchronous operations:** Utilising the extensive RxJS operator library for sophisticated stream manipulation, transformations, or coordination that go beyond simple component state binding.
+* **Integration with RxJS-heavy Code:** Interfacing with existing services, libraries, or parts of your application that heavily rely on RxJS patterns.
+* **Specific Use Cases:** Scenarios where the breadth of RxJS operators provides a distinct advantage for handling intricate asynchronous logic (e.g., managing multiple dependent streams, complex timing, custom error handling flows).
+
+#### Recommendation
+
+**Start with the Signal-based API** (`signal.query`, `signal.mutation`, etc.) as the default for handling reactive data in components.  
+Resort to the **Observable-based API** (`watchQuery`, `mutate`, etc.) when the specific power of RxJS operators is required for complex async flows or when integrating with existing Observable-based code.  
+Both APIs can effectively be used together within the same application.

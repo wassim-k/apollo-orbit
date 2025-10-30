@@ -1,0 +1,187 @@
+---
+title: 'action'
+---
+
+import EventCommand from '../../shared/_event-command.mdx';
+
+## Overview
+Actions are simple classes that have a unique `type` property and, optionally, additional information.  
+
+Actions generally take one of two forms:
+* **Command**: A verb. For example, `[Theme] ToggleTheme`
+* **Event**: Past tense. For example, `[Library] BookSelected`
+
+<EventCommand />
+
+## Defining an action
+An action is required to have a unique `type`. By convention, `type` follows the format `[<Context>] <ActionName>` to uniquely identify the action throughout the app.
+
+```typescript title="states/theme/theme.actions.ts"
+import { ThemeName } from '../../graphql/types';
+
+export class ToggleThemeAction {
+    public static readonly type = '[Theme] ToggleTheme';
+
+    public constructor(
+        public readonly force?: ThemeName
+    ) { }
+}
+```
+
+## Dispatching an action
+Dispatching an action is as simple as calling `actions.dispatch(new ToggleThemeAction())` from anywhere in the app.  
+
+It returns an `Promise<void>` which resolves when all states have completed handling the action. If any of the `action` handlers throws an error, then the promise is rejected with an error.  
+This can be useful for executing some logic only after an action has completed, especially if some of the handlers are asynchronous. For example:
+```typescript
+import { ApolloActions } from '@apollo-orbit/angular/state';
+
+export class ThemeComponent {
+  private readonly actions = inject(ApolloActions);
+  
+  protected toggleTheme(force?: ThemeName): void {
+    this.actions.dispatch(new ToggleThemeAction(force)).subscribe({
+      next: () => console.log('Theme toggle succeeded'),
+      error: () => console.error('Theme toggle failed')
+    });
+  }
+
+  protected dispatchMultipleActions(): void {
+    forkJoin([
+      this.actions.dispatch(new FirstAction()),
+      this.actions.dispatch(new SecondAction()),
+    ]).subscribe({
+      next: () => console.log('Actions execution succeeded'),
+      error: () => console.error('Actions execution failed')
+    });
+  }
+}
+```
+
+### API
+```typescript
+public dispatch<TAction extends ActionInstance>(action: TAction): Promise<void>
+
+type ActionInstance = InstanceType<ActionType<any>>;
+
+interface ActionType<T> {
+  type: string;
+  new(...args: Array<any>): T;
+}
+```
+
+## Handling an action
+`action` is used in a `state` slice to define an action handler.
+
+An `action` handler can be synchronous or asynchronous and can be used to update the cache, call a service, or perform any other logic.
+
+Action handlers can be chained together to form a sequence of actions that are executed in order, by using the `dispatch` function which is available in the `ActionContext` parameter.
+
+### Usage
+Let's look at an example of how a `LogoutUserAction` can be handled asynchronously in the **user** `state` and chained with another action handler.
+
+```typescript title="states/user/user.state.ts"
+export const userState = () => {
+  const userSessionApi = inject(UserSessionApi);
+
+  return state(descriptor => descriptor
+    .action(LogoutUserAction, (action, { dispatch }) => {
+      return userSessionApi.endUserSession().pipe(
+        mergeMap(() => dispatch(new UserLoggedOutAction()))
+      );
+    })
+    .action(UserLoggedOutAction, (action, { cache }) => {
+      cache.writeQuery({ query: CURRENT_USER_QUERY, data: { currentUser: null } });
+    })
+  );
+}
+```
+
+When `actions.dispatch(new LogoutUserAction())` is called from a component or a service, it will:
+1. First, invoke the `LogoutUserAction` handler.
+2. Then, invoke the `UserLoggedOutAction` handler.
+3. Finally, resolve the promise returned by `actions.dispatch(new LogoutUserAction())` when both handlers have finished executing.
+
+:::note
+It is important to return the await promises or return observables from asynchronous action handlers to ensure that the promise returned by `dispatch` resolves only after the action handler has finished executing.
+:::
+
+### API
+```typescript
+type ActionFn<T> = (action: T, context: ActionContext) => void | Promise<any> | Observable<any>;
+
+interface ActionContext {
+  cache: ApolloCache;
+  dispatch: <TAction extends Action | ActionInstance>(action: TAction) => Promise<void>;
+}
+```
+
+In the next page we will see a complete example of how actions and their handlers can be used for managing [local state](../local-state/).
+
+## Actions stream
+`ApolloActions` stream emits all dispatched actions at different stages of their lifecycle.
+
+**Orbit** provides the following (fully typed) **RxJS** operators to filter the actions stream:
+* `ofActionDispatched`: When an action is first dispatched.
+* `ofActionSuccess`: When execution of all action handlers has completed successfully.
+* `ofActionError`: When execution of one or more action handlers has failed.
+* `ofActionComplete`: When execution of all action handlers has completed, regardless of success or failure.
+
+All of the operators return an `Observable<Action>` except for `ofActionComplete` which returns `Observable<ActionComplete<Action>>`.
+
+### API
+```typescript
+interface ActionComplete<TAction = any> {
+    action: TAction;
+    error?: Error;
+    status: 'success' | 'error';
+}
+```
+
+### Examples
+```typescript
+this.actions.pipe(
+  ofActionDispatched(AddBookAction)
+).subscribe({
+  next: action => console.log(`Add book '${action.book.id}' dispatched.`)
+});
+
+this.actions.pipe(
+  ofActionSuccess(AddBookAction)
+).subscribe({
+  next: action => console.log(`Add book '${action.book.id}' succeeded.`)
+});
+
+this.actions.pipe(
+  ofActionError(AddBookAction)
+).subscribe({
+  next: action => console.error(`Add book '${action.book.id}' failed.`)
+});
+
+this.actions.pipe(
+  ofActionComplete(AddBookAction)
+).subscribe({
+  next: result => {
+    if (!result.error) {
+      console.log(`Add book '${result.action.book.id}' succeeded.`);
+    } else {
+      console.error(`Add book '${result.action.book.id}' failed. Error: ${result.error.message}`);
+    }
+  }
+});
+
+this.actions.pipe(
+  ofActionSuccess(BookSelectedAction, BookDeselectedAction)
+).subscribe(action => {
+  if (action instanceof BookSelectedAction) {
+    console.log(`Book '${action.selectedId}' was selected`);
+  } else if (action instanceof BookDeselectedAction) {
+    console.log(`Book '${action.deselectedId}' was deselected`);
+  }
+});
+```
+> Unsubscribe logic omitted for brevity.
+
+:::tip
+Actions stream can also be used for direct communication between components on the page, removing the need for a shared service in some scenarios.
+:::

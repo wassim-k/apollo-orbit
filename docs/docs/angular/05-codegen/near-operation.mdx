@@ -1,0 +1,100 @@
+---
+sidebar_position: 3
+---
+
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Near Operation File Preset
+The default setup as per [getting started guide](../../get-started/setup-environment/#setup-apollo-orbitcodegen) generates all TypeScript code in a single *types.ts* file.
+
+<Link to="https://the-guild.dev/graphql/codegen/plugins/presets/near-operation-file-preset">Near Operation File Preset</Link> generates TypeScript code for GraphQL operations next to the *.graphql* file that defines them.
+
+This can have few advantages:
+* Better code organization and easier navigation in the project.
+* In lazy loaded Angular modules, the GraphQL code is part of the module's javascript chunk instead of the main bundle.
+* Less likely to cause git merge conflicts than the single *types.ts* file.
+
+## Setup
+
+### Install dependency
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+    ```bash
+    yarn add --dev @graphql-codegen/near-operation-file-preset
+    ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm install --save-dev @graphql-codegen/near-operation-file-preset
+    ```
+  </TabItem>
+</Tabs>
+
+### Update codegen.ts
+
+
+```typescript title="codegen.ts"
+import { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: [
+    'http://localhost:4000/graphql',
+    {
+      './src/app/**/*.state.ts': {
+        noRequire: true
+      }
+    }
+  ],
+  config: {
+    operationResultSuffix: 'Data',
+    dedupeOperationSuffix: true,
+    inlineFragmentTypes: 'combine',
+    avoidOptionals: {
+      field: true
+    }
+  },
+  generates: {
+    './src/app/graphql/types.ts': {
+      // code-remove-line
+      documents: './src/app/**/*.graphql',
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
+        'typescript',
+        // code-remove-start
+        'typescript-operations',
+        '@apollo-orbit/codegen'
+        // code-remove-end
+      ]
+    }
+    // code-add-start
+    './src/app': {
+      documents: './src/app/**/*.graphql',
+      preset: 'near-operation-file',
+      presetConfig: {
+        extension: '.ts',
+        baseTypesPath: 'graphql/types.ts',
+        importTypesNamespace: '_'
+      },
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
+        'typescript-operations',
+        '@apollo-orbit/codegen'
+      ]
+    }
+    // code-add-end
+  }
+};
+
+export default config;
+```

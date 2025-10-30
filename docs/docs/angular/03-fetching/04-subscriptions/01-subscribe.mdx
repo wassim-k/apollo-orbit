@@ -1,0 +1,67 @@
+```typescript
+Apollo.subscribe<TData, TVariables>(
+  options: SubscriptionOptions<TVariables, TData>
+): Observable<SubscriptionResult<TData>>
+```
+Returns a `SubscriptionResult<TData, TVariables>` observable. This observable is long lasting and continues to deliver results from GraphQL backend until unsubscribed from.
+
+## Executing a subscription
+To execute a subscription, inject `Apollo` and pass it a GraphQL subscription document.
+
+Let's look at an example.
+
+First, we'll create a GraphQL subscription named `NewAuthor`:
+
+```graphql title="library/gql/author.graphql"
+fragment AuthorFragment on Author {
+  id
+  name
+  age
+}
+
+subscription NewAuthor {
+  newAuthor {
+    ...AuthorFragment
+  }
+}
+```
+
+Saving *author.graphql* will trigger codegen of `NEW_AUTHOR_SUBSCRIPTION` typed gql document in */graphql/types.ts* file as per our setup.
+
+For more information about **codegen** and how it works, please refer to the [Codegen](../../../codegen/intro/) section.
+
+Next, we define the subscription in our component:
+```typescript title="authors/authors.component.ts"
+import { Apollo, mapSubscription } from '@apollo-orbit/angular';
+import { NewAuthorSubscription } from '../graphql/types';
+
+@Component({
+  selector: 'app-authors',
+  templateUrl: './authors.component.html'
+})
+export class AuthorsComponent {
+  private readonly apollo = inject(Apollo);
+  
+  protected readonly newAuthorName$: Observable<string> = this.apollo.subscribe({ subscription: NEW_AUTHOR_SUBSCRIPTION }).pipe(
+    mapSubscription(data => data.newAuthor.name)
+  );
+}
+```
+Then, we subscribe to the data using `async` pipe:
+```html title="authors/authors.component.html"
+@if (newAuthorName$ | async; as newAuthorName) {
+  <div class="alert-info">New author was added: {{ newAuthorName }}</div>
+}
+```
+
+## `mapSubscription`
+**Orbit** provides a `mapSubscription` RxJS operator to map `data` of a subscription result while preserving the other properties.  
+This is useful when you want to map the subscription result without dealing with the nullability of `data` property.
+```typescript
+import { mapSubscription } from '@apollo-orbit/angular';
+...
+protected readonly newAuthorName$: Observable<string> = this.apollo.subscribe({ subscription: NEW_AUTHOR_SUBSCRIPTION }).pipe(
+  // code-add-line
+  mapSubscription(data => data.newAuthor.name)
+);
+```

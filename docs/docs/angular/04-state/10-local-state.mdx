@@ -1,0 +1,283 @@
+---
+title: 'Local State'
+---
+
+import Link from '@docusaurus/Link'
+
+## Prerequisites
+This article assumes you're familiar with <Link to="https://www.apollographql.com/docs/react/local-state/local-state-management">Apollo Client's local state management capabilities</Link>.
+
+## Overview
+In this article, we'll go through a complete example of managing local state with **Orbit**, including setting up the cache, defining local state, and updating the cache.  
+In this example, we'll build a theme management feature that allows users to switch between light and dark themes.
+
+
+## 1. Define theme `state` slice
+
+### Define local schema
+First, we'll start by defining the local schema for our theme management feature, by creating a theme `state` slice and defining the schema in `typeDefs`.
+
+```typescript title="states/theme/theme.state.ts"
+import { gql } from '@apollo-orbit/angular';
+import { state } from '@apollo-orbit/angular/state';
+
+export const themeState = () => {
+  return state(descriptor => descriptor
+    .typeDefs(gql`
+      type Theme {
+        name: ThemeName!
+        displayName: String!
+        toggles: Int!
+      }
+
+      enum ThemeName {
+        DARK_THEME
+        LIGHT_THEME
+      }
+
+      extend type Query {
+        theme: Theme!
+      }
+    `)
+  );
+};
+```
+
+Saving this file will trigger the codegen of `ThemeState` class in *`graphql/types.ts`* file as per our setup.
+
+### Define GraphQL query
+Next, we'll define a GraphQL query to fetch the current theme from the cache.
+
+```graphql title="states/theme/gql/theme.graphql"
+query Theme {
+  theme @client {
+    name
+    toggles
+    displayName
+  }
+}
+```
+
+### Initialise cache
+Next, we'll define `onInit` function to initialise the cache with the default theme.
+
+```typescript title="states/theme/theme.state.ts"
+import { state } from '@apollo-orbit/angular/state';
+import { ThemeName, THEME_QUERY } from '../../graphql/types';
+
+export const themeState = () => {
+  return state(descriptor => descriptor
+    .onInit(cache => {
+      cache.writeQuery({
+        query: THEME_QUERY,
+        data: {
+          theme: {
+            __typename: 'Theme',
+            name: ThemeName.LightTheme,
+            toggles: 0,
+            displayName: 'Light'
+          }
+        }
+      });
+    })
+  );
+};
+```
+
+### Define actions
+Next, we'll create `theme.actions.ts` file to define actions for toggling the theme.
+
+```typescript title="states/theme/theme.actions.ts"
+import { ThemeName } from '../../graphql/types';
+
+export class ToggleThemeAction {
+  public static readonly type = '[Theme] ToggleTheme';
+
+  public constructor(
+    public readonly force?: ThemeName
+  ) { }
+}
+
+export class ThemeToggledAction {
+  public static readonly type = '[Theme] ThemeToggled';
+
+  public constructor(
+    public readonly toggles: number
+  ) { }
+}
+```
+
+### Define action handles
+```typescript title="states/theme/theme.state.ts"
+import { state } from '@apollo-orbit/angular/state';
+import { ThemeName, THEME_QUERY } from '../../graphql/types';
+import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
+
+export const themeState = () => {
+  const notificationService = inject(NotificationService);
+
+  return state(descriptor => descriptor
+    .action(ToggleThemeAction, (action, { cache, dispatch }) => {
+      const result = cache.updateQuery({ query: THEME_QUERY }, data => data
+        ? {
+          theme: {
+            ...data.theme,
+            toggles: data.theme.toggles + 1,
+            name: action.force ?? (data.theme.name === ThemeName.DarkTheme ? ThemeName.LightTheme : ThemeName.DarkTheme)
+          }
+        }
+        : data);
+
+      return dispatch(new ThemeToggledAction(result?.theme.toggles as number));
+    })
+    .action(ThemeToggledAction, (action, context) => {
+      notificationService.success(`Theme was toggled ${action.toggles} time(s)`);
+    })
+  );
+};
+```
+
+### Define local field policies
+Finally, we'll define local field policy for the `displayName` field.
+
+```typescript title="states/theme/theme.state.ts"
+import { state } from '@apollo-orbit/angular/state';
+import { ThemeName } from '../../graphql/types';
+
+export const themeState = () => {
+  return state(descriptor => descriptor
+    .typePolicies({
+      Theme: {
+        fields: {
+          displayName: (existing, { readField }) => readField<ThemeName>('name') === ThemeName.LightTheme ? 'Light' : 'Dark'
+        }
+      }
+    })
+  );
+};
+```
+
+## 2. Provide theme state
+Next, we'll provide the `themeState` to `provideGraphQL` provider (or GraphQLModule).
+
+```typescript title="graphql/graphql.provider.ts"
+import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
+import { provideApollo } from '@apollo-orbit/angular';
+import { withState } from '@apollo-orbit/angular/state';
+// code-add-line
+import { themeState } from '../states/theme/theme.state';
+
+export function provideGraphQL(): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    provideApollo(
+      ...
+      // code-add-line
+      withState(themeState)
+    )
+  ]);
+}
+```
+
+## 3. Create theme component
+Finally, we'll bring it all together by defining our theme component which queries the cache and dispatches the relevant actions.
+
+```typescript title="theme/theme.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { ApolloActions } from '@apollo-orbit/angular/state';
+import { gqlThemeQuery } from '../graphql';
+import { ToggleThemeAction } from '../states/theme/theme.actions';
+
+@Component({
+  selector: 'app-theme',
+  template: `
+    <div>
+      <span>Current theme:</span>
+      <b>{{ theme().displayName }}</b>
+      <button type="button" (click)="toggleTheme()">Toggle theme</button>
+    </div>
+  `
+})
+export class ThemeComponent {
+  private readonly apollo = inject(Apollo);
+  private readonly actions = inject(ApolloActions);
+  
+  protected readonly themeQuery = this.apollo.signal.cacheQuery({ query: THEME_QUERY });
+  protected readonly theme = computed(() => this.themeQuery.data().theme);
+
+  protected toggleTheme(): void {
+    this.actions.dispatch(new ToggleThemeAction());
+  }
+}
+```
+
+## Summary
+There you have it! we've created our first fully local state managed feature with **Orbit**.
+
+<details>
+  <summary>Here's the complete `theme.state.ts` code for reference</summary>
+  ```typescript title="states/theme/theme.state.ts"
+  import { gql } from '@apollo-orbit/angular';
+  import { state } from '@apollo-orbit/angular/state';
+  import { ThemeName, THEME_QUERY } from '../../graphql/types';
+  import { ThemeToggledAction, ToggleThemeAction } from './theme.actions';
+
+  export const themeState = () => {
+    const notificationService = inject(NotificationService);
+
+    return state(descriptor => descriptor
+      .typeDefs(gql`
+        type Theme {
+          name: ThemeName!
+          displayName: String!
+          toggles: Int!
+        }
+
+        enum ThemeName {
+          DARK_THEME
+          LIGHT_THEME
+        }
+
+        extend type Query {
+          theme: Theme!
+        }
+      `)
+      .typePolicies({
+        Theme: {
+          fields: {
+            displayName: (existing, { readField }) => readField<ThemeName>('name') === ThemeName.LightTheme ? 'Light' : 'Dark'
+          }
+        }
+      })
+      .onInit(cache => {
+        cache.writeQuery({
+          query: THEME_QUERY,
+          data: {
+            theme: {
+              __typename: 'Theme',
+              name: ThemeName.LightTheme,
+              toggles: 0,
+              displayName: 'Light'
+            }
+          }
+        });
+      })
+      .action(ToggleThemeAction, (action, { cache, dispatch }) => {
+        const result = cache.updateQuery({ query: THEME_QUERY }, data => data
+          ? {
+            theme: {
+              ...data.theme,
+              toggles: data.theme.toggles + 1,
+              name: action.force ?? (data.theme.name === ThemeName.DarkTheme ? ThemeName.LightTheme : ThemeName.DarkTheme)
+            }
+          }
+          : data);
+
+        return dispatch(new ThemeToggledAction(result?.theme.toggles as number));
+      })
+      .action(ThemeToggledAction, (action, context) => {
+        notificationService.success(`Theme was toggled ${action.toggles} time(s)`);
+      })
+    );
+  };
+  ```  
+</details>

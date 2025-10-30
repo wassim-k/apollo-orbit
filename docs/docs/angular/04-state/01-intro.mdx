@@ -1,0 +1,16 @@
+---
+pagination_label: State
+---
+
+import StateFeatures from '../../shared/_state-features.mdx'
+
+# Introduction
+**Apollo Client** is much more than a simple GraphQL client. It offers a comprehensive caching API that leverages GraphQL's rich type information system (schema) to provide features like cache normalization, optimistic UI and more.
+
+**Orbit** aims to bridge the gap between **Apollo Client** and traditional state management libraries like NGXS, NgRx or Redux.
+
+It does so by providing the following features:
+<StateFeatures />
+
+### Opt-in
+**Orbit** state module is optional and is only included in the final bundle if you opt-in by importing `@apollo-orbit/angular/state` entry point.

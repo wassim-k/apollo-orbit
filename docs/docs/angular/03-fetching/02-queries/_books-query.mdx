@@ -1,0 +1,26 @@
+First, we'll create a GraphQL query named `Books`:
+
+```graphql title="library/gql/book.graphql"
+fragment BookFragment on Book {
+  id
+  name
+  genre
+  authorId
+}
+
+query Books($name: String, $genre: String, $authorId: ID) {
+  books(name: $name, genre: $genre, authorId: $authorId) {
+    ...BookFragment
+  }
+}
+```
+
+Saving *book.graphql* will trigger codegen of `BOOKS_QUERY` typed gql document in */graphql/types.ts* file as per our setup.
+
+For more information about **codegen** and how it works, please refer to the [Codegen](../../../codegen/intro/) section.
+
+:::tip
+It is recommended to define re-usable fragments, like `BookFragment` above, for a couple of reasons:
+* Codegen will generate a `BookFragment` type which can be consistently referenced throughout the codebase.
+* Using the same fragment in **queries** and **mutations** ensures that **Apollo Client** can normalize data in cache correctly. For example, if an `updateBook` **mutation** returns a `BookFragment` then our `watchQuery` observable will automatically emit the new value when the **mutation** executes successfully.
+:::

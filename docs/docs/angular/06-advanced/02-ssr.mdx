@@ -1,0 +1,184 @@
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Server-side Rendering
+
+## Prerequisites
+An <Link to="https://angular.dev/guide/ssr">Angular project with server-side rendering enabled</Link>.
+
+## Overview
+**Orbit** supports server-side rendering in two ways:
+1. It uses **Angular**'s `HttpClient` under the hood which automatically supports server-side rendering as <Link to="https://angular.dev/guide/ssr#caching-data-when-using-httpclient">explained here</Link>.
+2. It uses **Angular**'s `TransferState` to transfer **Apollo Client**'s cache from server to client.
+
+## Setup
+
+Setup SSR based on your angular project's style.
+
+<Tabs queryString="project">
+
+  <TabItem value="standalone" label="Standalone" default>
+    ### Update appConfig
+    ```typescript title="app/app.config.ts"
+    import { ApplicationConfig } from '@angular/core';
+    import { provideRouter } from '@angular/router';
+    import { routes } from './app.routes';
+    import { provideGraphQL } from './graphql/graphql.provider';
+    // code-add-start
+    import { provideHttpClient, withFetch } from '@angular/common/http';
+    import { provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';
+    // code-add-end
+
+    export const appConfig: ApplicationConfig = {
+      providers: [
+        provideRouter(routes),
+        provideGraphQL()
+        // code-add-start
+        provideHttpClient(withFetch()),
+        provideClientHydration(withHttpTransferCacheOptions({
+          includePostRequests: true
+        }))
+        // code-add-end
+      ]
+    };
+    ```
+
+    Passing `includePostRequests` to `withHttpTransferCacheOptions` is required for default GraphQL setup where **POST** requests are used.
+
+    ### Update provideGraphQL
+    ```typescript title="app/graphql/graphql.provider.ts"
+    import { isPlatformBrowser } from '@angular/common';
+    import { EnvironmentProviders, PLATFORM_ID, TransferState, inject, makeEnvironmentProviders, makeStateKey, provideEnvironmentInitializer } from '@angular/core';
+    import { Apollo, InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+    import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+    import { NormalizedCacheObject } from '@apollo/client';
+
+    // code-add-line
+    const APOLLO_STATE_KEY = makeStateKey<NormalizedCacheObject>('APOLLO_STATE');
+
+    export function provideGraphQL(): EnvironmentProviders {
+      return makeEnvironmentProviders([
+        provideApollo(
+          withApolloOptions(() => {
+            const httpLinkFactory = inject(HttpLinkFactory);
+            const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+            // code-add-start
+            const platformId = inject<object>(PLATFORM_ID);
+
+            const ssrOptions = isPlatformBrowser(platformId)
+              ? { ssrForceFetchDelay: 200 }
+              : { ssrMode: true };
+            // code-add-end
+
+            return {
+              link: httpLink,
+              cache: new InMemoryCache(),
+              // code-add-line
+              ...ssrOptions
+            };
+          }),
+          withHttpLink()
+        ),
+        // code-add-start
+        provideEnvironmentInitializer(() => {
+          const apollo = inject(Apollo);
+          const transferState = inject(TransferState);
+          const platformId = inject(PLATFORM_ID);
+
+          if (isPlatformBrowser(platformId)) {
+            const state = transferState.get(APOLLO_STATE_KEY, undefined);
+            apollo.cache.restore(state);
+          } else {
+            transferState.onSerialize(APOLLO_STATE_KEY, () => apollo.cache.extract());
+          }
+        })
+        // code-add-end
+      ]);
+    }
+
+    ```
+  </TabItem>
+
+  <TabItem value="module" label="Module" default>
+
+    ### Update AppModule
+    ```typescript title="app/app.module.ts"
+    // code-add-start
+    import { provideHttpClient, withFetch } from '@angular/common/http';
+    import { provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';
+    // code-add-end
+
+    @NgModule({
+      ...
+      providers: [
+        // code-add-start
+        provideHttpClient(withFetch()),
+        provideClientHydration(withHttpTransferCacheOptions({
+          includePostRequests: true
+        }))
+        // code-add-end
+      ]
+    })
+    export class AppModule { }
+    ```
+
+    Passing `includePostRequests` to `withHttpTransferCacheOptions` is required for default GraphQL setup where **POST** requests are used.
+
+    ### Update GraphQLModule
+
+    ```typescript title="app/graphql/graphql.module.ts"
+    import { isPlatformBrowser } from '@angular/common';
+    import { Inject, NgModule, PLATFORM_ID, TransferState, inject, makeStateKey } from '@angular/core';
+    import { Apollo, InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+    import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+    import { NormalizedCacheObject } from '@apollo/client';
+
+    // code-add-line
+    const APOLLO_STATE_KEY = makeStateKey<NormalizedCacheObject>('APOLLO_STATE');
+
+    @NgModule({
+      providers: [
+        provideApollo(
+          withApolloOptions(() => {
+            const httpLinkFactory = inject(HttpLinkFactory);
+            const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+            // code-add-start
+            const platformId = inject(PLATFORM_ID);
+
+            const ssrOptions = isPlatformBrowser(platformId)
+              ? { ssrForceFetchDelay: 200 }
+              : { ssrMode: true };
+            // code-add-end
+
+            return {
+              link: httpLink,
+              cache: new InMemoryCache(),
+              // code-add-line
+              ...ssrOptions
+            };
+          }),
+          withHttpLink()
+        )
+      ]
+    })
+    export class GraphQLModule {
+      // code-add-start
+      public constructor(
+        apollo: Apollo,
+        transferState: TransferState,
+        @Inject(PLATFORM_ID) platformId: { [key: string]: any }
+      ) {
+        if (isPlatformBrowser(platformId)) {
+          const state = transferState.get(APOLLO_STATE_KEY, undefined);
+          apollo.cache.restore(state);
+        } else {
+          transferState.onSerialize(APOLLO_STATE_KEY, () => apollo.cache.extract());
+        }
+      }
+      // code-add-end
+    }
+    ```
+  </TabItem>
+
+</Tabs>

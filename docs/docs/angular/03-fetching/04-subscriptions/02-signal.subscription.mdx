@@ -1,0 +1,191 @@
+import Link from '@docusaurus/Link'
+import SignalSubscriptionOptions from '@site/src/components/api-tables/SignalSubscriptionOptions.md';
+import SignalSubscriptionSignals from '@site/src/components/api-tables/SignalSubscriptionSignals.md';
+import SignalSubscriptionMethods from '@site/src/components/api-tables/SignalSubscriptionMethods.md';
+
+Subscribe to GraphQL subscriptions and receive real-time updates via reactive Signals.
+
+## API
+```typescript
+Apollo.signal.subscription<TData, TVariables>(
+ options: SignalSubscriptionOptions<TVariables, TData>
+): SignalSubscription<TData, TVariables>
+```
+
+Returns a `SignalSubscription<TData, TVariables>` instance. This object provides reactive Signals (`result`, `data`, `loading`, `error`, `active`) reflecting the subscription's state. It also includes methods `execute` (for lazy subscriptions) and `terminate`.
+
+<details>
+ <summary>Options</summary>
+ <SignalSubscriptionOptions />
+</details>
+
+<details>
+ <summary>Signals</summary>
+ <SignalSubscriptionSignals />
+</details>
+
+<details>
+ <summary>Methods</summary>
+ <SignalSubscriptionMethods />
+</details>
+
+## Executing a subscription
+To execute a subscription within an Angular component using Signals, inject `Apollo` and call `signal.subscription` with a GraphQL subscription document. The returned `SignalSubscription` object's signals can be used directly in your component's template or logic to reactively handle real-time updates.
+
+Let's look at an example using the same subscription from the [subscribe guide](../subscribe):
+
+```typescript title="library/authors/authors.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { NEW_AUTHOR_SUBSCRIPTION } from '../graphql/types';
+
+@Component({
+ selector: 'app-authors',
+ template: `
+   @if (newAuthorSubscription.data(); as author) {
+     <div class="alert-info">New author was added: {{ author.newAuthor.name }}</div>
+   }
+   @if (newAuthorSubscription.error(); as error) {
+     <div class="alert-error">Subscription error: {{ error.message }}</div>
+   }
+ `
+})
+export class AuthorsComponent {
+ private readonly apollo = inject(Apollo);
+
+ protected readonly newAuthorSubscription = this.apollo.signal.subscription({
+   subscription: NEW_AUTHOR_SUBSCRIPTION
+ });
+}
+```
+
+## Variables
+A variables function or signal may be passed to `signal.subscription` options. If the function depends on reactive variables, `SignalSubscription` will automatically update and restart the subscription when these reactive variables change.
+
+```typescript title="library/books/books.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { NEW_BOOK_SUBSCRIPTION } from '../graphql/types';
+
+@Component({
+ selector: 'app-books',
+ template: `
+   <h3>New Books</h3>
+   @if (newBookSubscription.data(); as data) {
+     <div class="alert-info">New book added: {{ data.newBook.name }}</div>
+   }
+ `
+})
+export class BooksComponent {
+ private readonly apollo = inject(Apollo);
+ 
+ // Component input signal
+ public readonly authorId = input<string>();
+
+ protected readonly newBookSubscription = this.apollo.signal.subscription({
+   subscription: NEW_BOOK_SUBSCRIPTION,
+   variables: () => ({ authorId: this.authorId() })
+ });
+}
+```
+
+### Variables = `null`
+
+When the variables function returns `null`, `SignalSubscription` will automatically terminate the subscription:
+
+```typescript title="library/book/book.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { BOOK_UPDATE_SUBSCRIPTION } from '../graphql/types';
+
+@Component({
+  selector: 'app-book',
+  templateUrl: './book.component.html'
+})
+export class BookComponent {
+  private readonly apollo = inject(Apollo);
+  
+  // Component input that might be null initially
+  public readonly bookId = input<string | null>();
+
+  protected readonly bookUpdateSubscription = this.apollo.signal.subscription({
+    subscription: BOOK_UPDATE_SUBSCRIPTION,
+    variables: () => {
+      const id = this.bookId();
+      return id ? { id } : null; // Return null if bookId is not available
+    }
+  });
+}
+```
+
+**Behavior when variables return `null`:**
+- If the subscription hasn't started yet, it won't start until variables become non-null
+- If the subscription is already active, it will terminate (disconnect from the server and stop receiving updates)
+- When variables change from `null` to a non-null value, if the subscription is `enabled` then it will automatically execute
+
+This pattern is useful for:
+- Waiting for required input parameters before starting a subscription
+- Conditionally subscribing to updates based on user selections
+- Preventing unnecessary subscriptions when dependencies are not ready
+
+## Lazy Subscriptions
+In some cases, you may want to delay the execution of a subscription until a specific event occurs. This can be achieved by using the `lazy` option:
+
+```typescript title="library/authors/authors.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { NEW_AUTHOR_SUBSCRIPTION } from '../graphql/types';
+
+@Component({
+ selector: 'app-authors',
+ template: `
+   <button (click)="toggleSubscription()">
+     {{ newAuthorSubscription.active() ? 'Stop' : 'Start' }} subscription
+   </button>
+   
+   @if (newAuthorSubscription.data(); as data) {
+     <div class="alert-info">New author: {{ data.newAuthor.name }}</div>
+   }
+ `
+})
+export class AuthorsComponent {
+ private readonly apollo = inject(Apollo);
+
+ protected readonly newAuthorSubscription = this.apollo.signal.subscription({
+   subscription: NEW_AUTHOR_SUBSCRIPTION,
+   lazy: true, // Delay execution until explicitly called
+   onData: (data) => {
+     // Optional callback when new data arrives
+     console.log('New author:', data.newAuthor.name);
+   },
+   onError: (error) => {
+     // Optional callback for errors
+     console.error('Subscription error:', error);
+   },
+   onComplete: () => {
+     // Optional callback when subscription completes
+     console.log('Author subscription completed');
+   }
+ });
+
+ protected toggleSubscription(): void {
+   if (this.newAuthorSubscription.active()) {
+     this.newAuthorSubscription.terminate();
+   } else {
+     this.newAuthorSubscription.execute();
+   }
+ }
+}
+```
+
+Setting `lazy: true` makes the subscription variables optional (even if required by the subscription), allowing you to pass them only when executing via the `execute` method.
+
+## Callbacks
+`signal.subscription` supports optional callbacks for handling subscription events:
+
+- `onData`: Called when new data is received
+- `onError`: Called when an error occurs
+- `onComplete`: Called when the subscription completes
+
+These callbacks are useful for side effects like logging, analytics, or triggering other actions.
+
+## Component Lifecycle
+Similar to `SignalQuery`, `SignalSubscription` uses an `effect` internally to manage the subscription lifecycle. The subscription is automatically cleaned up when the component is destroyed, preventing memory leaks.
+
+For non-lazy subscriptions, the subscription starts immediately when the component is created. For lazy subscriptions, you control when to start and stop the subscription using the `execute()` and `terminate()` methods.
