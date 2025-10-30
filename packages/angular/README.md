@@ -1,9 +1,9 @@
-# 🚀 Apollo Orbit - Angular
+# 🚀 Orbit for Apollo Client - Angular
 A full-featured GraphQL client for Angular
 
 ## 📚 Documentation
 
-For full documentation, please visit [Apollo Orbit Docs](https://wassim-k.github.io/apollo-orbit).
+For full documentation, please visit [Orbit Docs](https://wassim-k.github.io/apollo-orbit).
 
 ## 🤝 Contributing
 

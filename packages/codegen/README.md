@@ -1,9 +1,9 @@
-# 🚀 Apollo Orbit - Codegen
-GraphQL Code Generator plugin for Apollo Orbit.
+# 🚀 Orbit for Apollo Client - Codegen
+GraphQL Code Generator plugin for Orbit.
 
 ## 📚 Documentation
 
-For full documentation, please visit [Apollo Orbit Docs](https://wassim-k.github.io/apollo-orbit).
+For full documentation, please visit [Orbit Docs](https://wassim-k.github.io/apollo-orbit).
 
 ## 🤝 Contributing
 

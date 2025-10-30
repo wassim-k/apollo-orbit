@@ -1,9 +1,9 @@
-# 🚀 Apollo Orbit - Core
-Apollo Orbit state management core package.
+# 🚀 Orbit for Apollo Client - Core
+Orbit state management core package.
 
 ## 📚 Documentation
 
-For full documentation, please visit [Apollo Orbit Docs](https://wassim-k.github.io/apollo-orbit).
+For full documentation, please visit [Orbit Docs](https://wassim-k.github.io/apollo-orbit).
 
 ## 🤝 Contributing
 

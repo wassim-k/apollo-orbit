@@ -1,9 +1,9 @@
-# 🚀 Apollo Orbit - React
-Apollo Client modular state management abstraction.
+# 🚀 Orbit for Apollo Client - React
+Apollo Client modular state management abstraction / flux architecture.
 
 ## 📚 Documentation
 
-For full documentation, please visit [Apollo Orbit Docs](https://wassim-k.github.io/apollo-orbit).
+For full documentation, please visit [Orbit Docs](https://wassim-k.github.io/apollo-orbit).
 
 ## 🤝 Contributing
 

@@ -1,4 +1,4 @@
-# 🚀 Apollo Orbit
+# 🚀 Orbit for Apollo Client
 
 ## 📦 Packages
 * [🅰️ Angular](./packages/angular/)
@@ -6,7 +6,7 @@
 
 ## 📚 Documentation
 
-For full documentation, please visit [Apollo Orbit Docs](https://wassim-k.github.io/apollo-orbit).
+For full documentation, please visit [Orbit Docs](https://wassim-k.github.io/apollo-orbit).
 
 ## 🤝 Contributing
 
