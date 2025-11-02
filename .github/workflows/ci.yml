@@ -55,3 +55,31 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: codegen
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Release')
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Fetch all tags
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Publish to npm
+        run: yarn lerna publish from-git --yes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

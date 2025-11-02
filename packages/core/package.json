@@ -17,7 +17,8 @@
     "state-management"
   ],
   "publishConfig": {
-    "directory": "dist"
+    "directory": "dist",
+    "access": "public"
   },
   "scripts": {
     "build": "ng-packagr --config ./tsconfig.lib.json -p ng-package.json",
