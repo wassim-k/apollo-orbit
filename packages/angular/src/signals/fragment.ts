@@ -13,45 +13,45 @@ export type SignalFragmentResult<TData> =
 // import { ApolloCache.WatchFragmentOptions as SignalFragmentOptions } from '@apollo/client';
 export interface SignalFragmentOptions<TData = unknown, TVariables extends Variables = Variables> {
   /**
-   * A GraphQL fragment document parsed into an AST with the `gql`
-   * template literal.
-   *
-   * @docGroup 1. Required options
-   */
+  * A GraphQL fragment document parsed into an AST with the `gql`
+  * template literal.
+  *
+  * @docGroup 1. Required options
+  */
   fragment: DocumentNode | TypedDocumentNode<TData, TVariables>;
   /**
-   * An object containing a `__typename` and primary key fields
-   * (such as `id`) identifying the entity object from which the fragment will
-   * be retrieved, or a `{ __ref: "..." }` reference, or a `string` ID
-   * (uncommon).
-   *
-   * @docGroup 1. Required options
-   */
+  * An object containing a `__typename` and primary key fields
+  * (such as `id`) identifying the entity object from which the fragment will
+  * be retrieved, or a `{ __ref: "..." }` reference, or a `string` ID
+  * (uncommon).
+  *
+  * @docGroup 1. Required options
+  */
   from:
   | StoreObject | Reference | FragmentType<NoInfer<TData>> | string
   | (() => StoreObject | Reference | FragmentType<NoInfer<TData>> | string);
   /**
-   * Any variables that the GraphQL fragment may depend on.
-   *
-   * @docGroup 2. Cache options
-   */
+  * Any variables that the GraphQL fragment may depend on.
+  *
+  * @docGroup 2. Cache options
+  */
   variables?: NoInfer<TVariables> | (() => NoInfer<TVariables>);
   /**
-   * The name of the fragment defined in the fragment document.
-   *
-   * Required if the fragment document includes more than one fragment,
-   * optional otherwise.
-   *
-   * @docGroup 2. Cache options
-   */
+  * The name of the fragment defined in the fragment document.
+  *
+  * Required if the fragment document includes more than one fragment,
+  * optional otherwise.
+  *
+  * @docGroup 2. Cache options
+  */
   fragmentName?: string;
   /**
-   * If `true`, `watchFragment` returns optimistic results.
-   *
-   * The default value is `true`.
-   *
-   * @docGroup 2. Cache options
-   */
+  * If `true`, `watchFragment` returns optimistic results.
+  *
+  * The default value is `true`.
+  *
+  * @docGroup 2. Cache options
+  */
   optimistic?: boolean;
 
   /**

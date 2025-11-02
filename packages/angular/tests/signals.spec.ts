@@ -1,6 +1,6 @@
 import { Injector, signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { Apollo } from '@apollo-orbit/angular';
+import { Apollo, SingleQueryResult } from '@apollo-orbit/angular';
 import { gql, NetworkStatus, TypedDocumentNode } from '@apollo/client';
 import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
@@ -295,11 +295,6 @@ describe('Signals', () => {
         result: { data: { books: [{ id: '1' }] } }
       });
 
-      mockLink.addMockedResponse({
-        request: { query, variables: { offset: 1 } },
-        result: { data: { books: [{ id: '2' }] } }
-      });
-
       const signalQuery = apollo.signal.query<BooksData>({
         query,
         variables: () => ({ offset: 0 }),
@@ -309,15 +304,45 @@ describe('Signals', () => {
       tick();
       expect(signalQuery.data()).toEqual({ books: [{ id: '1' }] });
 
-      signalQuery.fetchMore({
-        variables: { offset: 1 },
-        updateQuery: (prev, { fetchMoreResult }) => ({
-          books: [...prev.books, ...fetchMoreResult.books]
-        })
+      mockLink.addMockedResponse({
+        request: { query, variables: { offset: 1 } },
+        result: { data: { books: [{ id: '2' }] } }
       });
+
+      let result: SingleQueryResult<BooksData> = { data: undefined };
+
+      signalQuery
+        .fetchMore({
+          variables: { offset: 1 },
+          updateQuery: (prev, { fetchMoreResult }) => ({
+            books: [...prev.books, ...fetchMoreResult.books]
+          })
+        })
+        .then(r => void (result = r));
 
       tick();
       expect(signalQuery.data()).toEqual({ books: [{ id: '1' }, { id: '2' }] });
+      expect(result.data).toEqual({ books: [{ id: '2' }] });
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { offset: 2 } },
+        result: { data: { books: [{ id: '2' }] } },
+        error: new Error('Network error')
+      });
+
+      signalQuery
+        .fetchMore({
+          variables: { offset: 2 },
+          updateQuery: (prev, { fetchMoreResult }) => ({
+            books: [...prev.books, ...fetchMoreResult.books]
+          })
+        })
+        .then(r => void (result = r));
+
+      tick();
+      expect(signalQuery.data()).toEqual({ books: [{ id: '1' }, { id: '2' }] });
+      expect(result.data).toBeUndefined();
+      expect(result.error?.message).toBe('Network error');
     }));
 
     describe('lazy', () => {
@@ -367,31 +392,42 @@ describe('Signals', () => {
         expect(result.data).toEqual({ value: 'expected' });
       });
 
-      it('should resolve promise on query error (errorPolicy: \'none\')', async () => {
-        const errorFn = vi.fn();
+      for (const errorPolicy of ['none', 'all'] as const) {
+        it('should resolve promise on query error', async () => {
+          const query = gql`query { value }`;
 
-        const query = gql`query { value }`;
+          mockLink.addMockedResponse({
+            request: { query },
+            error: new TypeError('Failed to fetch')
+          });
 
-        mockLink.addMockedResponse({
-          request: { query },
-          error: new TypeError('Failed to fetch')
+          const lazyQuery = apollo.signal.query<Value>({ injector, query, errorPolicy, lazy: true });
+          expect(lazyQuery.active()).toBe(false);
+
+          let result = await lazyQuery.execute();
+
+          expect(result.data).toBeUndefined();
+          expect(result.error).toEqual(new TypeError('Failed to fetch'));
+          expect(lazyQuery.loading()).toBe(false);
+          expect(lazyQuery.data()).toBeUndefined();
+          expect(lazyQuery.active()).toBe(true);
+          expect(lazyQuery.error()).toEqual(new TypeError('Failed to fetch'));
+
+          mockLink.addMockedResponse({
+            request: { query },
+            error: new TypeError('Failed to fetch again')
+          });
+
+          result = await lazyQuery.refetch();
+
+          expect(result.data).toBeUndefined();
+          expect(result.error).toEqual(new TypeError('Failed to fetch again'));
+          expect(lazyQuery.loading()).toBe(false);
+          expect(lazyQuery.data()).toBeUndefined();
+          expect(lazyQuery.active()).toBe(true);
+          expect(lazyQuery.error()).toEqual(new TypeError('Failed to fetch again'));
         });
-
-        const lazyQuery = apollo.signal.query<Value>({ injector, query, lazy: true, errorPolicy: 'none' });
-        expect(lazyQuery.active()).toBe(false);
-
-        try {
-          await lazyQuery.execute();
-        } catch (error) {
-          errorFn(error);
-        }
-
-        expect(lazyQuery.loading()).toBe(false);
-        expect(lazyQuery.data()).toBeUndefined();
-        expect(lazyQuery.active()).toBe(true);
-        expect(lazyQuery.error()).toEqual(new TypeError('Failed to fetch'));
-        expect(errorFn).toHaveBeenCalledWith(new TypeError('Failed to fetch'));
-      });
+      }
 
       it('should support returning error result from execute', async () => {
         const query = gql`query { value }`;
@@ -963,29 +999,30 @@ describe('Signals', () => {
       expect(signalMutation.error()?.message).toContain('Mutation error');
     }));
 
-    it('should return result on mutate error', async () => {
-      const errorFn = vi.fn();
-      const mutation = gql`mutation { updateValue }`;
-      mockLink.addMockedResponse({
-        request: { query: mutation },
-        error: new TypeError('Failed to fetch')
+    for (const errorPolicy of ['none', 'all'] as const) {
+      it('should return result on mutate error', async () => {
+        const errorFn = vi.fn();
+        const mutation = gql`mutation { updateValue }`;
+        mockLink.addMockedResponse({
+          request: { query: mutation },
+          error: new TypeError('Failed to fetch')
+        });
+
+        const signalMutation = apollo.signal.mutation(mutation, { errorPolicy, onError: error => errorFn(error) });
+
+        const result = await signalMutation.mutate();
+
+        expect(result.data).toBeUndefined();
+        expect(result.error).toBeDefined();
+        expect(result.error?.message).toContain('Failed to fetch');
+        expect(signalMutation.loading()).toBe(false);
+        expect(signalMutation.called()).toBe(true);
+        expect(signalMutation.data()).toBeUndefined();
+        expect(signalMutation.error()).toBeDefined();
+        expect(signalMutation.error()?.message).toContain('Failed to fetch');
+        expect(errorFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Failed to fetch' }));
       });
-
-      const signalMutation = apollo.signal.mutation(mutation, { errorPolicy: 'none' });
-
-      try {
-        await signalMutation.mutate();
-      } catch (error) {
-        errorFn(error);
-      }
-
-      expect(signalMutation.loading()).toBe(false);
-      expect(signalMutation.called()).toBe(true);
-      expect(signalMutation.data()).toBeUndefined();
-      expect(signalMutation.error()).toBeDefined();
-      expect(signalMutation.error()?.message).toContain('Failed to fetch');
-      expect(errorFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Failed to fetch' }));
-    });
+    }
 
     it('should reset mutation state', fakeAsync(() => {
       const mutation = gql`mutation { updateValue }`;
