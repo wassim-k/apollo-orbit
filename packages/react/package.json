@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/react",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Apollo Client (React) modular state management abstraction / flux architecture",
   "license": "MIT",
   "sideEffects": false,
@@ -36,7 +36,7 @@
     "react": ">=16.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^2.0.0"
+    "@apollo-orbit/core": "^2.1.0"
   },
   "devDependencies": {
     "@testing-library/dom": "~10.4.1",

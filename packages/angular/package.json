@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/angular",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A full-featured GraphQL client for Angular",
   "license": "MIT",
   "sideEffects": false,
@@ -36,7 +36,7 @@
     "rxjs": ">=7.0.0"
   },
   "dependencies": {
-    "@apollo-orbit/core": "^2.0.0"
+    "@apollo-orbit/core": "^2.1.0"
   },
   "devDependencies": {
     "@analogjs/vite-plugin-angular": "^1.22.4",

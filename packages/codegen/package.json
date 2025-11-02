@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/codegen",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "GraphQL Code Generator plugin for Orbit",
   "license": "MIT",
   "sideEffects": false,
