@@ -45,10 +45,7 @@ export class MutationManager {
   public wrapMutationOptions<TData, TVariables extends Variables = DefaultContext>(
     options: ApolloClient.MutateOptions<TData, TVariables>
   ): ApolloClient.MutateOptions<TData, TVariables> {
-    return {
-      ...options,
-      ...this.withMutationOptions(options)
-    } as ApolloClient.MutateOptions<TData, TVariables>;
+    return { ...options, ...this.withMutationOptions(options) } as ApolloClient.MutateOptions<TData, TVariables>;
   }
 
   public withMutationOptions<TData, TVariables extends Variables, TCache extends ApolloCache>(

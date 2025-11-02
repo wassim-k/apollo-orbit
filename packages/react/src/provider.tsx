@@ -1,10 +1,10 @@
-import { State, createSymbol } from '@apollo-orbit/core';
+import { State } from '@apollo-orbit/core';
 import { useApolloClient } from '@apollo/client/react';
 import React, { JSX, useContext, useEffect, useRef, useState } from 'react';
 import { ApolloOrbitContext, ApolloOrbitContextValue } from './context';
 import { wrapMutate } from './wrapMutate';
 
-const wrappedSymbol = createSymbol('apollo-orbit.mutate-wrapped');
+const MUTATE = Symbol('ORBIT.MUTATE');
 
 export function ApolloOrbitProvider({
   states,
@@ -24,8 +24,8 @@ export function ApolloOrbitProvider({
 
       const mutationManager = stateManager.addStates(client, states);
 
-      if (!(wrappedSymbol in client)) {
-        Object.assign(client, { [wrappedSymbol]: true });
+      if (!(MUTATE in client)) {
+        Object.assign(client, { [MUTATE]: true });
         client.mutate = wrapMutate(mutationManager, client.mutate.bind(client));
       }
 

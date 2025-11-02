@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import { state } from '@apollo-orbit/core';
 import { ApolloOrbitProvider } from '@apollo-orbit/react';
 import { ApolloClient, gql, InMemoryCache } from '@apollo/client';
@@ -10,8 +8,8 @@ import React, { useEffect } from 'react';
 import * as wrapMutate from '../src/wrapMutate';
 import { ADD_AUTHOR_MUTATION } from './graphql';
 
-let update1Mock: jest.Mock;
-let update2Mock: jest.Mock;
+let update1Mock: ReturnType<typeof vi.fn>;
+let update2Mock: ReturnType<typeof vi.fn>;
 
 const cache1 = new InMemoryCache();
 const cache2 = new InMemoryCache();
@@ -30,8 +28,8 @@ const testState2 = state(descriptor => descriptor
 
 describe('Multi', () => {
   beforeEach(() => {
-    update1Mock = jest.fn();
-    update2Mock = jest.fn();
+    update1Mock = vi.fn();
+    update2Mock = vi.fn();
     MockLink.defaultOptions = { delay: 0 };
   });
 
@@ -196,7 +194,7 @@ describe('Multi', () => {
   });
 
   it('should add states lazily', async () => {
-    const wrapMutateSpy = jest.spyOn(wrapMutate, 'wrapMutate');
+    const wrapMutateSpy = vi.spyOn(wrapMutate, 'wrapMutate');
 
     const client1 = new ApolloClient({
       cache: cache1,

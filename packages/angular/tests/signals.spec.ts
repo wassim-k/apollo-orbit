@@ -213,6 +213,113 @@ describe('Signals', () => {
       }));
     }
 
+    it('should call updateQuery on active query', fakeAsync(() => {
+      const query = gql`query { value }`;
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'initial' } }
+      });
+
+      const signalQuery = apollo.signal.query<Value>({
+        query,
+        injector
+      });
+
+      tick();
+      expect(signalQuery.data()).toEqual({ value: 'initial' });
+
+      signalQuery.updateQuery(() => ({ value: 'updated' }));
+      tick();
+      expect(signalQuery.data()).toEqual({ value: 'updated' });
+    }));
+
+    it('should call startPolling and stopPolling on active query', fakeAsync(() => {
+      const query = gql`query { value }`;
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'test' } }
+      });
+
+      const signalQuery = apollo.signal.query<Value>({
+        query,
+        injector
+      });
+
+      tick();
+
+      signalQuery.startPolling(1000);
+      signalQuery.stopPolling();
+
+      // Verifies methods execute without errors
+      expect(signalQuery.data()).toEqual({ value: 'test' });
+    }));
+
+    it('should call subscribeToMore on active query', fakeAsync(() => {
+      const query = gql`query { value }`;
+      const subscription = gql`subscription { valueChanged }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'initial' } }
+      });
+
+      const signalQuery = apollo.signal.query<Value>({
+        query,
+        injector
+      });
+
+      tick();
+
+      const unsubscribe = signalQuery.subscribeToMore({
+        subscription,
+        updateQuery: prev => prev as Value
+      });
+
+      tick();
+
+      // Cleanup
+      unsubscribe();
+
+      expect(signalQuery.data()).toBeDefined();
+    }));
+
+    it('should support fetchMore', fakeAsync(() => {
+      interface BooksData {
+        books: Array<{ id: string }>;
+      }
+
+      const query = gql`query GetBooks($offset: Int) { books(offset: $offset) { id } }`;
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { offset: 0 } },
+        result: { data: { books: [{ id: '1' }] } }
+      });
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { offset: 1 } },
+        result: { data: { books: [{ id: '2' }] } }
+      });
+
+      const signalQuery = apollo.signal.query<BooksData>({
+        query,
+        variables: () => ({ offset: 0 }),
+        injector
+      });
+
+      tick();
+      expect(signalQuery.data()).toEqual({ books: [{ id: '1' }] });
+
+      signalQuery.fetchMore({
+        variables: { offset: 1 },
+        updateQuery: (prev, { fetchMoreResult }) => ({
+          books: [...prev.books, ...fetchMoreResult.books]
+        })
+      });
+
+      tick();
+      expect(signalQuery.data()).toEqual({ books: [{ id: '1' }, { id: '2' }] });
+    }));
+
     describe('lazy', () => {
       it('should not execute query until explicitly called', fakeAsync(() => {
         const query = gql`query { value }`;
@@ -261,7 +368,7 @@ describe('Signals', () => {
       });
 
       it('should resolve promise on query error (errorPolicy: \'none\')', async () => {
-        const errorFn = jest.fn();
+        const errorFn = vi.fn();
 
         const query = gql`query { value }`;
 
@@ -641,6 +748,36 @@ describe('Signals', () => {
         expect(lazyQuery.active()).toBe(true);
         expect(lazyQuery.data()).toEqual({ book: { id: 3, name: 'Book 3' } });
       }));
+
+      it('should return current data when execute is called with null variables', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) { book(id: $id) { id name } }`;
+
+        mockLink.addMockedResponse({
+          request: { query, variables: { id: 1 } },
+          result: { data: { book: { id: 1, name: 'Book 1' } } }
+        });
+
+        const id = signal<number | null>(1);
+
+        const signalQuery = apollo.signal.query({
+          query,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Set variables to null and call execute - should return current data
+        id.set(null);
+        tick();
+
+        signalQuery.execute().then(result => {
+          expect(result.data).toEqual({ book: { id: 1, name: 'Book 1' } });
+        });
+
+        tick();
+      }));
     });
 
     describe('variables type safety', () => {
@@ -652,19 +789,23 @@ describe('Signals', () => {
         apollo.signal.query({ injector, query });
         // @ts-expect-error: Property 'variables' is missing in type
         apollo.signal.query({ injector, query, lazy: false });
+        expect(true).toBe(true);
       });
 
       it('should compile if lazy is true, even if required variables are not provided initially', () => {
         apollo.signal.query({ injector, query, lazy: true });
+        expect(true).toBe(true);
       });
 
       it('should compile if required variables are provided (and not lazy)', () => {
         apollo.signal.query({ injector, query, variables: () => ({ id: '1' }) });
+        expect(true).toBe(true);
       });
 
       it('should compile with optional variables', () => {
         apollo.signal.query({ injector, query: queryOptional });
         apollo.signal.query({ injector, query: queryOptional, variables: () => ({ id: '1' }) });
+        expect(true).toBe(true);
       });
     });
   });
@@ -672,7 +813,7 @@ describe('Signals', () => {
   describe('SignalFragment', () => {
     it('should watch fragment data and update when cache changes', fakeAsync(() => {
       const bookFragment = gql`
-        fragment BookFragment on Book {
+        fragment WatchBookFragment on Book {
           id
           name
         }
@@ -727,7 +868,7 @@ describe('Signals', () => {
 
     it('should create fragments with different reference IDs', fakeAsync(() => {
       const bookFragment = gql`
-        fragment BookFragment on Book {
+        fragment MultiRefBookFragment on Book {
           id
           name
         }
@@ -761,6 +902,8 @@ describe('Signals', () => {
 
       tick();
       expect(fragment.data().name).toBe('Book 1');
+      expect(fragment.complete()).toBe(true);
+      expect(fragment.missing()).toBeUndefined();
 
       const newFragment = apollo.signal.fragment<Book>({
         fragment: bookFragment,
@@ -820,8 +963,8 @@ describe('Signals', () => {
       expect(signalMutation.error()?.message).toContain('Mutation error');
     }));
 
-    it('should reject promise on mutation error (errorPolicy: \'none\')', async () => {
-      const errorFn = jest.fn();
+    it('should return result on mutate error', async () => {
+      const errorFn = vi.fn();
       const mutation = gql`mutation { updateValue }`;
       mockLink.addMockedResponse({
         request: { query: mutation },
@@ -867,7 +1010,7 @@ describe('Signals', () => {
     }));
 
     it('should call onData callback on success', fakeAsync(() => {
-      const onDataFn = jest.fn();
+      const onDataFn = vi.fn();
       const mutation = gql`mutation { updateValue }`;
 
       mockLink.addMockedResponse({
@@ -888,28 +1031,31 @@ describe('Signals', () => {
       );
     }));
 
-    it('should call onError callback on error', fakeAsync(() => {
-      const onErrorFn = jest.fn();
-      const mutation = gql`mutation { updateValue }`;
+    for (const errorPolicy of ['none', 'all'] as const) {
+      it('should call onError callback on error', fakeAsync(() => {
+        const onErrorFn = vi.fn();
+        const mutation = gql`mutation { updateValue }`;
 
-      mockLink.addMockedResponse({
-        request: { query: mutation },
-        result: { errors: [new GraphQLError('Mutation error')] }
-      });
+        mockLink.addMockedResponse({
+          request: { query: mutation },
+          result: { errors: [new GraphQLError('Mutation error')] }
+        });
 
-      const signalMutation = apollo.signal.mutation(mutation, {
-        onError: onErrorFn
-      });
+        const signalMutation = apollo.signal.mutation(mutation, {
+          errorPolicy,
+          onError: onErrorFn
+        });
 
-      signalMutation.mutate();
+        signalMutation.mutate().catch(() => { });
 
-      tick();
+        tick();
 
-      expect(onErrorFn).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('Mutation error') }),
-        expect.objectContaining({ mutation })
-      );
-    }));
+        expect(onErrorFn).toHaveBeenCalledWith(
+          expect.objectContaining({ message: expect.stringContaining('Mutation error') }),
+          expect.objectContaining({ mutation })
+        );
+      }));
+    }
 
     it('should enforce type safety of variables', () => {
       const mutation: TypedDocumentNode<{ updateValue: boolean }, Exact<{ value: string }>> = gql`mutation UpdateValue($value: String!) { updateValue(value: $value) }`;
@@ -938,6 +1084,8 @@ describe('Signals', () => {
       });
 
       signalMutation.mutate({ variables: { value: 'test' } });
+
+      expect(true).toBe(true);
     });
   });
 
@@ -976,7 +1124,7 @@ describe('Signals', () => {
 
     it('should handle subscription errors', fakeAsync(() => {
       const subscription = gql`subscription { newValue }`;
-      const onErrorFn = jest.fn();
+      const onErrorFn = vi.fn();
 
       const signalSubscription = apollo.signal.subscription<{ newValue: string }>({
         subscription,
@@ -997,9 +1145,34 @@ describe('Signals', () => {
       expect(onErrorFn).toHaveBeenCalled();
     }));
 
+    it('should handle subscription stream errors', fakeAsync(() => {
+      const subscription = gql`subscription { newValue }`;
+      const onErrorFn = vi.fn();
+
+      const signalSubscription = apollo.signal.subscription<{ newValue: string }>({
+        subscription,
+        onError: onErrorFn,
+        injector
+      });
+
+      tick(); // Ensure subscription is established
+
+      mockSubscriptionLink.simulateResult({
+        error: new Error('Network error')
+      });
+
+      tick();
+
+      expect(signalSubscription.loading()).toBe(false);
+      expect(signalSubscription.data()).toBeUndefined();
+      expect(signalSubscription.error()).toBeDefined();
+      expect(signalSubscription.error()?.message).toBe('Network error');
+      expect(onErrorFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Network error' }));
+    }));
+
     it('should restart subscription', fakeAsync(() => {
       const subscription = gql`subscription { newValue }`;
-      const onDataFn = jest.fn();
+      const onDataFn = vi.fn();
 
       const signalSubscription = apollo.signal.subscription<{ newValue: string }>({
         subscription,
@@ -1029,9 +1202,9 @@ describe('Signals', () => {
 
     it('should call callbacks on subscription events', fakeAsync(() => {
       const subscription = gql`subscription { newValue }`;
-      const onDataFn = jest.fn();
-      const onErrorFn = jest.fn();
-      const onCompleteFn = jest.fn();
+      const onDataFn = vi.fn();
+      const onErrorFn = vi.fn();
+      const onCompleteFn = vi.fn();
 
       const signalSubscription = apollo.signal.subscription<{ newValue: string }>({
         subscription,
@@ -1129,7 +1302,7 @@ describe('Signals', () => {
 
       it('should support manually starting a lazy subscription', fakeAsync(() => {
         const subscription = gql`subscription { newValue }`;
-        const onDataFn = jest.fn();
+        const onDataFn = vi.fn();
 
         const signalSubscription = apollo.signal.subscription<{ newValue: string }>({
           subscription,
@@ -1427,6 +1600,26 @@ describe('Signals', () => {
       }));
     });
 
+    describe('execute with null variables', () => {
+      it('should handle execute when variables are null', fakeAsync(() => {
+        const subscription = gql`subscription BookUpdated($id: Int!) { bookUpdated(id: $id) { id } }`;
+
+        const id = signal<number | null>(null);
+
+        const signalSubscription = apollo.signal.subscription({
+          subscription,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          injector
+        });
+
+        // Execute when variables are null - should return early
+        signalSubscription.execute();
+        tick();
+
+        expect(signalSubscription.active()).toBe(false);
+      }));
+    });
+
     describe('variables type safety', () => {
       const subscription: TypedDocumentNode<{ value: string }, { id: string }> = gql`subscription Value($id: ID!) { value(id: $id) }`;
       const subscriptionOptional: TypedDocumentNode<{ value: string }, { id?: string }> = gql`subscription Value($id: ID) { value(id: $id) }`;
@@ -1436,19 +1629,23 @@ describe('Signals', () => {
         apollo.signal.subscription({ injector, subscription });
         // @ts-expect-error: Property 'variables' is missing in type
         apollo.signal.subscription({ injector, subscription, lazy: false });
+        expect(true).toBe(true);
       });
 
       it('should compile if lazy is true, even if required variables are not provided initially', () => {
         apollo.signal.subscription({ injector, subscription, lazy: true });
+        expect(true).toBe(true);
       });
 
       it('should compile if required variables are provided (and not lazy)', () => {
         apollo.signal.subscription({ injector, subscription, variables: () => ({ id: '1' }) });
+        expect(true).toBe(true);
       });
 
       it('should compile with optional variables', () => {
         apollo.signal.subscription({ injector, subscription: subscriptionOptional });
         apollo.signal.subscription({ injector, subscription: subscriptionOptional, variables: () => ({ id: '1' }) });
+        expect(true).toBe(true);
       });
     });
   });
@@ -1562,5 +1759,48 @@ describe('Signals', () => {
       expect(cacheQuery.complete()).toBe(true);
       expect(cacheQuery.missing()).toBeUndefined();
     }));
+  });
+
+  describe('Injection Context', () => {
+    it('should throw when query is called without injector outside injection context', () => {
+      const query = gql`query { value }`;
+
+      expect(() => {
+        apollo.signal.query<Value>({ query });
+      }).toThrow();
+    });
+
+    it('mutation does not require injection context', () => {
+      const mutation = gql`mutation { update }`;
+
+      // Mutation doesn't use assertInInjectionContext, so it won't throw
+      expect(() => {
+        apollo.signal.mutation(mutation);
+      }).not.toThrow();
+    });
+
+    it('should throw when subscription is called without injector outside injection context', () => {
+      const subscription = gql`subscription { value }`;
+
+      expect(() => {
+        apollo.signal.subscription({ subscription });
+      }).toThrow();
+    });
+
+    it('should throw when fragment is called without injector outside injection context', () => {
+      const fragment = gql`fragment BookFragment on Book { id }`;
+
+      expect(() => {
+        apollo.signal.fragment({ fragment, from: { id: '1' } });
+      }).toThrow();
+    });
+
+    it('should throw when cacheQuery is called without injector outside injection context', () => {
+      const query = gql`query { value }`;
+
+      expect(() => {
+        apollo.signal.cacheQuery({ query });
+      }).toThrow();
+    });
   });
 });

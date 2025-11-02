@@ -3,7 +3,6 @@ import type { LocalState } from '@apollo/client/local-state';
 import { identity, lastValueFrom, Observable } from 'rxjs';
 import { nameOfMutation } from './internal';
 import { Action, ActionFn, ActionType, EffectFn, MutationIdentifier, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn, TypeField } from './types';
-import { createSymbol } from './utils/symbol';
 
 export interface State {
   clientId: string;
@@ -18,12 +17,12 @@ export interface State {
   onInit?: (cache: ApolloCache) => void;
 }
 
-export const STATE_DEFINITION_SYMBOL: unique symbol = createSymbol('STATE_DEFINITION') as any;
+export const STATE_DEFINITION = Symbol('ORBIT.STATE_DEFINITION');
 
 export function state(configure: (descriptor: StateDescriptor) => StateDescriptor | void, definition?: State): State {
   const descriptor = new StateDescriptor(definition);
   configure(descriptor);
-  return descriptor[STATE_DEFINITION_SYMBOL];
+  return descriptor[STATE_DEFINITION];
 }
 
 export class StateDescriptor {
@@ -33,7 +32,7 @@ export class StateDescriptor {
     this.definition = definition ?? createDefaultStateDefinition();
   }
 
-  private get [STATE_DEFINITION_SYMBOL](): State {
+  private get [STATE_DEFINITION](): State {
     return this.definition;
   }
 

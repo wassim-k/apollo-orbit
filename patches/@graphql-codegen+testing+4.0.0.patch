@@ -1,0 +1,11 @@
+diff --git a/node_modules/@graphql-codegen/testing/esm/typescript.js b/node_modules/@graphql-codegen/testing/esm/typescript.js
+index d8cd2f2..ce4e252 100644
+--- a/node_modules/@graphql-codegen/testing/esm/typescript.js
++++ b/node_modules/@graphql-codegen/testing/esm/typescript.js
+@@ -1,5 +1,5 @@
+ import { dirname, join, resolve } from 'path';
+-import { compressToEncodedURIComponent } from 'lz-string';
++import LZString from 'lz-string'; const compressToEncodedURIComponent = LZString.compressToEncodedURIComponent;
+ import { createCompilerHost, createProgram, createSourceFile, flattenDiagnosticMessageText, JsxEmit, ModuleKind, ModuleResolutionKind, ScriptKind, ScriptTarget, } from 'typescript';
+ export function validateTs(pluginOutput, options = {
+     noEmitOnError: true,

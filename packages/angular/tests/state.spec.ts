@@ -3,14 +3,15 @@ import { Component, inject, NgModule } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
 import { provideRouter, RouterModule } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { Apollo, InMemoryCache, provideApollo, provideApolloInstance, withApolloOptions, ɵApolloRegistry } from '@apollo-orbit/angular';
+import { Apollo, gql, InMemoryCache, provideApollo, provideApolloInstance, withApolloOptions, ɵApolloRegistry } from '@apollo-orbit/angular';
 import { ApolloActions, provideStates, state, withState } from '@apollo-orbit/angular/state';
 import { ApolloLink } from '@apollo/client';
 import { LocalState } from '@apollo/client/local-state';
 import { from, timer } from 'rxjs';
 import { map, mergeMap, tap } from 'rxjs/operators';
 import { v4 as uuid } from 'uuid';
-import { ADD_BOOK_CLIENT_MUTATION, AddBookInput, gqlAddBookClientMutation, gqlAuthorClientQuery, gqlAuthorsClientQuery, gqlBooksClientQuery, MutationAddBookArgs, Query } from './graphql';
+import { Mock } from 'vitest';
+import { ADD_BOOK_CLIENT_MUTATION, AddBookInput, gqlAddBookClientMutation, gqlAuthorClientQuery, gqlAuthorsClientQuery, gqlBooksClientQuery, gqlLibraryRecordsQuery, MutationAddBookArgs, Query } from './graphql';
 
 const author1Id = uuid();
 const author2Id = uuid();
@@ -35,7 +36,19 @@ class TestComponent {
   public readonly booksQuery = this.apollo.query(gqlBooksClientQuery());
 }
 
+const effectMock = vi.fn();
+
 const testState = () => state(descriptor => descriptor
+  .typeDefs(gql`
+    extend type Query {
+      libraryRecords: [LibraryRecord!]!
+    }
+
+    union LibraryRecord = Book | Author
+  `)
+  .possibleTypes({
+    LibraryItem: ['Book', 'Magazine']
+  })
   .typePolicies({
     Query: {
       fields: {
@@ -56,6 +69,18 @@ const testState = () => state(descriptor => descriptor
           { __typename: 'Book', id: '2', name: 'Book 2', genre: 'History', authorId: author1Id },
           { __typename: 'Book', id: '3', name: 'Book 3', genre: 'Science', authorId: author1Id },
           { __typename: 'Book', id: '4', name: 'Book 4', genre: 'Biography', authorId: author2Id }
+        ]
+      }
+    });
+
+    cache.writeQuery({
+      ...gqlLibraryRecordsQuery(),
+      data: {
+        libraryRecords: [
+          { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: author1Id },
+          { __typename: 'Book', id: '2', name: 'Book 2', genre: 'History', authorId: author2Id },
+          { __typename: 'Author', id: author1Id, name: 'Author 1' },
+          { __typename: 'Author', id: author2Id, name: 'Author 2' }
         ]
       }
     });
@@ -84,6 +109,7 @@ const testState = () => state(descriptor => descriptor
       tap(book => cache.updateQuery(gqlBooksClientQuery(), data => data ? { books: [...data.books, book] } : data))
     );
   })
+  .effect(ADD_BOOK_CLIENT_MUTATION, effectMock)
 );
 
 describe('State', () => {
@@ -98,6 +124,8 @@ describe('State', () => {
           )
         ]
       });
+
+      effectMock.mockClear();
     });
 
     describe('query', () => {
@@ -123,6 +151,25 @@ describe('State', () => {
           expect(result.data?.author.id).toEqual(author1Id);
         });
       }));
+
+      it('should support possibleTypes configuration', waitForAsync(() => {
+        const apollo = TestBed.inject(Apollo);
+
+        // Query using fragments on the LibraryRecord union type
+        apollo.query(gqlLibraryRecordsQuery()).subscribe(result => {
+          const records = result.data?.libraryRecords ?? [];
+          expect(records).toHaveLength(4);
+
+          const books = records.filter(item => item.__typename === 'Book');
+          const authors = records.filter(item => item.__typename === 'Author');
+
+          expect(books).toHaveLength(2);
+          expect(authors).toHaveLength(2);
+
+          expect(authors[0].name).toEqual('Author 1');
+          expect(authors[1].name).toEqual('Author 2');
+        });
+      }));
     });
 
     describe('update', () => {
@@ -133,6 +180,7 @@ describe('State', () => {
           mergeMap(() => apollo.query(gqlBooksClientQuery()))
         ).subscribe(({ data }) => {
           expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
+          expect(effectMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ data: expect.objectContaining({ addBook: expect.objectContaining(book) }) }));
         });
       }));
     });
@@ -152,9 +200,9 @@ describe('State', () => {
   });
 
   describe('childState', () => {
-    let rootFn: jest.Mock;
-    let child1Fn: jest.Mock;
-    let child2Fn: jest.Mock;
+    let rootFn: Mock;
+    let child1Fn: Mock;
+    let child2Fn: Mock;
 
     const rootState = () => state(descriptor => descriptor
       .action(AddBook, (action, _ctx) => rootFn())
@@ -169,9 +217,9 @@ describe('State', () => {
     );
 
     beforeEach(() => {
-      rootFn = jest.fn();
-      child1Fn = jest.fn();
-      child2Fn = jest.fn();
+      rootFn = vi.fn();
+      child1Fn = vi.fn();
+      child2Fn = vi.fn();
     });
 
     it('should provide child states using provideStates (standalone)', async () => {

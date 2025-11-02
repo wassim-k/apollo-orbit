@@ -11,7 +11,8 @@ export default tseslint.config(
       '**/.angular/**',
       '**/dist/**',
       '**/.bob/**',
-      '**/node_modules/**'
+      '**/coverage/**',
+      '**/node_modules/**',
     ]
   },
   {
@@ -69,7 +70,6 @@ export default tseslint.config(
         'multi-line',
         'consistent'
       ],
-      'default-case': 'error',
       'dot-location': [
         'error',
         'property'
@@ -430,7 +430,13 @@ export default tseslint.config(
           allowNullableBoolean: true
         }
       ],
-      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': [
+        'error',
+        {
+          allowDefaultCaseForExhaustiveSwitch: true,
+          requireDefaultForNonUnion: false
+        }
+      ],
       '@typescript-eslint/unbound-method': [
         'error',
         {
@@ -447,6 +453,7 @@ export default tseslint.config(
       // Rules that are turned off because they're handled by other rules or not needed
       'brace-style': 'off',
       'comma-spacing': 'off',
+      'default-case': 'off',
       'default-param-last': 'off',
       'function-call-spacing': 'off',
       'indent': 'off',
@@ -480,7 +487,6 @@ export default tseslint.config(
       'packages/*/tests/**/*.{ts,tsx}',
       'integration/**/*.{ts,tsx}'
     ],
-    // ignores: ['**/dist/**', '**/node_modules/**']
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
@@ -494,8 +500,8 @@ export default tseslint.config(
   // React specific configuration
   {
     files: [
-      'packages/react/**/*.{ts,tsx}',
-      'integration/react/**/*.{ts,tsx}'
+      'packages/react/src/**/*.{ts,tsx}',
+      'integration/react/src/**/*.{ts,tsx}'
     ],
     settings: {
       react: {

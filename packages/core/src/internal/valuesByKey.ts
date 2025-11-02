@@ -16,8 +16,4 @@ export class ValuesByKey<T> {
       this.store[key] = [...add, value];
     });
   }
-
-  public forEach(fn: (value: Array<T>, key: string) => void): void {
-    Object.keys(this.store).map(key => fn(this.store[key] as Array<T>, key));
-  }
 }

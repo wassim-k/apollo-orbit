@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import { ApolloOrbitProvider, state, useDispatch } from '@apollo-orbit/react';
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloLink } from '@apollo/client/link';
@@ -7,17 +5,18 @@ import { LocalState } from '@apollo/client/local-state';
 import { ApolloProvider, useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing';
 import { MockedProvider } from '@apollo/client/testing/react';
-import { act, render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { GraphQLError } from 'graphql';
 import React, { useEffect } from 'react';
 import { noop } from 'rxjs';
+import { Mock } from 'vitest';
 import { ADD_AUTHOR_MUTATION, ADD_BOOK_MUTATION, AddAuthorMutationVariables, AUTHOR_QUERY, AUTHORS_QUERY, BookInput, BOOKS_QUERY, Mutation, MutationAddBookArgs, Query } from './graphql';
 
 const author1Id = `${Math.random()}`;
 const author2Id = `${Math.random()}`;
-let effectMock: jest.Mock;
-let actionMock: jest.Mock;
-let nestedActionMock: jest.Mock;
+let effectMock: Mock;
+let actionMock: Mock;
+let nestedActionMock: Mock;
 
 interface AddAuthorAction {
   type: 'author/add';
@@ -95,9 +94,9 @@ const cache = new InMemoryCache();
 
 describe('State', () => {
   beforeEach(() => {
-    effectMock = jest.fn();
-    actionMock = jest.fn();
-    nestedActionMock = jest.fn();
+    effectMock = vi.fn();
+    actionMock = vi.fn();
+    nestedActionMock = vi.fn();
     MockLink.defaultOptions = { delay: 0 };
   });
 
@@ -106,7 +105,7 @@ describe('State', () => {
     MockLink.defaultOptions = { delay: undefined };
   });
 
-  it('should run client resolvers', () => {
+  it('should run client resolvers', async () => {
     const TestChild = () => {
       const { data, loading } = useQuery(AUTHORS_QUERY);
       if (!loading) {
@@ -115,16 +114,18 @@ describe('State', () => {
       return null;
     };
 
-    return act(async () => void render(
+    render(
       <ApolloProvider client={new ApolloClient({ cache, link: ApolloLink.empty(), localState: new LocalState() })}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
       </ApolloProvider>
-    ));
+    );
+
+    await waitFor(() => { });
   });
 
-  it('should call type policies read function', () => {
+  it('should call type policies read function', async () => {
     const TestChild = () => {
       const { data: authorsData } = useQuery(AUTHORS_QUERY);
       const [getAuthor, { data }] = useLazyQuery(AUTHOR_QUERY);
@@ -139,16 +140,18 @@ describe('State', () => {
       return null;
     };
 
-    return act(async () => void render(
+    render(
       <ApolloProvider client={new ApolloClient({ cache, link: ApolloLink.empty(), localState: new LocalState() })}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
       </ApolloProvider>
-    ));
+    );
+
+    await waitFor(() => { });
   });
 
-  it('should call update method and update cache', () => {
+  it('should call update method and update cache', async () => {
     const book: BookInput = { name: 'New Book', authorId: author1Id };
 
     const TestChild = () => {
@@ -164,13 +167,15 @@ describe('State', () => {
       return null;
     };
 
-    return act(async () => void render(
+    render(
       <ApolloProvider client={new ApolloClient({ cache, link: ApolloLink.empty(), localState: new LocalState() })}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
       </ApolloProvider>
-    ));
+    );
+
+    await waitFor(() => { });
   });
 
   it('should call action', async () => {
@@ -182,25 +187,25 @@ describe('State', () => {
       return null;
     };
 
-    await act(async () => void render(
+    render(
       <MockedProvider localState={new LocalState()} cache={cache}>
         <ApolloOrbitProvider states={[testState]}>
           <TestChild />
         </ApolloOrbitProvider>
       </MockedProvider>
-    ));
+    );
 
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    await waitFor(() => {
+      expect(actionMock).toHaveBeenCalledTimes(1);
+      expect(actionMock).toHaveBeenCalledWith(action);
 
-    expect(actionMock).toHaveBeenCalledTimes(1);
-    expect(actionMock).toHaveBeenCalledWith(action);
-
-    expect(nestedActionMock).toHaveBeenCalledTimes(1);
-    expect(nestedActionMock).toHaveBeenCalledWith({ type: 'author/added' });
+      expect(nestedActionMock).toHaveBeenCalledTimes(1);
+      expect(nestedActionMock).toHaveBeenCalledWith({ type: 'author/added' });
+    });
   });
 
   it('should call effect with onError', async () => {
-    const onErrorFn = jest.fn();
+    const onErrorFn = vi.fn();
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
     const TestChild = () => {
       const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION, {
@@ -210,7 +215,7 @@ describe('State', () => {
       return null;
     };
 
-    await act(async () => void render(
+    render(
       <MockedProvider localState={new LocalState()} cache={cache} mocks={[
         {
           request: { query: ADD_AUTHOR_MUTATION, variables },
@@ -223,19 +228,19 @@ describe('State', () => {
           <TestChild />
         </ApolloOrbitProvider>
       </MockedProvider >
-    ));
+    );
 
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-
-    expect(onErrorFn).toHaveBeenCalledTimes(1);
-    expect(effectMock).toHaveBeenCalledTimes(1);
-    expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
-      error: expect.anything()
-    }));
+    await waitFor(() => {
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(effectMock).toHaveBeenCalledTimes(1);
+      expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
+        error: expect.anything()
+      }));
+    });
   });
 
   it('should call effect with onError (errorPolicy: all)', async () => {
-    const onErrorFn = jest.fn();
+    const onErrorFn = vi.fn();
     const variables: AddAuthorMutationVariables = { name: 'Brandon Sanderson', age: 44 };
     const TestChild = () => {
       const [addAuthor] = useMutation(ADD_AUTHOR_MUTATION, {
@@ -246,7 +251,7 @@ describe('State', () => {
       return null;
     };
 
-    await act(async () => void render(
+    render(
       <MockedProvider localState={new LocalState()} cache={cache} mocks={[
         {
           request: { query: ADD_AUTHOR_MUTATION, variables },
@@ -259,15 +264,15 @@ describe('State', () => {
           <TestChild />
         </ApolloOrbitProvider>
       </MockedProvider >
-    ));
+    );
 
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-
-    expect(onErrorFn).toHaveBeenCalledTimes(1);
-    expect(effectMock).toHaveBeenCalledTimes(1);
-    expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
-      error: expect.anything()
-    }));
+    await waitFor(() => {
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(effectMock).toHaveBeenCalledTimes(1);
+      expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
+        error: expect.anything()
+      }));
+    });
   });
 
   it('should call effect without onError (errorPolicy: all)', async () => {
@@ -278,7 +283,7 @@ describe('State', () => {
       return null;
     };
 
-    await act(async () => void render(
+    render(
       <MockedProvider localState={new LocalState()} cache={cache} mocks={[
         {
           request: { query: ADD_AUTHOR_MUTATION, variables },
@@ -291,13 +296,13 @@ describe('State', () => {
           <TestChild />
         </ApolloOrbitProvider>
       </MockedProvider >
-    ));
+    );
 
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-
-    expect(effectMock).toHaveBeenCalledTimes(1);
-    expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
-      error: expect.anything()
-    }));
+    await waitFor(() => {
+      expect(effectMock).toHaveBeenCalledTimes(1);
+      expect(effectMock).toHaveBeenCalledWith(expect.objectContaining({
+        error: expect.anything()
+      }));
+    });
   });
 });

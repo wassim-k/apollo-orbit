@@ -40,6 +40,7 @@ type Mutation {
 	addAuthor(author: AuthorInput!): Author!
 	addBook(book: BookInput!): Book!
 	updateBook(id: ID!, book: UpdateBookInput!): Book!
+	deleteAllBooks: Boolean!
 }
 
 type Subscription {

@@ -1,0 +1,52 @@
+# Query with required variables
+query Book($id: ID!) {
+  book(id: $id) {
+    ...BookFragment
+  }
+}
+
+# Query with optional variables
+query Books($name: String) {
+  books(name: $name) {
+    ...BookFragment
+  }
+}
+
+# Query without variables
+query AllBooks {
+  books {
+    ...BookFragment
+  }
+}
+
+# Mutation with variables
+mutation AddBook($book: BookInput!) {
+  addBook(book: $book) {
+    ...BookFragment
+  }
+}
+
+# Mutation without variables
+mutation DeleteAllBooks {
+  deleteAllBooks
+}
+
+# Subscription with optional variables
+subscription NewBook($authorId: ID) {
+  newBook(authorId: $authorId) {
+    ...BookFragment
+  }
+}
+
+# Subscription without variables
+subscription AllNewBooks {
+  newBook {
+    ...BookFragment
+  }
+}
+
+# Fragment
+fragment BookFragment on Book {
+  id
+  name
+}

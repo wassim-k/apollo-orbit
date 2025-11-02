@@ -1,4 +1,3 @@
-import { ApolloClient } from '@apollo/client';
 import { DocumentNode, OperationDefinitionNode } from 'graphql';
 import { MutationIdentifier } from '../types';
 
@@ -8,18 +7,11 @@ const isMutationDocument = (def: any): def is OperationDefinitionNode => def.kin
 export function nameOfMutation(mutation: MutationIdentifier<any, any>): string {
   if (typeof mutation === 'string') {
     return mutation;
-  } else if (typeof mutation === 'function') {
-    return nameOfMutationDocument(documentOfGqlFunction(mutation));
   } else if (isDocument(mutation)) {
     return nameOfMutationDocument(mutation);
   } else {
     throw new Error('Invalid mutation identifier');
   }
-}
-
-export function documentOfGqlFunction(dataType: (() => Pick<ApolloClient.MutateOptions, 'mutation'>)): DocumentNode {
-  const instance = dataType();
-  return instance.mutation;
 }
 
 export function nameOfMutationDocument(document: DocumentNode): string {

@@ -1,4 +1,9 @@
 # 🚀 Orbit for Apollo Client - Core
+
+[![npm version](https://badge.fury.io/js/@apollo-orbit%2Fcore.svg)](https://badge.fury.io/js/@apollo-orbit%2Fcore)
+[![npm downloads](https://img.shields.io/npm/dt/@apollo-orbit/core)](https://www.npmjs.com/package/@apollo-orbit/core)
+[![codecov](https://codecov.io/gh/wassim-k/apollo-orbit/graph/badge.svg?flag=core)](https://codecov.io/gh/wassim-k/apollo-orbit)
+
 Orbit state management core package.
 
 ## 📚 Documentation

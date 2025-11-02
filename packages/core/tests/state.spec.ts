@@ -30,7 +30,7 @@ describe('State', () => {
   });
 
   it('should call watchQuery before resolving dispatch promise', async () => {
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
 
     client.watchQuery({ query: gql`query { value }`, fetchPolicy: 'cache-only' }).pipe(
       skip(1) // Skip initial value

@@ -21,8 +21,8 @@ describe('Actions', () => {
   });
 
   it('Should wait for all actions to complete before returning promise', async () => {
-    const actionMock = jest.fn();
-    const nestedActionMock = jest.fn();
+    const actionMock = vi.fn();
+    const nestedActionMock = vi.fn();
     const error = new Error();
 
     manager.addState(state(descriptor => descriptor
@@ -80,7 +80,7 @@ describe('Actions', () => {
   });
 
   it('Should execute multiple actions', async () => {
-    const cacheCallbackMock = jest.fn();
+    const cacheCallbackMock = vi.fn();
 
     cache.watch({
       query: gql`query { test1 test2 }`,
@@ -105,7 +105,7 @@ describe('Actions', () => {
   });
 
   it('Should execute multiple actions (promises)', async () => {
-    const cacheCallbackMock = jest.fn();
+    const cacheCallbackMock = vi.fn();
 
     cache.watch({
       query: gql`query { test1 test2 }`,

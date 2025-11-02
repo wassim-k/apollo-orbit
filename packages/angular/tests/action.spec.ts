@@ -112,7 +112,7 @@ describe('Action', () => {
 
     it('should call update method and update cache (single error)', async () => {
       const actions = TestBed.inject(ApolloActions);
-      const errorFn = jest.fn();
+      const errorFn = vi.fn();
 
       await actions.dispatch(new AddBookObservable({ name: 'Error', authorId: author1Id }))
         .catch(errorFn);
@@ -141,7 +141,7 @@ describe('Action', () => {
 
     it('should call update method and update cache (multiple error)', fakeAsync(() => {
       const actions = TestBed.inject(ApolloActions);
-      const errorFn = jest.fn();
+      const errorFn = vi.fn();
 
       const newBook1 = { name: 'Error', authorId: author1Id };
       const newBook2 = { name: 'Error', authorId: author1Id };
@@ -163,7 +163,7 @@ describe('Action', () => {
     it('ofActionDispatched', fakeAsync(() => {
       const actions = TestBed.inject(ApolloActions);
 
-      const dispatchedFn = jest.fn();
+      const dispatchedFn = vi.fn();
 
       const newBook1 = { name: 'New Book 1', authorId: author1Id };
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
@@ -192,7 +192,7 @@ describe('Action', () => {
 
     it('ofActionSuccess', fakeAsync(() => {
       const actions = TestBed.inject(ApolloActions);
-      const successFn = jest.fn();
+      const successFn = vi.fn();
 
       const newBook1 = { name: 'New Book 1', authorId: author1Id };
       const newBook2 = { name: 'New Book 2', authorId: author1Id };
@@ -221,7 +221,7 @@ describe('Action', () => {
 
     it('ofActionError', fakeAsync(() => {
       const actions = TestBed.inject(ApolloActions);
-      const errorFn = jest.fn();
+      const errorFn = vi.fn();
 
       const newBook1 = { name: 'Error', authorId: author1Id };
       const newBook2 = { name: 'Error', authorId: author1Id };
@@ -250,7 +250,7 @@ describe('Action', () => {
 
     it('ofActionComplete', fakeAsync(() => {
       const actions = TestBed.inject(ApolloActions);
-      const completeFn = jest.fn();
+      const completeFn = vi.fn();
 
       actions.pipe(
         ofActionComplete(AddBook, AddBookSuccess, AddBookPromise, AddBookObservable)

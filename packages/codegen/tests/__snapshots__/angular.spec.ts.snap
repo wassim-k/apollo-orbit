@@ -1,0 +1,273 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Angular Codegen > should generate code for all operation types with default config 1`] = `
+"import { gql } from '@apollo-orbit/angular';
+import { TypedDocumentNode as DocumentNode } from '@apollo-orbit/angular';
+export type Maybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
+export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
+export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+/** All built-in and custom scalars, mapped to their actual values */
+export type Scalars = {
+  ID: { input: string; output: string; }
+  String: { input: string; output: string; }
+  Boolean: { input: boolean; output: boolean; }
+  Int: { input: number; output: number; }
+  Float: { input: number; output: number; }
+};
+
+export type AuthorInput = {
+  name: Scalars['String']['input'];
+  age?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type BookInput = {
+  name: Scalars['String']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+  authorId: Scalars['ID']['input'];
+};
+
+export type UpdateBookInput = {
+  name: Scalars['String']['input'];
+  genre?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type Book = {
+  __typename?: 'Book';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  genre?: Maybe<Scalars['String']['output']>;
+  author: Author;
+  authorId: Scalars['ID']['output'];
+};
+
+export type Author = {
+  __typename?: 'Author';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  age?: Maybe<Scalars['Int']['output']>;
+  books: Array<Book>;
+};
+
+export type Query = {
+  __typename?: 'Query';
+  book: Book;
+  books: Array<Book>;
+  author: Author;
+  authors: Array<Author>;
+};
+
+
+export type QueryBookArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryBooksArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
+  genre?: InputMaybe<Scalars['String']['input']>;
+  authorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+export type QueryAuthorArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type Mutation = {
+  __typename?: 'Mutation';
+  addAuthor: Author;
+  addBook: Book;
+  updateBook: Book;
+  deleteAllBooks: Scalars['Boolean']['output'];
+};
+
+
+export type MutationAddAuthorArgs = {
+  author: AuthorInput;
+};
+
+
+export type MutationAddBookArgs = {
+  book: BookInput;
+};
+
+
+export type MutationUpdateBookArgs = {
+  id: Scalars['ID']['input'];
+  book: UpdateBookInput;
+};
+
+export type Subscription = {
+  __typename?: 'Subscription';
+  newBook: Book;
+};
+
+
+export type SubscriptionNewBookArgs = {
+  authorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type BookQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type BookQuery = { __typename?: 'Query', book: { __typename?: 'Book', id: string, name: string } };
+
+export type BooksQueryVariables = Exact<{
+  name?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type BooksQuery = { __typename?: 'Query', books: Array<{ __typename?: 'Book', id: string, name: string }> };
+
+export type AllBooksQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AllBooksQuery = { __typename?: 'Query', books: Array<{ __typename?: 'Book', id: string, name: string }> };
+
+export type AddBookMutationVariables = Exact<{
+  book: BookInput;
+}>;
+
+
+export type AddBookMutation = { __typename?: 'Mutation', addBook: { __typename?: 'Book', id: string, name: string } };
+
+export type DeleteAllBooksMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type DeleteAllBooksMutation = { __typename?: 'Mutation', deleteAllBooks: boolean };
+
+export type NewBookSubscriptionVariables = Exact<{
+  authorId?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+
+export type NewBookSubscription = { __typename?: 'Subscription', newBook: { __typename?: 'Book', id: string, name: string } };
+
+export type AllNewBooksSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AllNewBooksSubscription = { __typename?: 'Subscription', newBook: { __typename?: 'Book', id: string, name: string } };
+
+export type BookFragmentFragment = { __typename?: 'Book', id: string, name: string };
+
+export const BookFragmentDoc = gql\`
+    fragment BookFragment on Book {
+  id
+  name
+}
+    \` as DocumentNode<BookFragment, unknown>;
+export const BOOK_QUERY = gql\`
+    query Book($id: ID!) {
+  book(id: $id) {
+    ...BookFragment
+  }
+}
+    \${BookFragmentDoc}\` as DocumentNode<BookQuery, BookQueryVariables>;
+
+export function gqlBookQuery(variables: BookQueryVariables): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: () => BookQueryVariables | null): { query: typeof BOOK_QUERY, variables: typeof variables };
+export function gqlBookQuery(variables: any): any {
+  return {
+    query: BOOK_QUERY,
+    variables
+  };
+}
+
+export const BOOKS_QUERY = gql\`
+    query Books($name: String) {
+  books(name: $name) {
+    ...BookFragment
+  }
+}
+    \${BookFragmentDoc}\` as DocumentNode<BooksQuery, BooksQueryVariables>;
+
+export function gqlBooksQuery(): { query: typeof BOOKS_QUERY };
+export function gqlBooksQuery(variables?: BooksQueryVariables): { query: typeof BOOKS_QUERY, variables: typeof variables };
+export function gqlBooksQuery(variables: () => BooksQueryVariables | undefined | null): { query: typeof BOOKS_QUERY, variables: typeof variables };
+export function gqlBooksQuery(variables?: any): any {
+  return {
+    query: BOOKS_QUERY,
+    variables
+  };
+}
+
+export const ALL_BOOKS_QUERY = gql\`
+    query AllBooks {
+  books {
+    ...BookFragment
+  }
+}
+    \${BookFragmentDoc}\` as DocumentNode<AllBooksQuery, AllBooksQueryVariables>;
+
+export function gqlAllBooksQuery(): { query: typeof ALL_BOOKS_QUERY } {
+  return {
+    query: ALL_BOOKS_QUERY
+  };
+}
+
+export const ADD_BOOK_MUTATION = gql\`
+    mutation AddBook($book: BookInput!) {
+  addBook(book: $book) {
+    ...BookFragment
+  }
+}
+    \${BookFragmentDoc}\` as DocumentNode<AddBookMutation, AddBookMutationVariables>;
+
+export function gqlAddBookMutation(variables: AddBookMutationVariables): { mutation: typeof ADD_BOOK_MUTATION, variables: typeof variables } {
+  return {
+    mutation: ADD_BOOK_MUTATION,
+    variables
+  };
+}
+
+export const DELETE_ALL_BOOKS_MUTATION = gql\`
+    mutation DeleteAllBooks {
+  deleteAllBooks
+}
+    \` as DocumentNode<DeleteAllBooksMutation, DeleteAllBooksMutationVariables>;
+
+export function gqlDeleteAllBooksMutation(): { mutation: typeof DELETE_ALL_BOOKS_MUTATION } {
+  return {
+    mutation: DELETE_ALL_BOOKS_MUTATION
+  };
+}
+
+export const NEW_BOOK_SUBSCRIPTION = gql\`
+    subscription NewBook($authorId: ID) {
+  newBook(authorId: $authorId) {
+    ...BookFragment
+  }
+}
+    \${BookFragmentDoc}\` as DocumentNode<NewBookSubscription, NewBookSubscriptionVariables>;
+
+export function gqlNewBookSubscription(): { subscription: typeof NEW_BOOK_SUBSCRIPTION };
+export function gqlNewBookSubscription(variables?: NewBookSubscriptionVariables): { subscription: typeof NEW_BOOK_SUBSCRIPTION, variables: typeof variables };
+export function gqlNewBookSubscription(variables: () => NewBookSubscriptionVariables | undefined | null): { subscription: typeof NEW_BOOK_SUBSCRIPTION, variables: typeof variables };
+export function gqlNewBookSubscription(variables?: any): any {
+  return {
+    subscription: NEW_BOOK_SUBSCRIPTION,
+    variables
+  };
+}
+
+export const ALL_NEW_BOOKS_SUBSCRIPTION = gql\`
+    subscription AllNewBooks {
+  newBook {
+    ...BookFragment
+  }
+}
+    \${BookFragmentDoc}\` as DocumentNode<AllNewBooksSubscription, AllNewBooksSubscriptionVariables>;
+
+export function gqlAllNewBooksSubscription(): { subscription: typeof ALL_NEW_BOOKS_SUBSCRIPTION } {
+  return {
+    subscription: ALL_NEW_BOOKS_SUBSCRIPTION
+  };
+}
+"
+`;

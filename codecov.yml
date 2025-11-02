@@ -1,0 +1,46 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  
+  status:
+    project:
+      default:
+        target: auto
+      angular:
+        target: 100%
+        flags:
+          - angular
+      react:
+        target: 100%
+        flags:
+          - react
+      core:
+        target: 100%
+        flags:
+          - core
+      codegen:
+        target: 100%
+        flags:
+          - codegen
+        
+    patch:
+      default:
+        target: 100%
+
+flags:
+  angular:
+    paths:
+      - packages/angular/src/
+  react:
+    paths:
+      - packages/react/src/
+  core:
+    paths:
+      - packages/core/src/
+  codegen:
+    paths:
+      - packages/codegen/src/
+
+comment:
+  layout: "diff"

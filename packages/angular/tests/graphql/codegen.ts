@@ -1,7 +1,14 @@
 import { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
-  schema: 'tests/graphql/schema.graphql',
+  schema: [
+    'tests/graphql/schema.graphql',
+    {
+      'tests/state.spec.ts': {
+        noRequire: true
+      }
+    }
+  ],
   documents: [
     'tests/graphql/book.graphql',
     'tests/graphql/author.graphql',

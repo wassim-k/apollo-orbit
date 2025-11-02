@@ -21,3 +21,15 @@ query AuthorClient($id: ID!) {
     ...AuthorFragment
   }
 }
+
+query LibraryRecords {
+  libraryRecords @client {
+    __typename
+    ... on Book {
+      ...BookFragment
+    }
+    ... on Author {
+      ...AuthorFragment
+    }
+  }
+}

@@ -1,4 +1,9 @@
 # 🚀 Orbit for Apollo Client - React
+
+[![npm version](https://badge.fury.io/js/@apollo-orbit%2Freact.svg)](https://badge.fury.io/js/@apollo-orbit%2Freact)
+[![npm downloads](https://img.shields.io/npm/dt/@apollo-orbit/react)](https://www.npmjs.com/package/@apollo-orbit/react)
+[![codecov](https://codecov.io/gh/wassim-k/apollo-orbit/graph/badge.svg?flag=react)](https://codecov.io/gh/wassim-k/apollo-orbit)
+
 Apollo Client modular state management abstraction / flux architecture.
 
 ## 📚 Documentation

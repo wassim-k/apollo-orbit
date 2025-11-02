@@ -108,7 +108,7 @@ describe('Cache', () => {
       const object = { __typename: 'Author', id: 1, name: 'old' };
       const id = cache.identify(object) as string;
       cache.writeFragment({ id, fragment: AuthorFragmentDoc, data: object });
-      const writeFragmentSpy = jest.spyOn(cache, 'writeFragment');
+      const writeFragmentSpy = vi.spyOn(cache, 'writeFragment');
       cache.updateFragment({ id, fragment: AuthorFragmentDoc }, (current: any) => void 0);
       expect(writeFragmentSpy).toHaveBeenCalledTimes(0);
     });
@@ -160,7 +160,7 @@ describe('Cache', () => {
         }
       });
 
-      const writeQuerySpy = jest.spyOn(cache, 'writeQuery');
+      const writeQuerySpy = vi.spyOn(cache, 'writeQuery');
       cache.updateQuery({ query }, current => void 0);
 
       expect(writeQuerySpy).toHaveBeenCalledTimes(0);

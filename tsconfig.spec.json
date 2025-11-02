@@ -13,7 +13,7 @@
     "jsx": "react",
     "types": [
       "node",
-      "jest"
+      "vitest/globals"
     ],
     "paths": {
       "@apollo-orbit/core/common": [
@@ -53,6 +53,7 @@
   },
   "files": [],
   "include": [
-    "packages/*/tests"
+    "packages/**/tests",
+    "packages/**/src"
   ]
 }

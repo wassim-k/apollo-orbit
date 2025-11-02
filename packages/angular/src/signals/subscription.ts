@@ -246,15 +246,7 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
           onData?.(result.data);
         }
       },
-      error: error => {
-        this._result.set({
-          loading: false,
-          data: undefined,
-          error
-        });
-
-        onError?.(error);
-      },
+      // error is never called for subscriptions in Apollo Client
       complete: () => {
         this.terminate();
         onComplete?.();

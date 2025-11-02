@@ -157,6 +157,13 @@ export class QueryObservable<
   public hasObservers(): boolean {
     return this.observableQuery.hasObservers();
   }
+
+  /**
+   * Tears down the `ObservableQuery` and stops all active operations by sending a `complete` notification.
+   */
+  public stop(): void {
+    this.observableQuery.stop();
+  }
 }
 
 function skipInitialLoading<TFunc extends (result: ObservableQuery.Result<any>) => void>(fn: TFunc): TFunc {

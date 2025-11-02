@@ -45,6 +45,8 @@ export type Book = {
   name: Scalars['String']['output'];
 };
 
+export type LibraryRecord = Author | Book;
+
 export type Mutation = {
   __typename?: 'Mutation';
   addAuthor: Author;
@@ -74,6 +76,7 @@ export type Query = {
   authors: Array<Author>;
   book: Book;
   books: Array<Book>;
+  libraryRecords: Array<LibraryRecord>;
 };
 
 
@@ -175,6 +178,17 @@ export type AddBookMutationData = { __typename?: 'Mutation', addBook: (
     & BookFragment
   ) };
 
+export type UpdateBookMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  book: UpdateBookInput;
+}>;
+
+
+export type UpdateBookMutationData = { __typename?: 'Mutation', updateBook: (
+    { __typename?: 'Book' }
+    & BookFragment
+  ) };
+
 export type NewBookByAuthorSubscriptionVariables = Exact<{
   id?: InputMaybe<Scalars['ID']['input']>;
 }>;
@@ -222,6 +236,20 @@ export type AuthorClientQueryData = { __typename?: 'Query', author: (
     { __typename?: 'Author' }
     & AuthorFragment
   ) };
+
+export type LibraryRecordsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type LibraryRecordsQueryData = { __typename?: 'Query', libraryRecords: Array<
+    | (
+      { __typename: 'Author' }
+      & AuthorFragment
+    )
+    | (
+      { __typename: 'Book' }
+      & BookFragment
+    )
+  > };
 
 export const AuthorFragmentDoc = gql`
     fragment AuthorFragment on Author {
@@ -345,6 +373,21 @@ export function gqlAddBookMutation(variables: AddBookMutationVariables): { mutat
   };
 }
 
+export const UPDATE_BOOK_MUTATION = gql`
+    mutation UpdateBook($id: ID!, $book: UpdateBookInput!) {
+  updateBook(id: $id, book: $book) {
+    ...BookFragment
+  }
+}
+    ${BookFragmentDoc}` as DocumentNode<UpdateBookMutationData, UpdateBookMutationVariables>;
+
+export function gqlUpdateBookMutation(variables: UpdateBookMutationVariables): { mutation: typeof UPDATE_BOOK_MUTATION, variables: typeof variables } {
+  return {
+    mutation: UPDATE_BOOK_MUTATION,
+    variables
+  };
+}
+
 export const NEW_BOOK_BY_AUTHOR_SUBSCRIPTION = gql`
     subscription NewBookByAuthor($id: ID) {
   newBook(authorId: $id) {
@@ -424,5 +467,26 @@ export function gqlAuthorClientQuery(variables: any): any {
   return {
     query: AUTHOR_CLIENT_QUERY,
     variables
+  };
+}
+
+export const LIBRARY_RECORDS_QUERY = gql`
+    query LibraryRecords {
+  libraryRecords @client {
+    __typename
+    ... on Book {
+      ...BookFragment
+    }
+    ... on Author {
+      ...AuthorFragment
+    }
+  }
+}
+    ${BookFragmentDoc}
+${AuthorFragmentDoc}` as DocumentNode<LibraryRecordsQueryData, LibraryRecordsQueryVariables>;
+
+export function gqlLibraryRecordsQuery(): { query: typeof LIBRARY_RECORDS_QUERY } {
+  return {
+    query: LIBRARY_RECORDS_QUERY
   };
 }

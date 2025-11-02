@@ -1,4 +1,9 @@
 # 🚀 Orbit for Apollo Client - Codegen
+
+[![npm version](https://badge.fury.io/js/@apollo-orbit%2Fcodegen.svg)](https://badge.fury.io/js/@apollo-orbit%2Fcodegen)
+[![npm downloads](https://img.shields.io/npm/dt/@apollo-orbit/codegen)](https://www.npmjs.com/package/@apollo-orbit/codegen)
+[![codecov](https://codecov.io/gh/wassim-k/apollo-orbit/graph/badge.svg?flag=codegen)](https://codecov.io/gh/wassim-k/apollo-orbit)
+
 GraphQL Code Generator plugin for Orbit.
 
 ## 📚 Documentation

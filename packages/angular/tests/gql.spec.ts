@@ -25,5 +25,14 @@ describe('GQL', () => {
       expect(id).toBe('Type2:2');
       expect(fragmentName).toBe('NestedFragment');
     });
+
+    it('should throw error when fragment definition is not found', () => {
+      const fragmentDoc = gql`
+        fragment Fragment on Type {
+          value
+        }
+      `;
+      expect(() => identifyFragment(fragmentDoc, '1', 'NonExistentFragment')).toThrow('Fragment definition was not found.');
+    });
   });
 });

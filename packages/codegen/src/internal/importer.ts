@@ -6,6 +6,8 @@ const unique = <T>(array: Array<T>, key: (item: T) => string): Array<T> => {
   );
 };
 
+const byIdentifier = (a: ImportEntry, b: ImportEntry): number => a.identifier.localeCompare(b.identifier);
+
 interface ImportEntry {
   identifier: string;
   as?: string;
@@ -26,7 +28,7 @@ export class Importer {
       .map(from => {
         const imports = [...this.imports[from]?.values() ?? []];
         const identifiers = unique(imports, a => a.identifier)
-          .sort((a, b) => a.identifier.localeCompare(b.identifier))
+          .sort(byIdentifier)
           .map(({ identifier, as }) => as === undefined
             ? `${identifier}`
             : `${identifier} as ${as}`)

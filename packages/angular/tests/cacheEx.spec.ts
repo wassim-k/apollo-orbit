@@ -22,7 +22,7 @@ describe('CacheEx', () => {
 
   describe('cyclic update', () => {
     it('should throw an error when cyclic update is detected', waitForAsync(() => {
-      const errorFn = jest.fn();
+      const errorFn = vi.fn();
       apollo.cache.writeQuery<Value>({ query: gql`query { a b }`, data: { a: '1', b: '2' } });
 
       apollo.cache.watchQuery({ query: gql`query { a b }` }).subscribe(() => {
@@ -37,7 +37,7 @@ describe('CacheEx', () => {
     }));
 
     it('should not throw an error when cyclic update is deferred', waitForAsync(() => {
-      const errorFn = jest.fn();
+      const errorFn = vi.fn();
       apollo.cache.writeQuery<Value>({ query: gql`query { a b }`, data: { a: '1', b: '2' } });
 
       apollo.cache.watchQuery({ query: gql`query { a b }` })
@@ -56,8 +56,8 @@ describe('CacheEx', () => {
 
   describe('returnPartial = false', () => {
     it('should produce value if cache has complete data', () => {
-      const resultFn = jest.fn();
-      const errorFn = jest.fn();
+      const resultFn = vi.fn();
+      const errorFn = vi.fn();
       apollo.cache.writeQuery({ query: gql`query { a, b }`, data: { a: '1', b: '2' } });
 
       apollo.cache.watchQuery<Value>({ query: gql`query { a b }`, returnPartialData: false }).subscribe({
@@ -70,8 +70,8 @@ describe('CacheEx', () => {
     });
 
     it('should throw error if cache has partial data', () => {
-      const resultFn = jest.fn();
-      const errorFn = jest.fn();
+      const resultFn = vi.fn();
+      const errorFn = vi.fn();
       apollo.cache.writeQuery({ query: gql`query { a }`, data: { a: '1' } });
 
       apollo.cache.watchQuery<Value>({ query: gql`query { a b }`, returnPartialData: false }).subscribe({
@@ -86,8 +86,8 @@ describe('CacheEx', () => {
 
   describe('returnPartial = true', () => {
     it('should produce value if cache has complete data', () => {
-      const resultFn = jest.fn();
-      const errorFn = jest.fn();
+      const resultFn = vi.fn();
+      const errorFn = vi.fn();
       apollo.cache.writeQuery({ query: gql`query { a, b }`, data: { a: '1', b: '2' } });
 
       apollo.cache.watchQuery<Value>({ query: gql`query { a b }`, returnPartialData: true }).subscribe({
@@ -100,8 +100,8 @@ describe('CacheEx', () => {
     });
 
     it('should return partial data', () => {
-      const resultFn = jest.fn();
-      const errorFn = jest.fn();
+      const resultFn = vi.fn();
+      const errorFn = vi.fn();
       apollo.cache.writeQuery({ query: gql`query { a }`, data: { a: '1' } });
 
       apollo.cache.watchQuery<Value>({ query: gql`query { a b }`, returnPartialData: true }).subscribe({
@@ -111,6 +111,22 @@ describe('CacheEx', () => {
 
       expect(resultFn).toHaveBeenCalledWith(expect.objectContaining({ data: { a: '1' }, complete: false }));
       expect(errorFn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error handling', () => {
+    it('should catch and emit errors from cache.watch', () => {
+      const errorFn = vi.fn();
+
+      vi.spyOn(apollo.cache, 'watch').mockImplementation(() => {
+        throw new Error('Cache watch error');
+      });
+
+      apollo.cache.watchQuery({ query: gql`query { a b }` }).subscribe({
+        error: errorFn
+      });
+
+      expect(errorFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cache watch error' }));
     });
   });
 });

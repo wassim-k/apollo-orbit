@@ -1,6 +1,6 @@
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Apollo } from '@apollo-orbit/angular';
-import { gql, NetworkStatus, WatchQueryFetchPolicy } from '@apollo/client';
+import { Apollo, QueryObservable } from '@apollo-orbit/angular';
+import { gql, NetworkStatus, ObservableQuery, OperationVariables, WatchQueryFetchPolicy } from '@apollo/client';
 import { MockLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
 import { provideApolloMock } from './helpers';
@@ -20,25 +20,9 @@ describe('QueryObservable', () => {
     mockLink = TestBed.inject(MockLink);
   });
 
-  it('should emit current result on subscription', waitForAsync(() => {
-    const query = gql`query { value }`;
-
-    apollo.cache.writeQuery({ query, data: { value: 'expected' } });
-
-    apollo.watchQuery<{ value: string }>({ query }).subscribe(
-      result => {
-        if (result.loading) {
-          expect(result.data?.value).toEqual('expected');
-        } else {
-          expect(result.data?.value).toEqual('expected');
-        }
-      }
-    );
-  }));
-
   for (const fetchPolicy of allFetchPolicies.filter(policy => !['cache-only', 'standby'].includes(policy))) {
     it(`should emit loading subscription: (notifyOnLoading: true (default), fetchPolicy: ${fetchPolicy})`, fakeAsync(() => {
-      const mockFn = jest.fn();
+      const mockFn = vi.fn();
       const query = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
@@ -70,7 +54,7 @@ describe('QueryObservable', () => {
 
   for (const fetchPolicy of allFetchPolicies.filter(policy => !['cache-only', 'standby'].includes(policy))) {
     it(`should not emit loading (notifyOnLoading: false, fetchPolicy: ${fetchPolicy})`, fakeAsync(() => {
-      const mockFn = jest.fn();
+      const mockFn = vi.fn();
       const query = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
@@ -93,8 +77,24 @@ describe('QueryObservable', () => {
     }));
   }
 
+  it('should emit current result on subscription', waitForAsync(() => {
+    const query = gql`query { value }`;
+
+    apollo.cache.writeQuery({ query, data: { value: 'expected' } });
+
+    apollo.watchQuery<{ value: string }>({ query }).subscribe(
+      result => {
+        if (result.loading) {
+          expect(result.data?.value).toEqual('expected');
+        } else {
+          expect(result.data?.value).toEqual('expected');
+        }
+      }
+    );
+  }));
+
   it('should emit initial cached result (notifyLoading: false)', fakeAsync(() => {
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     const query = gql`query { value }`;
 
     apollo.cache.writeQuery({ query, data: { value: 'expected' } });
@@ -114,7 +114,7 @@ describe('QueryObservable', () => {
   }));
 
   it('should emit on cache update', fakeAsync(() => {
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
 
     const query = gql`query { value }`;
     mockLink.addMockedResponse({
@@ -136,7 +136,7 @@ describe('QueryObservable', () => {
   }));
 
   it('should emit on refetch', fakeAsync(() => {
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
 
     const query = gql`query { value }`;
     mockLink.addMockedResponse({ request: { query }, result: { data: { value: 'expected 1' } } });
@@ -161,7 +161,7 @@ describe('QueryObservable', () => {
   }));
 
   it('should not emit after unsubscribe', fakeAsync(() => {
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
 
     const query = gql`query { value }`;
     mockLink.addMockedResponse({ request: { query }, result: { data: { value: 'expected 1' } } });
@@ -200,7 +200,7 @@ describe('QueryObservable', () => {
 
     const queryObservable = apollo.watchQuery<{ value: string }>({ query, notifyOnNetworkStatusChange: true });
 
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     const subscription = queryObservable.subscribe(result => {
       mockFn(result);
     });
@@ -269,10 +269,108 @@ describe('QueryObservable', () => {
     ]);
   }));
 
+  it('should handle complete callback when query is stopped', fakeAsync(() => {
+    const query = gql`query { value }`;
+    const completeFn = vi.fn();
+
+    mockLink.addMockedResponse({
+      request: { query },
+      result: { data: { value: 'test' } }
+    });
+
+    const queryObservable = apollo.watchQuery({ query });
+
+    queryObservable.subscribe({
+      next: () => { },
+      complete: completeFn
+    });
+
+    tick();
+
+    queryObservable.stop();
+
+    tick();
+    expect(completeFn).toHaveBeenCalled();
+  }));
+
+  it('should propagate method calls to underlying ObservableQuery', fakeAsync(() => {
+    const query = gql`query TestQuery { value }`;
+
+    // Create a mock ObservableQuery
+    const mockObservableQuery = {
+      query,
+      variables: {},
+      options: { query },
+      queryName: 'TestQuery',
+      getCurrentResult: vi.fn().mockReturnValue({ data: { value: 'test' }, loading: false }),
+      refetch: vi.fn().mockResolvedValue({}),
+      fetchMore: vi.fn().mockResolvedValue({}),
+      subscribeToMore: vi.fn().mockReturnValue(() => { }),
+      updateQuery: vi.fn(),
+      setVariables: vi.fn().mockResolvedValue({}),
+      startPolling: vi.fn(),
+      stopPolling: vi.fn(),
+      reobserve: vi.fn().mockResolvedValue({}),
+      hasObservers: vi.fn().mockReturnValue(false),
+      subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
+      stop: vi.fn()
+    };
+
+    // Create QueryObservable with the mock
+    const queryObservable = new QueryObservable(mockObservableQuery as unknown as ObservableQuery<any, OperationVariables>, { notifyOnLoading: true });
+
+    // Test getter properties
+    expect(queryObservable.query).toBe(query);
+    expect(queryObservable.variables).toBeDefined();
+    expect(queryObservable.options).toBeDefined();
+    expect(queryObservable.queryName).toBe('TestQuery');
+
+    // Test method delegation
+    queryObservable.getCurrentResult();
+    expect(mockObservableQuery.getCurrentResult).toHaveBeenCalled();
+
+    queryObservable.refetch();
+    expect(mockObservableQuery.refetch).toHaveBeenCalled();
+
+    queryObservable.fetchMore({ variables: {} });
+    expect(mockObservableQuery.fetchMore).toHaveBeenCalledWith({ variables: {} });
+
+    const subscription = gql`subscription { valueChanged }`;
+    queryObservable.subscribeToMore({
+      subscription,
+      updateQuery: prev => prev
+    });
+    expect(mockObservableQuery.subscribeToMore).toHaveBeenCalledWith({
+      document: subscription,
+      updateQuery: expect.any(Function)
+    });
+
+    queryObservable.updateQuery(() => ({ value: 'updated' }));
+    expect(mockObservableQuery.updateQuery).toHaveBeenCalled();
+
+    queryObservable.setVariables({});
+    expect(mockObservableQuery.setVariables).toHaveBeenCalled();
+
+    queryObservable.startPolling(1000);
+    expect(mockObservableQuery.startPolling).toHaveBeenCalledWith(1000);
+
+    queryObservable.stopPolling();
+    expect(mockObservableQuery.stopPolling).toHaveBeenCalled();
+
+    queryObservable.reobserve();
+    expect(mockObservableQuery.reobserve).toHaveBeenCalled();
+
+    queryObservable.hasObservers();
+    expect(mockObservableQuery.hasObservers).toHaveBeenCalled();
+
+    queryObservable.stop();
+    expect(mockObservableQuery.stop).toHaveBeenCalled();
+  }));
+
   describe('errorPolicy', () => {
     describe('errorPolicy: all', () => {
       it('should emit graphql errors and not throw on reobserve (errorPolicy: all)', waitForAsync(async () => {
-        const errorFn = jest.fn();
+        const errorFn = vi.fn();
         const query = gql`query { value }`;
         mockLink.addMockedResponse({ request: { query }, result: { errors: [new GraphQLError('Invalid query')] } });
 
@@ -308,7 +406,7 @@ describe('QueryObservable', () => {
       }));
 
       it('should emit error with data (errorPolicy: all)', fakeAsync(() => {
-        const mockFn = jest.fn();
+        const mockFn = vi.fn();
 
         const query = gql`query { value value2 }`;
         mockLink.addMockedResponse({ request: { query }, result: { data: { value: 'expected 1' } } });
@@ -340,7 +438,7 @@ describe('QueryObservable', () => {
 
     describe('errorPolicy: none', () => {
       it('should emit graphql errors, ignore data and throw on reobserve (errorPolicy: none)', waitForAsync(async () => {
-        const errorFn = jest.fn();
+        const errorFn = vi.fn();
         const query = gql`query { value }`;
         mockLink.addMockedResponse({
           request: { query },
@@ -362,7 +460,7 @@ describe('QueryObservable', () => {
           errorFn(error);
         }
 
-        expect(errorFn).toHaveBeenCalledWith(new Error('Invalid query'));
+        expect(errorFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Invalid query' }));
       }));
     });
 

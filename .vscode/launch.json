@@ -14,23 +14,22 @@
       "type": "node",
       "request": "launch",
       "name": "Test File",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
       "args": [
-        "--test-match=\"**/${relativeFile}\"",
-        "--run-in-band",
-        "--no-cache",
-        "--test-timeout=30000"
+        "run",
+        "${relativeFile}",
+        "--no-file-parallelism"
       ],
+      "autoAttachChildProcesses": true,
+      "smartStep": true,
       "skipFiles": [
         "<node_internals>/**",
         "**/node_modules/rxjs/**",
-        "**/node_modules/jest*/**",
+        "**/node_modules/vitest/**",
+        "**/node_modules/@vitest/**",
         "**/node_modules/zone.js*/**"
       ],
-      "console": "integratedTerminal",
-      "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
-      }
+      "console": "integratedTerminal"
     },
     {
       "type": "node",

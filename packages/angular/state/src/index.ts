@@ -7,7 +7,6 @@ export {
   StateDescriptor,
   addStateToCache,
   addStateToClient,
-  createSymbol,
   flatten,
   getActionType,
   partition,

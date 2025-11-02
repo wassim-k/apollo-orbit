@@ -4,13 +4,14 @@ import { Apollo, InMemoryCache, provideApollo, withApolloOptions } from '@apollo
 import { state, withState } from '@apollo-orbit/angular/state';
 import { MockLink } from '@apollo/client/testing';
 import { v4 as uuid } from 'uuid';
+import { Mock } from 'vitest';
 import { ADD_BOOK_MUTATION, AddBookInput, BOOKS_QUERY, gqlAddBookMutation, gqlBooksQuery } from './graphql';
 
 const authorId = uuid();
 const MOCK_TOKEN = new InjectionToken('mock');
 
 const testState = () => {
-  const mock = inject<jest.Mock>(MOCK_TOKEN);
+  const mock = inject<Mock>(MOCK_TOKEN);
 
   return state(descriptor => descriptor
     .refetchQueries(ADD_BOOK_MUTATION, result => {
@@ -49,7 +50,7 @@ describe('RefetchQueries', () => {
           }),
           withState(testState)
         ),
-        { provide: MOCK_TOKEN, useValue: jest.fn() }
+        { provide: MOCK_TOKEN, useValue: vi.fn() }
       ]
     });
   });
@@ -58,8 +59,30 @@ describe('RefetchQueries', () => {
     const apollo = TestBed.inject(Apollo);
     const mock = TestBed.inject(MOCK_TOKEN);
     const book: AddBookInput = { name: 'New Book', authorId };
-    apollo.mutate({ ...gqlAddBookMutation({ book }) }).subscribe();
+    apollo.mutate(gqlAddBookMutation({ book })).subscribe();
+
     tick();
+
     expect(mock).toHaveBeenCalled();
+  }));
+
+  it('should merge refetchQueries from state with function refetchQueries from options', fakeAsync(() => {
+    const apollo = TestBed.inject(Apollo);
+    const mock = TestBed.inject(MOCK_TOKEN);
+    const optionsRefetchMock = vi.fn();
+    const book: AddBookInput = { name: 'New Book', authorId };
+
+    apollo.mutate({
+      ...gqlAddBookMutation({ book }),
+      refetchQueries: result => {
+        optionsRefetchMock(result);
+        return [gqlBooksQuery()];
+      }
+    }).subscribe();
+
+    tick();
+
+    expect(mock).toHaveBeenCalled();
+    expect(optionsRefetchMock).toHaveBeenCalled();
   }));
 });

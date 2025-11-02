@@ -39,6 +39,7 @@ export class ApolloOrbitVisitor<
         subscriptionSuffix: getConfigValue(rawConfig.subscriptionSuffix, 'Subscription'),
         gqlFunction: getConfigValue(rawConfig.gqlFunction, false),
         gqlVariablesAsFunction: getConfigValue(rawConfig.gqlVariablesAsFunction, false),
+        documentFieldName: rawConfig.documentFieldName,
         ...additionalConfig
       },
       documents);
@@ -142,7 +143,6 @@ export function ${functionName}(): ${this.createDocumentOnlyReturnType(documentF
 }`);
         }
         break;
-      default: throw new Error(`Unsupported operation type: ${operationType}`);
     }
 
     content.push('');
@@ -150,15 +150,7 @@ export function ${functionName}(): ${this.createDocumentOnlyReturnType(documentF
   }
 
   protected getDocumentNodeSignature(resultType: string, variablesTypes: string, node: FragmentDefinitionNode | OperationDefinitionNode): string {
-    if (
-      this.config.documentMode === DocumentMode.documentNode ||
-      this.config.documentMode === DocumentMode.documentNodeImportFragments ||
-      this.config.documentMode === DocumentMode.graphQLTag
-    ) {
-      return ` as DocumentNode<${resultType}, ${variablesTypes}>`;
-    }
-
-    return super.getDocumentNodeSignature(resultType, variablesTypes, node);
+    return ` as DocumentNode<${resultType}, ${variablesTypes}>`;
   }
 
   protected registerImport(identifier: string, from?: string, as?: string): void {
@@ -189,7 +181,6 @@ export function ${functionName}(): ${this.createDocumentOnlyReturnType(documentF
       case 'Query': return this.config.documentFieldName?.query ?? 'query';
       case 'Mutation': return this.config.documentFieldName?.mutation ?? 'mutation';
       case 'Subscription': return this.config.documentFieldName?.subscription ?? 'subscription';
-      default: throw new Error(`Unsupported operation type: ${operationType}`);
     }
   }
 

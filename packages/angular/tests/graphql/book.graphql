@@ -24,6 +24,12 @@ mutation AddBook($book: AddBookInput!) {
   }
 }
 
+mutation UpdateBook($id: ID!, $book: UpdateBookInput!) {
+  updateBook(id: $id, book: $book) {
+    ...BookFragment
+  }
+}
+
 subscription NewBookByAuthor($id: ID) {
     newBook(authorId: $id) {
         ...BookFragment
