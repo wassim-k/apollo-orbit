@@ -54,7 +54,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * For details, see [GraphQL error policies](https://www.apollographql.com/docs/react/data/error-handling/#graphql-error-policies).
   *
-  * The default value is `all`, meaning that the promise returned from `execute` method always resolves to a result with an optional `error` field.
+  * The default value is `none`, meaning that the query result includes error details but not partial results.
   *
   * @docGroup 1. Operation options
   */
@@ -287,7 +287,8 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    */
   public refetch(variables?: Partial<TVariables>): Promise<SingleQueryResult<TData>> {
     if (!this.observable) throw new SignalQueryExecutionError('refetch');
-    return this.observable.refetch(variables);
+    return this.observable.refetch(variables)
+      .catch(error => ({ data: undefined, error }));
   }
 
   /**
@@ -298,7 +299,8 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     TFetchVars extends Variables = TVariables
   >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars>): Promise<SingleQueryResult<TFetchData>> {
     if (!this.observable) throw new SignalQueryExecutionError('fetchMore');
-    return this.observable.fetchMore(options);
+    return this.observable.fetchMore(options)
+      .catch(error => ({ data: undefined, error }));
   }
 
   /**
@@ -356,12 +358,11 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
 
     this._active.set(true);
 
-    const { query, lazy = false, notifyOnLoading = true, notifyOnNetworkStatusChange = true, errorPolicy = 'all', ...rest } = this.options;
+    const { query, lazy, notifyOnLoading = true, notifyOnNetworkStatusChange = true, ...options } = this.options;
 
     const newOptions = {
-      ...rest,
+      ...options,
       ...execOptions,
-      errorPolicy,
       notifyOnLoading,
       notifyOnNetworkStatusChange,
       query,
@@ -371,7 +372,8 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     this.observable ??= this.apollo.watchQuery<TData, TVariables>(newOptions) as QueryObservable<TData, TVariables, any>;
     this.subscription ??= this.observable.subscribe(result => this._result.set(result));
 
-    return this.observable.reobserve(newOptions);
+    return this.observable.reobserve(newOptions)
+      .catch(error => ({ data: undefined, error }));
   }
 
   private _terminate(): void {

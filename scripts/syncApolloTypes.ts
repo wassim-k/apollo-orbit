@@ -117,10 +117,13 @@ function findTypeDeclarationNodeInSource(
 function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: string, asName?: string): string {
   const sourceFile = declarationNode.getSourceFile();
 
-  let definitionText = sourceFile.text.substring(
-    declarationNode.getStart(sourceFile, false),
-    declarationNode.getEnd()
-  ).trim();
+  let definitionText = sourceFile.text
+    .substring(
+      declarationNode.getStart(sourceFile, false),
+      declarationNode.getEnd()
+    )
+    .trim()
+    .replace(/^ +/gm, '  ');
 
   definitionText = definitionText.replace(/\bOperationVariables\b/g, 'Variables');
   definitionText = definitionText.replace(/ +\n/g, '\n');
@@ -139,30 +142,30 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
 
   if (typeName === 'WatchQueryOptions' && asName === undefined) {
     definitionText = definitionText.replace(/nextFetchPolicy\?: .*\n/g, 'nextFetchPolicy?: ApolloClient.WatchQueryOptions<TData, TVariables>[\'nextFetchPolicy\'];\n');
-    definitionText = definitionText.replace(/\n {4}}/g, `
+    definitionText = definitionText.replace(/\n {2}}/g, `
 
-        /**
-         * Whether or not observers should receive initial network loading status when subscribing to this observable.
-         * @default true
-         */
-        notifyOnLoading?: boolean;
+  /**
+   * Whether or not observers should receive initial network loading status when subscribing to this observable.
+   * @default true
+   */
+  notifyOnLoading?: boolean;
 }`);
   }
 
   if (typeName === 'QueryOptions') {
-    definitionText = definitionText.replace(/\n {4}}/g, `
+    definitionText = definitionText.replace(/\n {2}}/g, `
 
-        /**
-         * Whether or not observers should receive initial network loading status when subscribing to this observable.
-         * @default true
-         */
-        notifyOnLoading?: boolean;
+  /**
+   * Whether or not observers should receive initial network loading status when subscribing to this observable.
+   * @default false
+   */
+  notifyOnLoading?: boolean;
 
-        /**
-         * Throw errors on the observable's error stream instead of assigning them to the error property of the result object.
-         * @default true
-         */
-        throwError?: boolean;
+  /**
+   * Throw errors on the observable's error stream instead of assigning them to the error property of the result object.
+   * @default true
+   */
+  throwError?: boolean;
 }`);
   }
 
@@ -181,39 +184,35 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
     // Replace double quotes with single quotes and add previousData property
     definitionText = definitionText.replace(/"/g, '\'').replace(/\n\s*}\s*&/, `
 
-        /**
-         * An object containing the result from the most recent _previous_ execution of this query.
-         *
-         * This value is \`undefined\` if this is the query's first execution.
-         */
-        previousData?: GetData<TData, TStates>;
+  /**
+   * An object containing the result from the most recent _previous_ execution of this query.
+   *
+   * This value is \`undefined\` if this is the query's first execution.
+   */
+  previousData?: GetData<TData, TStates>;
 } &`);
   }
 
   if (asName === 'SignalQueryOptions') {
-    definitionText = definitionText.replace(
-      '* The default value is `none`, meaning that the query result includes error details but not partial results.',
-      '* The default value is `all`, meaning that the promise returned from `execute` method always resolves to a result with an optional `error` field.'
-    );
     definitionText = definitionText.replace(/nextFetchPolicy\?: .*\n/g, 'nextFetchPolicy?: ApolloClient.WatchQueryOptions<TData, TVariables>[\'nextFetchPolicy\'];\n');
-    definitionText = definitionText.replace(/\n {4}} & VariablesOption<NoInfer<TVariables>>;/g, `
+    definitionText = definitionText.replace(/\n {2}} & VariablesOption<NoInfer<TVariables>>;/g, `
 
-        /**
-         * Whether or not to track initial network loading status.
-         * @default true
-         */
-        notifyOnLoading?: boolean;
+  /**
+   * Whether or not to track initial network loading status.
+   * @default true
+   */
+  notifyOnLoading?: boolean;
 
-        /**
-         * Whether to execute query immediately or lazily via \`execute\` method.
-         */
-        lazy?: boolean;
+  /**
+   * Whether to execute query immediately or lazily via \`execute\` method.
+   */
+  lazy?: boolean;
 
-        /**
-         * Custom injector to use for this query.
-         */
-        injector?: Injector;
-  } & (
+  /**
+   * Custom injector to use for this query.
+   */
+  injector?: Injector;
+} & (
     | {
       /**
        * Whether to execute query immediately or lazily via \`execute\` method.
@@ -243,65 +242,65 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
 
   if (asName === 'SignalSubscriptionOptions') {
     definitionText = definitionText.replace(/query: (.*?);/g, 'subscription: $1;');
-    definitionText = definitionText.replace(/\n {4}} & VariablesOption<NoInfer<TVariables>>/, `
+    definitionText = definitionText.replace(/\n {2}} & VariablesOption<NoInfer<TVariables>>/, `
 
-        /**
-         * Whether to execute subscription immediately or lazily via \`execute\` method.
-         */
-        lazy?: boolean;
+  /**
+   * Whether to execute subscription immediately or lazily via \`execute\` method.
+   */
+  lazy?: boolean;
 
-        /**
-         * Callback for when new data is received
-         */
-        onData?: (data: TData) => void;
+  /**
+   * Callback for when new data is received
+   */
+  onData?: (data: TData) => void;
 
-        /**
-         * Callback for when the subscription is completed
-         */
-        onComplete?: () => void;
+  /**
+   * Callback for when the subscription is completed
+   */
+  onComplete?: () => void;
 
-        /**
-         * Callback for when an error occurs
-         */
-        onError?: (error: ErrorLike) => void;
+  /**
+   * Callback for when an error occurs
+   */
+  onError?: (error: ErrorLike) => void;
 
-        /**
-         * Custom injector to use for this subscription.
-         */
-        injector?: Injector;
+  /**
+   * Custom injector to use for this subscription.
+   */
+  injector?: Injector;
 } & (
-  | {
-    /**
-     * Whether to execute subscription immediately or lazily via \`execute\` method.
-     */
-    lazy: true;
+    | {
+      /**
+       * Whether to execute subscription immediately or lazily via \`execute\` method.
+       */
+      lazy: true;
 
-    /**
-    * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
-    *
-    * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.*
-    *
-    * When \`null\` is returned, the subscription will be terminated until a non-null value is returned again.
-    */
-    variables?: () => TVariables | undefined | null;
-  }
-  | SignalVariablesOption<NoInfer<TVariables>>
-)`);
+      /**
+      * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
+      *
+      * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.*
+      *
+      * When \`null\` is returned, the subscription will be terminated until a non-null value is returned again.
+      */
+      variables?: () => TVariables | undefined | null;
+    }
+    | SignalVariablesOption<NoInfer<TVariables>>
+  )`);
   }
 
   if (asName === 'SignalFragmentOptions') {
     definitionText = definitionText.replace('TData, TVars', 'TData = unknown, TVariables extends Variables = Variables');
     definitionText = definitionText.replace(/from: (.*?);/g, `from:
-          | $1
-          | (() => $1);`);
+  | $1
+  | (() => $1);`);
     definitionText = definitionText.replace(/variables\?: (.*?);/g, 'variables?: NoInfer<TVariables> | (() => NoInfer<TVariables>);');
     definitionText = definitionText.replace('TVars', 'TVariables');
-    definitionText = definitionText.replace('\n    }', `
+    definitionText = definitionText.replace(/\n {2}}/g, `
 
-        /**
-         * Custom injector to use for this signal.
-         */
-        injector?: Injector;
+  /**
+   * Custom injector to use for this signal.
+   */
+  injector?: Injector;
 }`);
   }
 

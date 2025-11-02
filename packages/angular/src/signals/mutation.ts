@@ -1,6 +1,7 @@
 import { computed, Signal, signal, untracked, WritableSignal } from '@angular/core';
 import { ApolloClient, DocumentNode, ErrorLike, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
 import { mergeOptions } from '@apollo/client/utilities/internal';
+import { firstValueFrom } from 'rxjs';
 import { Apollo } from '../apollo';
 import { MutationOptions, MutationResult } from '../types';
 
@@ -95,56 +96,52 @@ export class SignalMutation<TData, TVariables extends Variables = Variables> {
     const mutationId = ++this.mutationId;
 
     const { mutation } = this;
-    const { onData, onError, errorPolicy = 'all', ...mergedOptions } = mergeOptions(this.options ?? {}, executeOptions ?? {});
-    const mutationOptions = { ...mergedOptions, mutation, errorPolicy } as ApolloClient.MutateOptions<TData, TVariables>;
+    const { onData, onError, ...mergedOptions } = mergeOptions(this.options ?? {}, executeOptions ?? {});
+    const mutationOptions = { ...mergedOptions, mutation } as ApolloClient.MutateOptions<TData, TVariables>;
 
-    return new Promise<MutationResult<TData>>((resolve, reject) => {
-      this.apollo.mutate<TData, TVariables>(mutationOptions).subscribe({
-        next: result => {
-          const { data, error } = result;
+    return firstValueFrom(this.apollo.mutate<TData, TVariables>(mutationOptions))
+      .then(result => {
+        const { data, error } = result;
 
-          if (error) {
-            onError?.(error, mutationOptions);
-          }
-
-          if (!error && data !== undefined) {
-            onData?.(data, mutationOptions);
-          }
-
-          // Only update signal if this is still the current mutation
-          if (mutationId === this.mutationId) {
-            const newResult = {
-              called: true,
-              loading: false,
-              data,
-              error
-            };
-
-            this._result.set(newResult);
-          }
-
-          resolve(result);
-        },
-        error: error => {
+        if (error) {
           onError?.(error, mutationOptions);
+        }
 
-          // Only update signal if this is still the current mutation
-          if (mutationId === this.mutationId) {
-            const newResult = {
-              called: true,
-              loading: false,
-              data: void 0,
-              error
-            };
+        if (!error && data !== undefined) {
+          onData?.(data, mutationOptions);
+        }
 
-            this._result.set(newResult);
-          }
+        // Only update signal if this is still the current mutation
+        if (mutationId === this.mutationId) {
+          const newResult = {
+            called: true,
+            loading: false,
+            data,
+            error
+          };
 
-          reject(error);
-        },
-        complete: () => resolve(this.result())
+          this._result.set(newResult);
+        }
+
+        return result;
+      })
+      .catch(error => {
+        onError?.(error, mutationOptions);
+
+        // Only update signal if this is still the current mutation
+        if (mutationId === this.mutationId) {
+          const newResult = {
+            called: true,
+            loading: false,
+            data: void 0,
+            error
+          };
+
+          this._result.set(newResult);
+        }
+
+        return { data: undefined, error };
       });
-    });
   }
 
   /**
