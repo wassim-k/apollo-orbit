@@ -60,12 +60,6 @@ export class SignalMutation<TData, TVariables extends Variables = Variables> {
     private readonly mutation: DocumentNode | TypedDocumentNode<TData, TVariables>,
     private readonly options?: SignalMutationOptions<TData, TVariables>
   ) {
-    this._result = signal({
-      data: undefined,
-      called: false,
-      loading: false
-    });
-
     this.mutationId = 0;
 
     this._result = signal({ data: undefined, called: false, loading: false });
@@ -133,7 +127,7 @@ export class SignalMutation<TData, TVariables extends Variables = Variables> {
           const newResult = {
             called: true,
             loading: false,
-            data: void 0,
+            data: undefined,
             error
           };
 

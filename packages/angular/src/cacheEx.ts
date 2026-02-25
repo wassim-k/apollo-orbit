@@ -57,7 +57,7 @@ function watchQuery<TData, TVariables extends Variables = Variables>(
   return new Observable<CacheWatchQueryResult<TData>>(
     subscriber => {
       try {
-        this.watch<TData, TVariables>({
+        return this.watch<TData, TVariables>({
           ...options,
           optimistic,
           immediate,
@@ -67,6 +67,7 @@ function watchQuery<TData, TVariables extends Variables = Variables>(
         });
       } catch (error) {
         subscriber.error(error);
+        return void 0;
       }
     });
 }

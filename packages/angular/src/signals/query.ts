@@ -381,5 +381,12 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     this.subscription?.unsubscribe();
     this.subscription = undefined;
     this.observable = undefined;
+    this._result.update(({ data, previousData }) => ({
+      data: undefined,
+      dataState: 'empty',
+      loading: false,
+      networkStatus: NetworkStatus.ready,
+      previousData: data ?? previousData
+    }) as QueryResult<TData, TStates>);
   }
 }

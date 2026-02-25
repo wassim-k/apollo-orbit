@@ -618,14 +618,17 @@ describe('Signals', () => {
         tick();
         expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1 v2' } });
 
-        // Setting variables to null should terminate the query
+        // Setting variables to null should terminate the query and reset data
         id.set(null);
         tick();
+
+        expect(signalQuery.data()).toBeUndefined();
+        expect(signalQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1 v2' } });
 
         // Cache updates should NOT be reflected after query is terminated
         apollo.cache.writeQuery({ query, data: { book: { id: 1, name: 'Book 1 v3' } }, variables: { id: 1 } });
         tick();
-        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1 v2' } });
+        expect(signalQuery.data()).toBeUndefined();
 
         // When variables become non-null again, query should restart and get latest cache data
         id.set(1);
@@ -656,8 +659,11 @@ describe('Signals', () => {
         tick();
         expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
-        // Manual termination stops the query
+        // Manual termination stops the query and resets data
         signalQuery.terminate();
+
+        expect(signalQuery.data()).toBeUndefined();
+        expect(signalQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
         // Changing variables while terminated has no effect
         id.set(null);
@@ -665,8 +671,9 @@ describe('Signals', () => {
 
         id.set(2);
         tick();
-        // Data remains unchanged from last successful query
-        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+        // Data remains undefined while terminated
+        expect(signalQuery.data()).toBeUndefined();
+        expect(signalQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
         mockLink.addMockedResponse({
           request: { query, variables: { id: 2 } },
@@ -725,11 +732,12 @@ describe('Signals', () => {
         expect(lazyQuery.active()).toBe(true);
         expect(lazyQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
-        // Variables become null - should terminate
+        // Variables become null - should terminate and reset data
         id.set(null);
         tick();
         expect(lazyQuery.active()).toBe(false);
-        expect(lazyQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+        expect(lazyQuery.data()).toBeUndefined();
+        expect(lazyQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
         // Variables become non-null again - should restart (since execute was called manually and intentionally)
         mockLink.addMockedResponse({
@@ -751,10 +759,12 @@ describe('Signals', () => {
         tick();
         expect(lazyQuery.data()).toEqual({ book: { id: 2, name: 'Book 2 Updated' } });
 
-        // Variables become null again - should terminate
+        // Variables become null again - should terminate and reset data
         id.set(null);
         tick();
         expect(lazyQuery.active()).toBe(false);
+        expect(lazyQuery.data()).toBeUndefined();
+        expect(lazyQuery.previousData()).toEqual({ book: { id: 2, name: 'Book 2 Updated' } });
 
         // Cache updates should not affect the query while terminated
         apollo.cache.writeQuery({
@@ -763,7 +773,7 @@ describe('Signals', () => {
           data: { book: { id: 2, name: 'Book 2 Updated Again' } }
         });
         tick();
-        expect(lazyQuery.data()).toEqual({ book: { id: 2, name: 'Book 2 Updated' } });
+        expect(lazyQuery.data()).toBeUndefined();
 
         // Manually terminate
         lazyQuery.terminate();
@@ -804,12 +814,16 @@ describe('Signals', () => {
         tick();
         expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
-        // Set variables to null and call execute - should return current data
+        // Set variables to null - data resets, previousData preserves last value
         id.set(null);
         tick();
 
+        expect(signalQuery.data()).toBeUndefined();
+        expect(signalQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Execute with null variables returns undefined data
         signalQuery.execute().then(result => {
-          expect(result.data).toEqual({ book: { id: 1, name: 'Book 1' } });
+          expect(result.data).toBeUndefined();
         });
 
         tick();
