@@ -1,6 +1,6 @@
 {
   "name": "@apollo-orbit/angular",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A full-featured GraphQL client for Angular",
   "license": "MIT",
   "sideEffects": false,
