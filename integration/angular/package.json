@@ -10,8 +10,7 @@
     "codegen": "yarn codegen:core && yarn codegen:state",
     "codegen:core": "graphql-codegen --config ./projects/core/codegen.ts",
     "codegen:state": "graphql-codegen --config ./projects/state/codegen.ts",
-    "codegen:core:inspect": "node --nolazy --inspect-brk ../../node_modules/@graphql-codegen/cli/bin.js --config ./projects/core/codegen.ts",
-    "serve:ssr:core": "node dist/core/server/server.mjs"
+    "codegen:core:inspect": "node --nolazy --inspect-brk ../../node_modules/@graphql-codegen/cli/bin.js --config ./projects/core/codegen.ts"
   },
   "private": true,
   "dependencies": {

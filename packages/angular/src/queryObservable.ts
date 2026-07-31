@@ -1,13 +1,14 @@
 import { DataState, ObservableQuery, OperationVariables, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables } from '@apollo/client';
 import { Observable, Subscription } from 'rxjs';
-import { ExtraWatchQueryOptions, GetData, QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions } from './types';
+import { withPreviousData } from './internal/queryResult';
+import { ExtraWatchQueryOptions, QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions } from './types';
 
 export class QueryObservable<
   TData = unknown,
   TVariables extends Variables = Variables,
   TStates extends DataState<TData>['dataState'] = DataState<TData>['dataState']
 > extends Observable<QueryResult<TData, TStates>> {
-  private previousData: GetData<TData, TStates> | undefined;
+  private previousResult: QueryResult<TData, TStates> | undefined;
 
   public constructor(
     private readonly observableQuery: ObservableQuery<TData, TVariables>,
@@ -17,9 +18,8 @@ export class QueryObservable<
       let subscription: Subscription | undefined;
 
       const next = ({ partial, ...result }: ObservableQuery.Result<TData>): void => {
-        const { previousData } = this;
-        this.previousData = (result.data ?? previousData) as GetData<TData, TStates> | undefined;
-        subscriber.next({ ...result, previousData } as QueryResult<TData, TStates>);
+        this.previousResult = withPreviousData(this.previousResult, result as QueryResult<TData, TStates>);
+        subscriber.next(this.previousResult);
       };
 
       const complete = (): void => {
