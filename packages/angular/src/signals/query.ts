@@ -3,9 +3,10 @@ import { ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, Error
 import { equal } from '@wry/equality';
 import { noop, Subscription } from 'rxjs';
 import { Apollo } from '../apollo';
+import { emptyQueryResult, withPreviousData } from '../internal/queryResult';
 import { QueryObservable } from '../queryObservable';
 import type { GetData, QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions } from '../types';
-import type { SignalVariablesOption } from './types';
+import type { SignalLazyVariablesOption } from './types';
 
 export class SignalQueryExecutionError extends Error {
   public constructor(methodName: keyof SignalQuery<any, any>) {
@@ -119,24 +120,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
    * Custom injector to use for this query.
    */
   injector?: Injector;
-} & (
-    | {
-      /**
-       * Whether to execute query immediately or lazily via `execute` method.
-       */
-      lazy: true;
-
-      /**
-      * A function or signal returning an object containing all of the GraphQL variables your query requires to execute.
-      *
-      * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.
-      *
-      * When `null` is returned, the query will be terminated until a non-null value is returned again.
-      */
-      variables?: () => TVariables | undefined | null;
-    }
-    | SignalVariablesOption<NoInfer<TVariables>>
-  );
+} & SignalLazyVariablesOption<NoInfer<TVariables>>;
 
 export interface SignalQueryExecOptions<TVariables extends Variables = Variables> {
   /**
@@ -189,7 +173,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   /**
    * Whether the query is currently active, subscribed to the underlying observable and receiving cache updates.
    */
-  public readonly active: Signal<boolean>;
+  public readonly active: Signal<boolean> = computed(() => this.subscription() !== undefined);
 
   /**
    * Whether the query is currently enabled.
@@ -211,8 +195,9 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   public readonly enabled: Signal<boolean>;
 
   private observable: QueryObservable<TData, TVariables, TStates> | undefined;
-  private subscription: Subscription | undefined;
-  private readonly _active: WritableSignal<boolean>;
+  private resolvePendingTask: (() => void) | undefined;
+  private readonly subscription: WritableSignal<Subscription | undefined> = signal(undefined);
+  private readonly pendingTasks: PendingTasks;
   private readonly _result: WritableSignal<QueryResult<TData, TStates>>;
   private readonly _enabled: WritableSignal<boolean>;
 
@@ -223,16 +208,15 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   ) {
     const { variables, lazy = false } = options;
 
+    this.pendingTasks = injector.get(PendingTasks);
+
     this.variables = variables !== undefined ? linkedSignal(variables, { equal }) : signal(variables);
 
     this._enabled = signal(!lazy);
     this.enabled = this._enabled.asReadonly();
 
-    this._result = signal({ data: undefined, dataState: 'empty', loading: false, networkStatus: NetworkStatus.ready } as QueryResult<TData, TStates>);
+    this._result = signal(emptyQueryResult<TData, TStates>());
     this.result = this._result.asReadonly();
-
-    this._active = signal(false);
-    this.active = this._active.asReadonly();
 
     effect(() => {
       const variables = this.variables();
@@ -251,17 +235,6 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
         this._terminate();
       }
     }, { injector });
-
-    if (!lazy) {
-      const pendingTasks = injector.get(PendingTasks);
-
-      effect(() => {
-        if (untracked(this.variables) !== null) {
-          const resolvePendingTask = pendingTasks.add();
-          this.execute().then(resolvePendingTask).catch(noop);
-        }
-      }, { injector });
-    }
 
     injector.get(DestroyRef).onDestroy(() => this.terminate());
   }
@@ -286,7 +259,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Refetch the query with the current variables.
    */
   public refetch(variables?: Partial<TVariables>): Promise<SingleQueryResult<TData>> {
-    if (!this.observable) throw new SignalQueryExecutionError('refetch');
+    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('refetch');
     return this.observable.refetch(variables)
       .catch(error => ({ data: undefined, error }));
   }
@@ -298,7 +271,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     TFetchData = TData,
     TFetchVars extends Variables = TVariables
   >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars>): Promise<SingleQueryResult<TFetchData>> {
-    if (!this.observable) throw new SignalQueryExecutionError('fetchMore');
+    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('fetchMore');
     return this.observable.fetchMore(options)
       .catch(error => ({ data: undefined, error }));
   }
@@ -307,7 +280,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Update the query's cached data.
    */
   public updateQuery(mapFn: UpdateQueryMapFn<TData, TVariables>): void {
-    if (!this.observable) throw new SignalQueryExecutionError('updateQuery');
+    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('updateQuery');
     this.observable.updateQuery(mapFn);
   }
 
@@ -315,7 +288,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Start polling the query.
    */
   public startPolling(pollInterval: number): void {
-    if (!this.observable) throw new SignalQueryExecutionError('startPolling');
+    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('startPolling');
     this.observable.startPolling(pollInterval);
   }
 
@@ -323,7 +296,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Stop polling the query.
    */
   public stopPolling(): void {
-    if (!this.observable) throw new SignalQueryExecutionError('stopPolling');
+    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('stopPolling');
     this.observable.stopPolling();
   }
 
@@ -341,7 +314,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
       TVariables
     >
   ): () => void {
-    if (!this.observable) throw new SignalQueryExecutionError('subscribeToMore');
+    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('subscribeToMore');
     return this.observable.subscribeToMore<TSubscriptionData, TSubscriptionVariables>(options);
   }
 
@@ -353,10 +326,8 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     const variables = untracked(this.variables);
 
     if (variables === null) {
-      return Promise.resolve({ data: this.data() as TData | undefined });
+      return Promise.resolve({ data: untracked(this.data) as TData | undefined });
     }
-
-    this._active.set(true);
 
     const { query, lazy, notifyOnLoading = true, notifyOnNetworkStatusChange = true, ...options } = this.options;
 
@@ -370,23 +341,32 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     } as WatchQueryOptions<TData, TVariables>;
 
     this.observable ??= this.apollo.watchQuery<TData, TVariables>(newOptions) as QueryObservable<TData, TVariables, any>;
-    this.subscription ??= this.observable.subscribe(result => this._result.set(result));
+
+    if (untracked(this.subscription) === undefined) {
+      this.subscription.set(this.observable.subscribe(result => this._result.set(result)));
+    }
+
+    const resolvePendingTask = this.pendingTasks.add();
+    this.resolvePendingTask = resolvePendingTask;
 
     return this.observable.reobserve(newOptions)
-      .catch(error => ({ data: undefined, error }));
+      .catch(error => ({ data: undefined, error }))
+      .finally(resolvePendingTask);
   }
 
   private _terminate(): void {
-    this._active.set(false);
-    this.subscription?.unsubscribe();
-    this.subscription = undefined;
-    this.observable = undefined;
-    this._result.update(({ data, previousData }) => ({
-      data: undefined,
-      dataState: 'empty',
-      loading: false,
-      networkStatus: NetworkStatus.ready,
-      previousData: data ?? previousData
-    }) as QueryResult<TData, TStates>);
+    untracked(this.subscription)?.unsubscribe();
+    this.subscription.set(undefined);
+    this.resolvePendingTask?.();
+    this.resolvePendingTask = undefined;
+    this._result.update(previous => withPreviousData(previous, emptyQueryResult<TData, TStates>()));
+  }
+
+  /**
+   * The observable is kept after termination so that it carries `previousData` into the next execution, so having
+   * one does not mean the query is running. The `undefined` check is only there to narrow the type.
+   */
+  private _isActive(observable: QueryObservable<TData, TVariables, TStates> | undefined): observable is QueryObservable<TData, TVariables, TStates> {
+    return observable !== undefined && untracked(this.active);
   }
 }

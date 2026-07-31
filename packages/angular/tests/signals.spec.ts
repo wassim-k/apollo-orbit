@@ -1,6 +1,6 @@
-import { Injector, signal } from '@angular/core';
+import { Injector, PendingTasks, signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { Apollo, SingleQueryResult } from '@apollo-orbit/angular';
+import { Apollo, SignalQueryCancelledError, SingleQueryResult } from '@apollo-orbit/angular';
 import { gql, NetworkStatus, TypedDocumentNode } from '@apollo/client';
 import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
@@ -684,6 +684,8 @@ describe('Signals', () => {
         signalQuery.execute();
         tick();
         expect(signalQuery.data()).toEqual({ book: { id: 2, name: 'Book 2' } });
+        // The observable is kept while terminated, so the previousData it tracks survives the cycle
+        expect(signalQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
         mockLink.addMockedResponse({
           request: { query, variables: { id: 3 } },
@@ -855,6 +857,328 @@ describe('Signals', () => {
       it('should compile with optional variables', () => {
         apollo.signal.query({ injector, query: queryOptional });
         apollo.signal.query({ injector, query: queryOptional, variables: () => ({ id: '1' }) });
+        expect(true).toBe(true);
+      });
+    });
+  });
+
+  describe('SignalSingleQuery', () => {
+    it('should fetch once and ignore later cache updates', fakeAsync(() => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'initial' } },
+        delay: 10
+      });
+
+      const singleQuery = apollo.signal.query.once<Value>({ query, injector });
+      const watchQuery = apollo.signal.query<Value>({ query, injector });
+
+      tick(0);
+      expect(singleQuery.loading()).toBe(true);
+      expect(singleQuery.data()).toBeUndefined();
+
+      tick(10);
+      expect(singleQuery.loading()).toBe(false);
+      expect(singleQuery.data()).toEqual({ value: 'initial' });
+      expect(watchQuery.data()).toEqual({ value: 'initial' });
+
+      apollo.cache.writeQuery({ query, data: { value: 'external' } });
+      tick();
+
+      expect(watchQuery.data()).toEqual({ value: 'external' });
+      expect(singleQuery.data()).toEqual({ value: 'initial' });
+      expect(singleQuery.error()).toBeUndefined();
+    }));
+
+    it('should re-execute when variables change', fakeAsync(() => {
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '1' } },
+        result: { data: { value: 'value-1' } }
+      });
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '2' } },
+        result: { data: { value: 'value-2' } }
+      });
+
+      const variables = signal({ id: '1' });
+      const singleQuery = apollo.signal.query.once({ query, variables, injector });
+
+      tick();
+      expect(singleQuery.data()).toEqual({ value: 'value-1' });
+
+      variables.set({ id: '2' });
+      tick();
+
+      expect(singleQuery.data()).toEqual({ value: 'value-2' });
+      expect(singleQuery.previousData()).toEqual({ value: 'value-1' });
+    }));
+
+    it('should ignore results from a superseded execution', fakeAsync(() => {
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '1' } },
+        result: { data: { value: 'value-1' } },
+        delay: 50
+      });
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '2' } },
+        result: { data: { value: 'value-2' } },
+        delay: 10
+      });
+
+      const variables = signal({ id: '1' });
+      const singleQuery = apollo.signal.query.once({ query, variables, injector });
+
+      tick(5);
+      variables.set({ id: '2' });
+      tick(10);
+
+      expect(singleQuery.data()).toEqual({ value: 'value-2' });
+
+      tick(50);
+      expect(singleQuery.data()).toEqual({ value: 'value-2' });
+    }));
+
+    it('should execute once when executed manually before the first effect run', fakeAsync(() => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } }
+      });
+
+      const querySpy = vi.spyOn(apollo.client, 'query');
+      const singleQuery = apollo.signal.query.once<Value>({ query, injector });
+
+      let result: SingleQueryResult<Value> | undefined;
+      singleQuery.execute().then(executed => {
+        result = executed;
+      });
+      tick();
+
+      expect(querySpy).toHaveBeenCalledTimes(1);
+      expect(result?.data).toEqual({ value: 'expected' });
+      expect(singleQuery.data()).toEqual({ value: 'expected' });
+    }));
+
+    it('should report active while an execution is in flight', fakeAsync(() => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } },
+        delay: 10
+      });
+
+      const singleQuery = apollo.signal.query.once<Value>({ query, injector });
+
+      expect(singleQuery.active()).toBe(false);
+
+      tick(0);
+      expect(singleQuery.active()).toBe(true);
+
+      tick(10);
+      expect(singleQuery.active()).toBe(true);
+
+      singleQuery.terminate();
+      expect(singleQuery.active()).toBe(false);
+      expect(singleQuery.enabled()).toBe(false);
+    }));
+
+    it('should resolve a cancelled execution with an error rather than as an empty result', fakeAsync(() => {
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '1' } },
+        result: { data: { value: 'value-1' } },
+        delay: 50
+      });
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '2' } },
+        result: { data: { value: 'value-2' } },
+        delay: 10
+      });
+
+      const variables = signal({ id: '1' });
+      const singleQuery = apollo.signal.query.once({ query, variables, injector });
+
+      let superseded: SingleQueryResult<unknown> | undefined;
+      tick(0);
+      singleQuery.execute().then(result => {
+        superseded = result;
+      });
+
+      tick(5);
+      variables.set({ id: '2' });
+      tick(60);
+
+      expect(superseded?.data).toBeUndefined();
+      expect(superseded?.error).toBeInstanceOf(SignalQueryCancelledError);
+      expect(singleQuery.data()).toEqual({ value: 'value-2' });
+    }));
+
+    it('should resolve with an error when terminated mid-flight', fakeAsync(() => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } },
+        delay: 50
+      });
+
+      const singleQuery = apollo.signal.query.once<Value>({ query, lazy: true, injector });
+
+      let terminated: SingleQueryResult<Value> | undefined;
+      singleQuery.execute().then(result => {
+        terminated = result;
+      });
+
+      tick(5);
+      singleQuery.terminate();
+      tick(50);
+
+      expect(terminated?.data).toBeUndefined();
+      expect(terminated?.error).toBeInstanceOf(SignalQueryCancelledError);
+      expect(singleQuery.data()).toBeUndefined();
+      expect(singleQuery.active()).toBe(false);
+    }));
+
+    it('should terminate when variables become null and return current data when executed', fakeAsync(() => {
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '1' } },
+        result: { data: { value: 'value-1' } }
+      });
+
+      const id = signal<string | null>('1');
+
+      const singleQuery = apollo.signal.query.once({
+        query,
+        variables: () => id() !== null ? ({ id: id() }) : null,
+        injector
+      });
+
+      tick();
+      expect(singleQuery.data()).toEqual({ value: 'value-1' });
+      expect(singleQuery.networkStatus()).toBe(NetworkStatus.ready);
+      expect(singleQuery.active()).toBe(true);
+
+      // Setting variables to null terminates the execution, data resets and previousData keeps the last value
+      id.set(null);
+      tick();
+
+      expect(singleQuery.active()).toBe(false);
+      expect(singleQuery.data()).toBeUndefined();
+      expect(singleQuery.previousData()).toEqual({ value: 'value-1' });
+
+      // Executing with null variables resolves with the current data instead of fetching
+      let result: SingleQueryResult<unknown> | undefined;
+      singleQuery.execute().then(executed => {
+        result = executed;
+      });
+      tick();
+
+      expect(result?.data).toBeUndefined();
+      expect(singleQuery.active()).toBe(false);
+    }));
+
+    it('should not execute while variables are null or the query is terminated', fakeAsync(() => {
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      const querySpy = vi.spyOn(apollo.client, 'query');
+      const id = signal<string | null>(null);
+
+      const singleQuery = apollo.signal.query.once({
+        query,
+        variables: () => id() !== null ? ({ id: id() }) : null,
+        injector
+      });
+
+      // Starting with null variables leaves nothing to execute and nothing to terminate
+      tick();
+      expect(querySpy).not.toHaveBeenCalled();
+      expect(singleQuery.active()).toBe(false);
+
+      // Once terminated, variable changes are ignored
+      singleQuery.terminate();
+      id.set('1');
+      tick();
+
+      expect(querySpy).not.toHaveBeenCalled();
+      expect(singleQuery.enabled()).toBe(false);
+    }));
+
+    it('should expose errors on the result', fakeAsync(() => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { errors: [new GraphQLError('Query error')] }
+      });
+
+      const singleQuery = apollo.signal.query.once<Value>({ query, injector });
+
+      tick();
+
+      expect(singleQuery.loading()).toBe(false);
+      expect(singleQuery.data()).toBeUndefined();
+      expect(singleQuery.error()?.message).toContain('Query error');
+    }));
+
+    it('should execute lazily and resolve with the result', async () => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } }
+      });
+
+      const singleQuery = apollo.signal.query.once<Value>({ query, lazy: true, injector });
+
+      expect(singleQuery.enabled()).toBe(false);
+      expect(singleQuery.data()).toBeUndefined();
+
+      const result = await singleQuery.execute();
+
+      expect(result.data).toEqual({ value: 'expected' });
+      expect(singleQuery.data()).toEqual({ value: 'expected' });
+      expect(singleQuery.enabled()).toBe(true);
+    });
+
+    describe('variables type safety', () => {
+      const query: TypedDocumentNode<{ value: string }, { id: string }> = gql`query Value($id: ID!) { value(id: $id) }`;
+      const queryOptional: TypedDocumentNode<{ value: string }, Exact<{ id?: string }>> = gql`query Value($id: ID) { value(id: $id) }`;
+
+      it('should raise a compiler error if variables are required but not provided (and not lazy)', () => {
+        // @ts-expect-error: Property 'variables' is missing in type
+        apollo.signal.query.once({ injector, query });
+        // @ts-expect-error: Property 'variables' is missing in type
+        apollo.signal.query.once({ injector, query, lazy: false });
+        expect(true).toBe(true);
+      });
+
+      it('should compile if lazy is true, even if required variables are not provided initially', () => {
+        apollo.signal.query.once({ injector, query, lazy: true });
+        expect(true).toBe(true);
+      });
+
+      it('should compile if required variables are provided (and not lazy)', () => {
+        apollo.signal.query.once({ injector, query, variables: () => ({ id: '1' }) });
+        expect(true).toBe(true);
+      });
+
+      it('should compile with optional variables', () => {
+        apollo.signal.query.once({ injector, query: queryOptional });
+        apollo.signal.query.once({ injector, query: queryOptional, variables: () => ({ id: '1' }) });
         expect(true).toBe(true);
       });
     });
@@ -1651,6 +1975,40 @@ describe('Signals', () => {
       }));
     });
 
+    describe('single subscription per trigger', () => {
+      it('should subscribe exactly once on initialization', fakeAsync(() => {
+        const subscription = gql`subscription { newValue }`;
+
+        const subscribeSpy = vi.spyOn(apollo, 'subscribe');
+
+        apollo.signal.subscription<{ newValue: string }>({
+          subscription,
+          injector
+        });
+
+        tick();
+
+        expect(subscribeSpy).toHaveBeenCalledTimes(1);
+      }));
+
+      it('should subscribe exactly once when executed manually before the first effect run', fakeAsync(() => {
+        const subscription = gql`subscription { newValue }`;
+
+        const subscribeSpy = vi.spyOn(apollo, 'subscribe');
+
+        const signalSubscription = apollo.signal.subscription<{ newValue: string }>({
+          subscription,
+          lazy: true,
+          injector
+        });
+
+        signalSubscription.execute();
+        tick();
+
+        expect(subscribeSpy).toHaveBeenCalledTimes(1);
+      }));
+    });
+
     describe('execute with null variables', () => {
       it('should handle execute when variables are null', fakeAsync(() => {
         const subscription = gql`subscription BookUpdated($id: Int!) { bookUpdated(id: $id) { id } }`;
@@ -1812,12 +2170,97 @@ describe('Signals', () => {
     }));
   });
 
+  describe('Application stability', () => {
+    /**
+     * Counts the tasks a signal registers with `PendingTasks` and how many it releases. A task that is never
+     * released leaves the application permanently unstable and stalls server-side rendering.
+     */
+    function trackPendingTasks(): { added: number; released: number } {
+      const pendingTasks = TestBed.inject(PendingTasks);
+      const counters = { added: 0, released: 0 };
+      const add = pendingTasks.add.bind(pendingTasks);
+
+      vi.spyOn(pendingTasks, 'add').mockImplementation(() => {
+        counters.added++;
+        const remove = add();
+        let released = false;
+
+        // `PendingTasks` cleanups are idempotent, so count removals rather than calls.
+        return () => {
+          if (!released) {
+            released = true;
+            counters.released++;
+          }
+          remove();
+        };
+      });
+
+      return counters;
+    }
+
+    it('should release the pending task when a query is terminated mid-flight', fakeAsync(() => {
+      const query = gql`query GetValue($id: ID!) { value(id: $id) }`;
+
+      mockLink.addMockedResponse({
+        request: { query, variables: { id: '1' } },
+        result: { data: { value: 'value-1' } },
+        delay: 50
+      });
+
+      const tasks = trackPendingTasks();
+      const variables = signal<{ id: string } | null>({ id: '1' });
+
+      const signalQuery = apollo.signal.query({ query, variables, injector });
+
+      tick(0);
+      expect(tasks).toEqual({ added: 1, released: 0 });
+
+      // Terminating abandons the in-flight `reobserve`, so the task must be released now rather than when the
+      // response that is no longer needed arrives.
+      signalQuery.terminate();
+      expect(tasks).toEqual({ added: 1, released: 1 });
+
+      tick(50);
+      expect(tasks).toEqual({ added: 1, released: 1 });
+    }));
+
+    it('should release the pending task when a single query is terminated mid-flight', fakeAsync(() => {
+      const query = gql`query { value }`;
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } },
+        delay: 50
+      });
+
+      const tasks = trackPendingTasks();
+      const singleQuery = apollo.signal.query.once<Value>({ query, injector });
+
+      tick(0);
+      expect(tasks).toEqual({ added: 1, released: 0 });
+
+      singleQuery.terminate();
+      expect(tasks).toEqual({ added: 1, released: 1 });
+
+      tick(50);
+      expect(tasks).toEqual({ added: 1, released: 1 });
+    }));
+  });
+
   describe('Injection Context', () => {
     it('should throw when query is called without injector outside injection context', () => {
       const query = gql`query { value }`;
 
       expect(() => {
         apollo.signal.query<Value>({ query });
+      }).toThrow();
+    });
+
+    it('should throw when query.once is called without injector outside injection context', () => {
+      const query = gql`query { value }`;
+
+      expect(() => {
+        apollo.signal.query.once<Value>({ query });
       }).toThrow();
     });
 

@@ -4,7 +4,7 @@ import { equal } from '@wry/equality';
 import { Subscription } from 'rxjs';
 import { Apollo } from '../apollo';
 import { SubscriptionOptions, SubscriptionResult } from '../types';
-import { SignalVariablesOption } from './types';
+import { SignalLazyVariablesOption } from './types';
 
 // import { ApolloClient.SubscribeOptions as SignalSubscriptionOptions } from  '@apollo/client';
 export type SignalSubscriptionOptions<TData = unknown, TVariables extends Variables = Variables> = {
@@ -54,24 +54,7 @@ export type SignalSubscriptionOptions<TData = unknown, TVariables extends Variab
    * Custom injector to use for this subscription.
    */
   injector?: Injector;
-} & (
-    | {
-      /**
-       * Whether to execute subscription immediately or lazily via `execute` method.
-       */
-      lazy: true;
-
-      /**
-      * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
-      *
-      * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.*
-      *
-      * When `null` is returned, the subscription will be terminated until a non-null value is returned again.
-      */
-      variables?: () => TVariables | undefined | null;
-    }
-    | SignalVariablesOption<NoInfer<TVariables>>
-  );
+} & SignalLazyVariablesOption<NoInfer<TVariables>>;
 
 export interface SignalSubscriptionExecOptions<TVariables extends Variables = Variables> {
   /**
@@ -121,7 +104,7 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
   /**
    * Whether the subscription is currently active, connected to the server and receiving real-time updates.
    */
-  public readonly active: Signal<boolean>;
+  public readonly active: Signal<boolean> = computed(() => this.execution() !== undefined);
 
   /**
    * Whether the subscription is currently enabled.
@@ -142,8 +125,7 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
    */
   public readonly enabled: Signal<boolean>;
 
-  private subscription: Subscription | undefined;
-  private readonly _active: WritableSignal<boolean>;
+  private readonly execution: WritableSignal<{ variables: TVariables | undefined; subscription: Subscription } | undefined> = signal(undefined);
   private readonly _result: WritableSignal<SignalSubscriptionResult<TData>>;
   private readonly _enabled: WritableSignal<boolean>;
 
@@ -157,9 +139,6 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
     this._enabled = signal(!lazy);
     this.enabled = this._enabled.asReadonly();
 
-    this._active = signal(false);
-    this.active = this._active.asReadonly();
-
     this._result = signal({ loading: false, data: undefined, error: undefined });
     this.result = this._result.asReadonly();
 
@@ -171,21 +150,17 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
     effect(() => {
       const variables = this.variables();
       const enabled = untracked(this.enabled);
-      const active = untracked(this.active);
 
       if (!enabled) return;
 
-      if (variables !== null) {
-        this._execute({ variables });
-      } else if (active) {
-        this._terminate();
-      }
-    }, { injector });
+      const execution = untracked(this.execution);
 
-    effect(() => {
-      const variables = this.variables();
-      if (untracked(this.active) && variables !== null) {
-        this.execute({ variables });
+      if (variables !== null) {
+        if (execution === undefined || execution.variables !== variables) {
+          this._execute({ variables });
+        }
+      } else if (execution !== undefined) {
+        this._terminate();
       }
     }, { injector });
 
@@ -219,7 +194,6 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
       return;
     }
 
-    this._active.set(true);
     this._result.set({
       loading: true,
       data: undefined,
@@ -227,37 +201,39 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
     });
 
     const { subscription, onData, onError, onComplete, injector, lazy, ...options } = this.options;
-    this.subscription?.unsubscribe();
-    this.subscription = this.apollo.subscribe<TData, TVariables>({
-      ...options,
-      ...execOptions,
-      subscription,
-      variables
-    } as SubscriptionOptions<TData, TVariables>).subscribe({
-      next: result => {
-        this._result.set({
-          loading: false,
-          ...result
-        });
+    untracked(this.execution)?.subscription.unsubscribe();
+    this.execution.set({
+      variables,
+      subscription: this.apollo.subscribe<TData, TVariables>({
+        ...options,
+        ...execOptions,
+        subscription,
+        variables
+      } as SubscriptionOptions<TData, TVariables>).subscribe({
+        next: result => {
+          this._result.set({
+            loading: false,
+            ...result
+          });
 
-        if (result.error) {
-          onError?.(result.error);
-        } else if (result.data !== undefined) {
-          onData?.(result.data);
+          if (result.error) {
+            onError?.(result.error);
+          } else if (result.data !== undefined) {
+            onData?.(result.data);
+          }
+        },
+        // error is never called for subscriptions in Apollo Client
+        complete: () => {
+          this.terminate();
+          onComplete?.();
         }
-      },
-      // error is never called for subscriptions in Apollo Client
-      complete: () => {
-        this.terminate();
-        onComplete?.();
-      }
+      })
     });
   }
 
   private _terminate(): void {
-    this._active.set(false);
-    this.subscription?.unsubscribe();
-    this.subscription = undefined;
+    untracked(this.execution)?.subscription.unsubscribe();
+    this.execution.set(undefined);
     this._result.update(result => ({ ...result, loading: false }));
   }
 }
