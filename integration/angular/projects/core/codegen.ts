@@ -12,14 +12,26 @@ const config: CodegenConfig = {
   },
   generates: {
     './projects/core/src/app/graphql/types.ts': {
-      documents: './projects/core/src/app/**/*.graphql',
       plugins: [
         {
           add: {
             content: '/* eslint-disable */'
           }
         },
-        'typescript',
+        'typescript'
+      ]
+    },
+    './projects/core/src/app/graphql/operations.ts': {
+      documents: './projects/core/src/app/**/*.graphql',
+      config: {
+        importSchemaTypesFrom: './projects/core/src/app/graphql/types.ts'
+      },
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
         'typescript-operations',
         '@apollo-orbit/codegen'
       ]

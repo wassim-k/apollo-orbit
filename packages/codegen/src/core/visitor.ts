@@ -1,6 +1,5 @@
 import { Types } from '@graphql-codegen/plugin-helpers';
 import { ClientSideBaseVisitor, DocumentMode, getConfigValue, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
-import autoBind from 'auto-bind';
 import { constantCase, pascalCase } from 'change-case-all';
 import { FragmentDefinitionNode, GraphQLSchema, OperationDefinitionNode } from 'graphql';
 import { Importer } from '../internal/importer.js';
@@ -43,8 +42,6 @@ export class ApolloOrbitVisitor<
         ...additionalConfig
       },
       documents);
-
-    autoBind(this);
 
     if (this.config.documentMode === undefined || this.config.documentMode === DocumentMode.graphQLTag) {
       const documentNodeImport = this._parseImport(this.config.documentNodeImport || 'graphql#DocumentNode');

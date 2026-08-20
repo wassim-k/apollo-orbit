@@ -30,7 +30,19 @@ const config: CodegenConfig = {
             content: '/* eslint-disable */'
           }
         },
-        'typescript',
+        'typescript'
+      ]
+    },
+    'tests/graphql/operations.ts': {
+      config: {
+        importSchemaTypesFrom: './tests/graphql/types.ts'
+      },
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
         'typescript-operations',
         '@apollo-orbit/codegen'
       ]

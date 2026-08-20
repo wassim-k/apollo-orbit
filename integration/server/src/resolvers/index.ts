@@ -69,7 +69,7 @@ export const resolvers: Resolvers = {
           return pubsub.asyncIterableIterator([NEW_BOOK]);
         },
         (payload, variables) => {
-          return typeof variables?.authorId !== 'string' || (payload as Subscription).newBook.authorId === variables.authorId;
+          return typeof variables?.authorId !== 'string' || (payload as unknown as Subscription).newBook.authorId === variables.authorId;
         }
       )
     },
