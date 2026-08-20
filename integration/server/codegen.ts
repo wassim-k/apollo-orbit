@@ -17,7 +17,7 @@ const config: CodegenConfig =
     },
     'src/resolvers/types.ts': {
       config: {
-        contextType: '../context#Context'
+        contextType: '../context.js#Context'
       },
       plugins: [
         {

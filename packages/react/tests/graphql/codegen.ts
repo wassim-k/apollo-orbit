@@ -7,6 +7,8 @@ const config: CodegenConfig = {
     'tests/graphql/author.graphql'
   ],
   config: {
+    importSchemaTypesFrom: './tests/graphql/types.ts',
+    useTypeImports: true,
     dedupeOperationSuffix: true,
     operationResultSuffix: 'Data',
     inlineFragmentTypes: 'combine',
@@ -22,7 +24,16 @@ const config: CodegenConfig = {
             content: '/* eslint-disable */'
           }
         },
-        'typescript',
+        'typescript'
+      ]
+    },
+    'tests/graphql/operations.ts': {
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
         'typescript-operations',
         '@apollo-orbit/codegen/core'
       ]

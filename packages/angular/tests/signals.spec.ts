@@ -4,8 +4,9 @@ import { Apollo, SignalQueryCancelledError, SingleQueryResult } from '@apollo-or
 import { gql, NetworkStatus, TypedDocumentNode } from '@apollo/client';
 import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
-import { Exact } from './graphql';
 import { provideApolloMock } from './helpers/apollo-mock.provider';
+
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 
 interface Value {
   value: string;

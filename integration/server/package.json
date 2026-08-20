@@ -20,7 +20,7 @@
     "shortid": "^2.2.17"
   },
   "devDependencies": {
-    "@graphql-codegen/typescript-resolvers": "^4.5.2",
+    "@graphql-codegen/typescript-resolvers": "^6.1.0",
     "@types/cors": "^2.8.19",
     "@types/shortid": "^2.2.0",
     "nodemon": "^3.1.10",

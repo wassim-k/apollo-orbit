@@ -1,15 +1,14 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`Core Codegen > should generate code for all operation types with default config 1`] = `
-"import { gql } from '@apollo/client';
+"/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+import { gql } from '@apollo/client';
 import { TypedDocumentNode as DocumentNode } from '@apollo/client';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
-export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
-export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
-export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
-export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: { input: string; output: string; }
@@ -111,50 +110,56 @@ export type SubscriptionNewBookArgs = {
   authorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
+export type BookInput = {
+  name: string;
+  genre?: string | null | undefined;
+  authorId: string | number;
+};
+
 export type BookQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
+  id: string | number;
 }>;
 
 
-export type BookQuery = { __typename?: 'Query', book: { __typename?: 'Book', id: string, name: string } };
+export type BookQuery = { book: { id: string, name: string } };
 
 export type BooksQueryVariables = Exact<{
-  name?: InputMaybe<Scalars['String']['input']>;
+  name?: string | null | undefined;
 }>;
 
 
-export type BooksQuery = { __typename?: 'Query', books: Array<{ __typename?: 'Book', id: string, name: string }> };
+export type BooksQuery = { books: Array<{ id: string, name: string }> };
 
 export type AllBooksQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type AllBooksQuery = { __typename?: 'Query', books: Array<{ __typename?: 'Book', id: string, name: string }> };
+export type AllBooksQuery = { books: Array<{ id: string, name: string }> };
 
 export type AddBookMutationVariables = Exact<{
   book: BookInput;
 }>;
 
 
-export type AddBookMutation = { __typename?: 'Mutation', addBook: { __typename?: 'Book', id: string, name: string } };
+export type AddBookMutation = { addBook: { id: string, name: string } };
 
 export type DeleteAllBooksMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type DeleteAllBooksMutation = { __typename?: 'Mutation', deleteAllBooks: boolean };
+export type DeleteAllBooksMutation = { deleteAllBooks: boolean };
 
 export type NewBookSubscriptionVariables = Exact<{
-  authorId?: InputMaybe<Scalars['ID']['input']>;
+  authorId?: string | number | null | undefined;
 }>;
 
 
-export type NewBookSubscription = { __typename?: 'Subscription', newBook: { __typename?: 'Book', id: string, name: string } };
+export type NewBookSubscription = { newBook: { id: string, name: string } };
 
 export type AllNewBooksSubscriptionVariables = Exact<{ [key: string]: never; }>;
 
 
-export type AllNewBooksSubscription = { __typename?: 'Subscription', newBook: { __typename?: 'Book', id: string, name: string } };
+export type AllNewBooksSubscription = { newBook: { id: string, name: string } };
 
-export type BookFragmentFragment = { __typename?: 'Book', id: string, name: string };
+export type BookFragmentFragment = { id: string, name: string };
 
 export const BookFragmentDoc = gql\`
     fragment BookFragment on Book {

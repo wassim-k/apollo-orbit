@@ -11,6 +11,8 @@ const config: CodegenConfig = {
   ],
   documents: './src/**/*.graphql',
   config: {
+    importSchemaTypesFrom: './src/graphql/types.ts',
+    useTypeImports: true,
     documentMode: 'graphQLTag',
     documentNodeImport: '@apollo/client#TypedDocumentNode',
     dedupeOperationSuffix: true,
@@ -27,7 +29,16 @@ const config: CodegenConfig = {
             content: '/* eslint-disable */'
           }
         },
-        'typescript',
+        'typescript'
+      ]
+    },
+    './src/graphql/operations.ts': {
+      plugins: [
+        {
+          add: {
+            content: '/* eslint-disable */'
+          }
+        },
         'typescript-operations',
         '@apollo-orbit/codegen/core'
       ]
