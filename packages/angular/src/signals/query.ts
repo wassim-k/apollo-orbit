@@ -1,5 +1,5 @@
 import { computed, DestroyRef, effect, Injector, linkedSignal, PendingTasks, signal, Signal, untracked, WritableSignal } from '@angular/core';
-import { ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, NetworkStatus, ObservableQuery, RefetchWritePolicy, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
+import { ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, NetworkStatus, ObservableQuery, RefetchOn, RefetchWritePolicy, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
 import { equal } from '@wry/equality';
 import { noop, Subscription } from 'rxjs';
 import { Apollo } from '../apollo';
@@ -104,6 +104,25 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   * @docGroup 1. Operation options
   */
   query: DocumentNode | TypedDocumentNode<TData, TVariables>;
+  /**
+  * Determines whether events trigger refetches for the query. Provide an
+  * object mapping each refetch event to `true` (enable), `false` (disable)
+  * or a callback function that returns `true`/`false` to control individual
+  * events. Provide `false` to disable all automatic refetch events for this
+  * query. Provide `true` to enable all automatic refetch events for this query.
+  * Provide a callback function to perform additional logic to determine
+  * whether to enable or disable a refetch for a query.
+  *
+  * `@remarks`
+  * `refetchOn` inherits from `defaultOptions.watchQuery.refetchOn`. If
+  * `defaultOptions.watchQuery.refetchOn` is not set, all refetch events are
+  * enabled by default.
+  *
+  * This option only has an effect when the client is configured with a
+  * `refetchEventManager`.
+  * @docGroup 1. Operation options
+  */
+  refetchOn?: RefetchOn.Option;
 
   /**
    * Whether or not to track initial network loading status.
@@ -196,6 +215,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
 
   private observable: QueryObservable<TData, TVariables, TStates> | undefined;
   private resolvePendingTask: (() => void) | undefined;
+  private readonly watchOptions: WatchQueryOptions<TData, TVariables>;
   private readonly subscription: WritableSignal<Subscription | undefined> = signal(undefined);
   private readonly pendingTasks: PendingTasks;
   private readonly _result: WritableSignal<QueryResult<TData, TStates>>;
@@ -204,11 +224,12 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   public constructor(
     injector: Injector,
     private readonly apollo: Apollo,
-    private readonly options: SignalQueryOptions<TData, TVariables>
+    options: SignalQueryOptions<TData, TVariables>
   ) {
-    const { variables, lazy = false } = options;
+    const { variables, lazy = false, injector: _, notifyOnLoading = true, notifyOnNetworkStatusChange = true, ...watchOptions } = options;
 
     this.pendingTasks = injector.get(PendingTasks);
+    this.watchOptions = { ...watchOptions, notifyOnLoading, notifyOnNetworkStatusChange } as WatchQueryOptions<TData, TVariables>;
 
     this.variables = variables !== undefined ? linkedSignal(variables, { equal }) : signal(variables);
 
@@ -220,19 +241,15 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
 
     effect(() => {
       const variables = this.variables();
-      const enabled = untracked(this.enabled);
-      const active = untracked(this.active);
 
-      if (!enabled) return;
+      if (!untracked(this.enabled)) return;
 
-      if (variables !== null) {
-        if (!active) {
-          this._execute({ variables }).catch(noop);
-        } else {
-          this.observable?.setVariables(variables as TVariables).catch(noop);
-        }
-      } else if (active) {
+      if (variables === null) {
         this._terminate();
+      } else if (this.observable === undefined) {
+        this._execute({ variables }).catch(noop);
+      } else {
+        this.observable.setVariables(variables as TVariables).catch(noop);
       }
     }, { injector });
 
@@ -259,7 +276,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Refetch the query with the current variables.
    */
   public refetch(variables?: Partial<TVariables>): Promise<SingleQueryResult<TData>> {
-    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('refetch');
+    if (this.observable === undefined) throw new SignalQueryExecutionError('refetch');
     return this.observable.refetch(variables)
       .catch(error => ({ data: undefined, error }));
   }
@@ -271,7 +288,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
     TFetchData = TData,
     TFetchVars extends Variables = TVariables
   >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars>): Promise<SingleQueryResult<TFetchData>> {
-    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('fetchMore');
+    if (this.observable === undefined) throw new SignalQueryExecutionError('fetchMore');
     return this.observable.fetchMore(options)
       .catch(error => ({ data: undefined, error }));
   }
@@ -280,7 +297,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Update the query's cached data.
    */
   public updateQuery(mapFn: UpdateQueryMapFn<TData, TVariables>): void {
-    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('updateQuery');
+    if (this.observable === undefined) throw new SignalQueryExecutionError('updateQuery');
     this.observable.updateQuery(mapFn);
   }
 
@@ -288,7 +305,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Start polling the query.
    */
   public startPolling(pollInterval: number): void {
-    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('startPolling');
+    if (this.observable === undefined) throw new SignalQueryExecutionError('startPolling');
     this.observable.startPolling(pollInterval);
   }
 
@@ -296,7 +313,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    * Stop polling the query.
    */
   public stopPolling(): void {
-    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('stopPolling');
+    if (this.observable === undefined) throw new SignalQueryExecutionError('stopPolling');
     this.observable.stopPolling();
   }
 
@@ -314,11 +331,11 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
       TVariables
     >
   ): () => void {
-    if (!this._isActive(this.observable)) throw new SignalQueryExecutionError('subscribeToMore');
+    if (this.observable === undefined) throw new SignalQueryExecutionError('subscribeToMore');
     return this.observable.subscribeToMore<TSubscriptionData, TSubscriptionVariables>(options);
   }
 
-  private _execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<SingleQueryResult<TData>> {
+  private _execute(execOptions: SignalQueryExecOptions<TVariables>): Promise<SingleQueryResult<TData>> {
     if ('variables' in execOptions) {
       this.variables.set(execOptions.variables);
     }
@@ -329,44 +346,29 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
       return Promise.resolve({ data: untracked(this.data) as TData | undefined });
     }
 
-    const { query, lazy, notifyOnLoading = true, notifyOnNetworkStatusChange = true, ...options } = this.options;
+    const options = { ...this.watchOptions, ...execOptions, variables } as WatchQueryOptions<TData, TVariables>;
 
-    const newOptions = {
-      ...options,
-      ...execOptions,
-      notifyOnLoading,
-      notifyOnNetworkStatusChange,
-      query,
-      variables
-    } as WatchQueryOptions<TData, TVariables>;
-
-    this.observable ??= this.apollo.watchQuery<TData, TVariables>(newOptions) as QueryObservable<TData, TVariables, any>;
-
-    if (untracked(this.subscription) === undefined) {
-      this.subscription.set(this.observable.subscribe(result => this._result.set(result)));
+    if (this.observable === undefined) {
+      this.observable = this.apollo.watchQuery<TData, TVariables>(options) as QueryObservable<TData, TVariables, any>;
+      this.subscription.set(this.observable.subscribe(result => this._result.update(previous => withPreviousData(previous, result))));
     }
 
     const resolvePendingTask = this.pendingTasks.add();
     this.resolvePendingTask = resolvePendingTask;
 
-    return this.observable.reobserve(newOptions)
+    return this.observable.reobserve(options)
       .catch(error => ({ data: undefined, error }))
       .finally(resolvePendingTask);
   }
 
   private _terminate(): void {
-    untracked(this.subscription)?.unsubscribe();
+    if (this.observable === undefined) return;
+
+    this.observable.stop();
+    this.observable = undefined;
     this.subscription.set(undefined);
     this.resolvePendingTask?.();
     this.resolvePendingTask = undefined;
     this._result.update(previous => withPreviousData(previous, emptyQueryResult<TData, TStates>()));
-  }
-
-  /**
-   * The observable is kept after termination so that it carries `previousData` into the next execution, so having
-   * one does not mean the query is running. The `undefined` check is only there to narrow the type.
-   */
-  private _isActive(observable: QueryObservable<TData, TVariables, TStates> | undefined): observable is QueryObservable<TData, TVariables, TStates> {
-    return observable !== undefined && untracked(this.active);
   }
 }

@@ -1,5 +1,8 @@
 import { state } from '@apollo-orbit/react';
-import { ADD_AUTHOR_MUTATION, ADD_BOOK_MUTATION, AuthorFragmentDoc, AUTHORS_QUERY } from '../../graphql';
+import { gql, TypedDocumentNode } from '@apollo/client';
+import { ADD_AUTHOR_MUTATION, ADD_BOOK_MUTATION, AuthorFragment, AuthorFragmentDoc, AUTHORS_QUERY, BookFragmentDoc } from '../../graphql';
+
+const authorFragment = gql`${AuthorFragmentDoc}${BookFragmentDoc}` as TypedDocumentNode<AuthorFragment>;
 
 export const authorState = state(descriptor => descriptor
   .mutationUpdate(ADD_AUTHOR_MUTATION, (cache, info) => {
@@ -14,7 +17,7 @@ export const authorState = state(descriptor => descriptor
 
     cache.updateFragment(
       {
-        fragment: AuthorFragmentDoc,
+        fragment: authorFragment,
         fragmentName: 'AuthorFragment',
         id: `Author:${authorId}`
       },

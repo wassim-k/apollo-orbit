@@ -3,7 +3,7 @@ import { ApolloOrbitProvider } from '@apollo-orbit/react';
 import { ApolloClient, gql, InMemoryCache } from '@apollo/client';
 import { ApolloProvider, useMutation, useQuery } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing';
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import React, { useEffect } from 'react';
 import * as wrapMutate from '../src/wrapMutate';
 import { ADD_AUTHOR_MUTATION } from './graphql';
@@ -237,11 +237,10 @@ describe('Multi', () => {
       </>
     ));
 
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    await waitFor(() => expect(wrapMutateSpy).toHaveBeenCalledTimes(1));
 
     expect(update1Mock).toHaveBeenCalledTimes(1);
     expect(update2Mock).toHaveBeenCalledTimes(1);
-    expect(wrapMutateSpy).toHaveBeenCalledTimes(1);
   });
 
   it('should support passing the client as an argument', async () => {

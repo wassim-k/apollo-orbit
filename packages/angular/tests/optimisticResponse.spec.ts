@@ -17,7 +17,7 @@ const testState = () => {
     })
     .optimisticResponse(UPDATE_BOOK_MUTATION, ({ id, book }) => {
       return {
-        updateBook: { __typename: 'Book' as const, id, ...book, name: `${book.name} (optimistic)`, authorId, genre: null }
+        updateBook: { __typename: 'Book' as const, id: String(id), ...book, name: `${book.name} (optimistic)`, authorId, genre: null }
       };
     })
   );
