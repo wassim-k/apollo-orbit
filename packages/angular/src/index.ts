@@ -1,4 +1,5 @@
-export { ApolloCache, ApolloClient, Cache, CombinedGraphQLErrors, CombinedProtocolErrors, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, gql, InMemoryCache, LinkError, MissingFieldError, NetworkStatus, NormalizedCache, NormalizedCacheObject, OperationVariables, ServerError, ServerParseError, StoreObject, TypedDocumentNode, UnconventionalError, UpdateQueryOptions } from '@apollo/client';
+export { ApolloCache, ApolloClient, Cache, CombinedGraphQLErrors, CombinedProtocolErrors, DataState, DataValue, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, gql, InMemoryCache, LinkError, MissingFieldError, NetworkStatus, NormalizedCache, NormalizedCacheObject, OperationVariables, Reference, RefetchOn, ServerError, ServerParseError, StoreObject, TypedDocumentNode, UnconventionalError, UpdateQueryOptions } from '@apollo/client';
+export type { MissingTree } from '@apollo/client/cache';
 export type { DeepPartial } from '@apollo/client/utilities';
 export { Apollo } from './apollo';
 export { ApolloCacheEx, CacheWatchQueryCompleteResult, CacheWatchQueryOptions, CacheWatchQueryPartialResult, CacheWatchQueryResult } from './cacheEx';

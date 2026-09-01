@@ -1,9 +1,10 @@
 import { assertInInjectionContext, inject, Injector } from '@angular/core';
 import { DocumentNode, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
+import type { ApolloCache } from '@apollo/client/cache';
 import { DeepPartial } from '@apollo/client/utilities';
 import type { Apollo } from '../apollo';
 import { SignalCacheQuery, SignalCacheQueryOptions } from './cacheQuery';
-import { SignalFragment, SignalFragmentOptions } from './fragment';
+import { FragmentFrom, SignalFragment, SignalFragmentOptions } from './fragment';
 import { SignalMutation, SignalMutationOptions } from './mutation';
 import { SignalQuery, SignalQueryOptions } from './query';
 import { SignalSingleQuery, SignalSingleQueryOptions } from './singleQuery';
@@ -81,10 +82,34 @@ export class ApolloSignal {
     );
   }
 
-  public fragment<
-    TData = unknown,
-    TVariables extends Variables = Variables
-  >(options: SignalFragmentOptions<TData, TVariables>): SignalFragment<TData, TVariables> {
+  // import { ApolloClient.watchFragment as fragment } from '@apollo/client';
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables, Array<ApolloCache.FromOptionValue<TData>>>
+  ): SignalFragment<Array<TData>, TVariables>;
+
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables, Array<null>>
+  ): SignalFragment<Array<null>, TVariables>;
+
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables, Array<ApolloCache.FromOptionValue<TData> | null>>
+  ): SignalFragment<Array<TData | null>, TVariables>;
+
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables, null>
+  ): SignalFragment<null, TVariables>;
+
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables, ApolloCache.FromOptionValue<TData>>
+  ): SignalFragment<TData, TVariables>;
+
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables>
+  ): SignalFragment<TData | null, TVariables>;
+
+  public fragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: SignalFragmentOptions<TData, TVariables, FragmentFrom<TData>>
+  ): SignalFragment<TData, TVariables> {
     const injector = this._ensureInjector(options, SignalFragment);
 
     return new SignalFragment<TData, TVariables>(

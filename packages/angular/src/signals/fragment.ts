@@ -1,17 +1,23 @@
-import { computed, effect, Injector, Signal, signal, WritableSignal } from '@angular/core';
-import { DocumentNode, FragmentType, Reference, StoreObject, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
-import type { MissingTree } from '@apollo/client/cache';
-import type { DeepPartial } from '@apollo/client/utilities';
+import { computed, effect, Injector, Signal, signal, untracked, WritableSignal } from '@angular/core';
+import { ApolloClient, DataValue, DocumentNode, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
+import type { ApolloCache, MissingTree } from '@apollo/client/cache';
 import { equal } from '@wry/equality';
 import { Subscription } from 'rxjs';
 import { Apollo } from '../apollo';
 
-export type SignalFragmentResult<TData> =
-  | { data: TData; complete: true; missing?: never }
-  | { data: DeepPartial<TData>; complete: false; missing?: MissingTree };
+export type SignalFragmentResult<TData> = ApolloCache.WatchFragmentResult<TData>;
+
+/**
+ * What a fragment can be watched from: an object, `null`, or an array of either.
+ */
+export type FragmentFrom<TData> = ApolloCache.WatchFragmentOptions<TData>['from'];
 
 // import { ApolloCache.WatchFragmentOptions as SignalFragmentOptions } from '@apollo/client';
-export interface SignalFragmentOptions<TData = unknown, TVariables extends Variables = Variables> {
+export interface SignalFragmentOptions<
+  TData = unknown,
+  TVariables extends Variables = Variables,
+  TFrom extends FragmentFrom<TData> = FragmentFrom<TData>
+> {
   /**
   * A GraphQL fragment document parsed into an AST with the `gql`
   * template literal.
@@ -28,8 +34,8 @@ export interface SignalFragmentOptions<TData = unknown, TVariables extends Varia
   * @docGroup 1. Required options
   */
   from:
-  | StoreObject | Reference | FragmentType<NoInfer<TData>> | string
-  | (() => StoreObject | Reference | FragmentType<NoInfer<TData>> | string);
+  | TFrom
+  | (() => TFrom);
   /**
   * Any variables that the GraphQL fragment may depend on.
   *
@@ -69,7 +75,7 @@ export class SignalFragment<TData, TVariables extends Variables = Variables> {
   /**
    * The data returned by the fragment.
    */
-  public readonly data: Signal<DeepPartial<TData>>;
+  public readonly data: Signal<DataValue.Partial<TData>>;
 
   /**
    * `true` if all requested fields in the fragment are present in the cache, `false` otherwise.
@@ -82,28 +88,30 @@ export class SignalFragment<TData, TVariables extends Variables = Variables> {
   public readonly missing: Signal<MissingTree | undefined>;
 
   private readonly _result: WritableSignal<SignalFragmentResult<TData>>;
-  private readonly from: Signal<StoreObject | Reference | string>;
+  private readonly from: Signal<FragmentFrom<unknown>>;
   private readonly variables: Signal<TVariables | undefined>;
   private subscription: Subscription | undefined;
 
   public constructor(
     injector: Injector,
     private readonly apollo: Apollo,
-    private readonly options: SignalFragmentOptions<TData, TVariables>
+    private readonly options: SignalFragmentOptions<any, TVariables, any>
   ) {
-    this._result = signal({
-      data: {} as DeepPartial<TData>,
-      complete: false
-    });
-
     const { variables, from } = options;
 
-    this.result = this._result.asReadonly();
-    this.data = computed(() => this.result().data as DeepPartial<TData>);
-    this.complete = computed(() => this.result().complete);
-    this.missing = computed(() => this.result().missing);
     this.from = typeof from === 'function' ? computed(from, { equal }) : signal(from);
     this.variables = typeof variables === 'function' ? computed(variables, { equal }) : signal(variables);
+
+    this._result = signal<SignalFragmentResult<TData>>({
+      data: emptyData(untracked(this.from)) as DataValue.Partial<TData>,
+      complete: false,
+      dataState: 'partial'
+    } as SignalFragmentResult<TData>);
+
+    this.result = this._result.asReadonly();
+    this.data = computed(() => this.result().data);
+    this.complete = computed(() => this.result().complete);
+    this.missing = computed(() => this.result().missing);
 
     effect(onCleanup => {
       const from = this.from();
@@ -117,11 +125,16 @@ export class SignalFragment<TData, TVariables extends Variables = Variables> {
     }, { injector });
   }
 
-  private subscribe(from: StoreObject | Reference | string, variables: TVariables | undefined): Subscription {
+  private subscribe(from: FragmentFrom<unknown>, variables: TVariables | undefined): Subscription {
     return this.apollo.watchFragment({
       ...this.options,
       from,
       variables
-    }).subscribe(result => this._result.set(result));
+    } as ApolloClient.WatchFragmentOptions<TData, TVariables>).subscribe(result => this._result.set(result as SignalFragmentResult<TData>));
   }
+}
+
+function emptyData(from: FragmentFrom<unknown>): unknown {
+  if (Array.isArray(from)) return [];
+  return from === null ? null : {};
 }

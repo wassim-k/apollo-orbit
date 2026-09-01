@@ -6,10 +6,12 @@ import path from 'path';
 import ts from 'typescript';
 
 const TARGET_FILE_PATHS = [
+  path.resolve(__dirname, '../packages/angular/src/apollo.ts'),
   path.resolve(__dirname, '../packages/angular/src/types.ts'),
   path.resolve(__dirname, '../packages/angular/src/signals/query.ts'),
   path.resolve(__dirname, '../packages/angular/src/signals/subscription.ts'),
-  path.resolve(__dirname, '../packages/angular/src/signals/fragment.ts')
+  path.resolve(__dirname, '../packages/angular/src/signals/fragment.ts'),
+  path.resolve(__dirname, '../packages/angular/src/signals/apolloSignal.ts')
 ];
 
 const logger = {
@@ -114,46 +116,57 @@ function findTypeDeclarationNodeInSource(
   return declaration;
 }
 
-function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: string, asName?: string): string {
-  const sourceFile = declarationNode.getSourceFile();
+const IGNORED_MEMBERS = ['variablesUnknownSymbol'];
 
-  let definitionText = sourceFile.text
-    .substring(
-      declarationNode.getStart(sourceFile, false),
-      declarationNode.getEnd()
-    )
-    .trim()
-    .replace(/^ +/gm, '  ');
+function removeIgnoredMembers(definitionText: string): string {
+  return IGNORED_MEMBERS.reduce((text, member) => text.replace(
+    new RegExp(String.raw`\n[ \t]*(?:/\*\*(?:(?!\*/)[\s\S])*?\*/\n[ \t]*)?\[${member}\]\?:[^;]*;`),
+    ''
+  ), definitionText);
+}
 
-  definitionText = definitionText.replace(/\bOperationVariables\b/g, 'Variables');
-  definitionText = definitionText.replace(/ +\n/g, '\n');
+/**
+ * Apollo's own naming and spacing, in the naming and spacing of the file copying it.
+ */
+function normalizeDefinitionText(definitionText: string): string {
+  return definitionText
+    .replace(/\bOperationVariables\b/g, 'Variables')
+    .replace(/ +\n/g, '\n');
+}
 
-  if (!definitionText.startsWith('export ')) {
-    definitionText = `export ${definitionText}`;
-  }
+/**
+ * The `partial` field of a watched query result, which this library reports through `dataState` instead.
+ */
+function withoutPartialField(definitionText: string): string {
+  const partialDocStart = definitionText.lastIndexOf('/**', definitionText.indexOf('partial: boolean;'));
 
-  if (asName !== undefined && asName !== typeName) {
-    definitionText = definitionText.replace(
-      new RegExp(`(export\\s+(?:\\w+)\\s+)${typeName}\\b`),
-      `$1${asName}`
-    );
-    logger.info(`Renamed type ${typeName} to ${asName}`);
-  }
+  if (partialDocStart === -1) return definitionText;
 
-  if (typeName === 'WatchQueryOptions' && asName === undefined) {
-    definitionText = definitionText.replace(/nextFetchPolicy\?: .*\n/g, 'nextFetchPolicy?: ApolloClient.WatchQueryOptions<TData, TVariables>[\'nextFetchPolicy\'];\n');
-    definitionText = definitionText.replace(/\n {2}}/g, `
+  const partialEnd = definitionText.indexOf('partial: boolean;') + 'partial: boolean;'.length;
+
+  return definitionText.substring(0, partialDocStart).trimEnd() + definitionText.substring(partialEnd);
+}
+
+/**
+ * How the text copied from Apollo becomes the type this library declares, keyed by the name it is declared as.
+ *
+ * Keying by that name rather than by Apollo's own means a rule only ever amends the type it was written for,
+ * never another type copied from the same source.
+ */
+const AMENDMENTS: Partial<Record<string, (definitionText: string) => string>> = {
+  // The extra options are written out per type rather than shared, as their docs and defaults differ.
+  WatchQueryOptions: definitionText => definitionText
+    .replace(/nextFetchPolicy\?: .*\n/g, 'nextFetchPolicy?: ApolloClient.WatchQueryOptions<TData, TVariables>[\'nextFetchPolicy\'];\n')
+    .replace(/\n {2}}/g, `
 
   /**
    * Whether or not observers should receive initial network loading status when subscribing to this observable.
    * @default true
    */
   notifyOnLoading?: boolean;
-}`);
-  }
+}`),
 
-  if (typeName === 'QueryOptions') {
-    definitionText = definitionText.replace(/\n {2}}/g, `
+  QueryOptions: definitionText => definitionText.replace(/\n {2}}/g, `
 
   /**
    * Whether or not observers should receive initial network loading status when subscribing to this observable.
@@ -166,23 +179,11 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
    * @default true
    */
   throwError?: boolean;
-}`);
-  }
+}`),
 
-  if (asName === 'QueryResult') {
-    // Find the start of the partial property's documentation
-    const partialDocStart = definitionText.lastIndexOf('/**', definitionText.indexOf('partial: boolean;'));
-
-    if (partialDocStart !== -1) {
-      // Find the end of the partial property line
-      const partialEnd = definitionText.indexOf('partial: boolean;') + 'partial: boolean;'.length;
-
-      // Remove the partial property and its documentation
-      definitionText = definitionText.substring(0, partialDocStart).trimEnd() + definitionText.substring(partialEnd);
-    }
-
-    // Replace double quotes with single quotes and add previousData property
-    definitionText = definitionText.replace(/"/g, '\'').replace(/\n\s*}\s*&/, `
+  QueryResult: definitionText => withoutPartialField(definitionText)
+    .replace(/"/g, '\'')
+    .replace(/\n\s*}\s*&/, `
 
   /**
    * An object containing the result from the most recent _previous_ execution of this query.
@@ -190,12 +191,11 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
    * This value is \`undefined\` if this is the query's first execution.
    */
   previousData?: GetData<TData, TStates>;
-} &`);
-  }
+} &`),
 
-  if (asName === 'SignalQueryOptions') {
-    definitionText = definitionText.replace(/nextFetchPolicy\?: .*\n/g, 'nextFetchPolicy?: ApolloClient.WatchQueryOptions<TData, TVariables>[\'nextFetchPolicy\'];\n');
-    definitionText = definitionText.replace(/\n {2}} & VariablesOption<NoInfer<TVariables>>;/g, `
+  SignalQueryOptions: definitionText => definitionText
+    .replace(/nextFetchPolicy\?: .*\n/g, 'nextFetchPolicy?: ApolloClient.WatchQueryOptions<TData, TVariables>[\'nextFetchPolicy\'];\n')
+    .replace(/\n {2}} & VariablesOption<NoInfer<TVariables>>;/g, `
 
   /**
    * Whether or not to track initial network loading status.
@@ -212,20 +212,15 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
    * Custom injector to use for this query.
    */
   injector?: Injector;
-} & SignalLazyVariablesOption<NoInfer<TVariables>>;`);
-  }
+} & SignalLazyVariablesOption<NoInfer<TVariables>>;`),
 
-  if (asName === 'SubscriptionOptions') {
-    definitionText = definitionText.replace(/query:/g, 'subscription:');
-  }
+  SubscriptionOptions: definitionText => definitionText.replace(/query:/g, 'subscription:'),
 
-  if (typeName === 'SubscribeToMoreOptions') {
-    definitionText = definitionText.replace(/document:/g, 'subscription:');
-  }
+  SubscribeToMoreOptions: definitionText => definitionText.replace(/document:/g, 'subscription:'),
 
-  if (asName === 'SignalSubscriptionOptions') {
-    definitionText = definitionText.replace(/query: (.*?);/g, 'subscription: $1;');
-    definitionText = definitionText.replace(/\n {2}} & VariablesOption<NoInfer<TVariables>>/, `
+  SignalSubscriptionOptions: definitionText => definitionText
+    .replace(/query: (.*?);/g, 'subscription: $1;')
+    .replace(/\n {2}} & VariablesOption<NoInfer<TVariables>>/, `
 
   /**
    * Whether to execute subscription immediately or lazily via \`execute\` method.
@@ -251,26 +246,138 @@ function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: s
    * Custom injector to use for this subscription.
    */
   injector?: Injector;
-} & SignalLazyVariablesOption<NoInfer<TVariables>>`);
-  }
+} & SignalLazyVariablesOption<NoInfer<TVariables>>`),
 
-  if (asName === 'SignalFragmentOptions') {
-    definitionText = definitionText.replace('TData, TVars', 'TData = unknown, TVariables extends Variables = Variables');
-    definitionText = definitionText.replace(/from: (.*?);/g, `from:
-  | $1
-  | (() => $1);`);
-    definitionText = definitionText.replace(/variables\?: (.*?);/g, 'variables?: NoInfer<TVariables> | (() => NoInfer<TVariables>);');
-    definitionText = definitionText.replace('TVars', 'TVariables');
-    definitionText = definitionText.replace(/\n {2}}/g, `
+  SignalFragmentOptions: definitionText => definitionText
+    .replace('<TData = unknown, TVariables extends Variables = Variables>', `<
+  TData = unknown,
+  TVariables extends Variables = Variables,
+  TFrom extends FragmentFrom<TData> = FragmentFrom<TData>
+>`)
+    .replace(/from: (.*?);/g, `from:
+  | TFrom
+  | (() => TFrom);`)
+    .replace(/variables\?: (.*?);/g, 'variables?: NoInfer<TVariables> | (() => NoInfer<TVariables>);')
+    .replace(/\n {2}}/g, `
 
   /**
    * Custom injector to use for this signal.
    */
   injector?: Injector;
-}`);
+}`),
+
+  fragment: asSignalOverload
+};
+
+function amend(definitionText: string, declaredAs: string): string {
+  return AMENDMENTS[declaredAs]?.(definitionText) ?? definitionText;
+}
+
+function getProcessedDefinitionText(declarationNode: ts.Declaration, typeName: string, asName?: string): string {
+  const sourceFile = declarationNode.getSourceFile();
+
+  let definitionText = sourceFile.text
+    .substring(
+      declarationNode.getStart(sourceFile, false),
+      declarationNode.getEnd()
+    )
+    .trim()
+    .replace(/^ +/gm, '  ');
+
+  definitionText = normalizeDefinitionText(definitionText);
+  definitionText = removeIgnoredMembers(definitionText);
+
+  if (!definitionText.startsWith('export ')) {
+    definitionText = `export ${definitionText}`;
   }
 
-  return definitionText;
+  if (asName !== undefined && asName !== typeName) {
+    definitionText = definitionText.replace(
+      new RegExp(`(export\\s+(?:\\w+)\\s+)${typeName}\\b`),
+      `$1${asName}`
+    );
+    logger.info(`Renamed type ${typeName} to ${asName}`);
+  }
+
+  return amend(definitionText, asName ?? typeName);
+}
+
+/**
+ * The overloads of a copied method, as public members of the class copying them.
+ */
+function getProcessedOverloadsText(overloadNodes: Array<ts.MethodDeclaration>, asName: string): string {
+  const sourceFile = overloadNodes[0].getSourceFile();
+
+  return normalizeDefinitionText(overloadNodes
+    .map(node => sourceFile.text
+      .substring(node.getStart(sourceFile, false), node.getEnd())
+      .split('\n')
+      // A member of a class is indented one level deeper in a `.d.ts` file than it is here.
+      .map((line, index) => index === 0 ? line.trim() : line.replace(/^ +/, spaces => ' '.repeat(spaces.length / 2)))
+      .join('\n'))
+    .map(text => `public ${text.replace(new RegExp(`^${overloadNodes[0].name.getText(sourceFile)}\\b`), asName)}`)
+    .map(text => amend(text, asName))
+    // A signature Apollo declares on one line is wrapped, as every other signature here is.
+    .map(text => text.includes('\n') ? text : text.replace(/^(.+?)\((.+)\): (.+);$/, '$1(\n    $2\n  ): $3;'))
+    .join('\n\n  '));
+}
+
+/**
+ * An overload of `watchFragment` as the equivalent overload of the signal that watches a fragment: the same
+ * shapes of `from`, carried by this library's own options and result types.
+ */
+function asSignalOverload(overloadText: string): string {
+  return overloadText
+    .replace(/ApolloClient\.WatchFragmentOptions<TData, TVariables> & \{\n {4}from: (.+);\n {2}\}/, 'SignalFragmentOptions<TData, TVariables, $1>')
+    .replace(/ApolloClient\.WatchFragmentOptions<TData, TVariables>/, 'SignalFragmentOptions<TData, TVariables>')
+    .replace(/ApolloClient\.ObservableFragment<(.+)>;$/, 'SignalFragment<$1, TVariables>;');
+}
+
+/**
+ * The overload signatures of a class method, which is what a method is declared as in a `.d.ts` file.
+ */
+function findMethodOverloadNodes(
+  tsProgram: ts.Program,
+  tsChecker: ts.TypeChecker,
+  className: string,
+  methodName: string,
+  sourceFilePath: string
+): Array<ts.MethodDeclaration> {
+  const sourceFile = tsProgram.getSourceFile(sourceFilePath);
+  const moduleSymbol = sourceFile !== undefined ? tsChecker.getSymbolAtLocation(sourceFile) : undefined;
+  if (!moduleSymbol) return [];
+
+  let classSymbol = tsChecker.getExportsOfModule(moduleSymbol).find(exp => exp.getName() === className);
+
+  while (classSymbol !== undefined && (classSymbol.getFlags() & ts.SymbolFlags.Alias) !== 0) {
+    const aliasedSymbol = tsChecker.getAliasedSymbol(classSymbol);
+    if (aliasedSymbol === classSymbol) break;
+    classSymbol = aliasedSymbol;
+  }
+
+  const classDeclaration = classSymbol?.declarations?.find(ts.isClassDeclaration);
+  if (!classDeclaration) return [];
+
+  return classDeclaration.members.filter((member): member is ts.MethodDeclaration =>
+    ts.isMethodDeclaration(member) &&
+    member.name.getText(classDeclaration.getSourceFile()) === methodName);
+}
+
+/**
+ * The overload signatures a method is declared with, without the implementation signature that follows them.
+ */
+function findExistingMethodRange(sourceFile: ts.SourceFile, methodName: string): { start: number; end: number } | null {
+  const classDeclaration = sourceFile.statements.find(ts.isClassDeclaration);
+  if (!classDeclaration) return null;
+
+  const overloads = classDeclaration.members.filter((member): member is ts.MethodDeclaration =>
+    ts.isMethodDeclaration(member) &&
+    member.body === undefined &&
+    member.name.getText(sourceFile) === methodName);
+
+  return overloads.length === 0
+    ? null
+    : { start: overloads[0].getStart(sourceFile, false), end: overloads[overloads.length - 1].getEnd() };
 }
 
 function findExistingDefinitionRange(sourceFile: ts.SourceFile, typeName: string): { start: number; end: number } | null {
@@ -358,10 +465,26 @@ function processTargetFile(filePath: string, tsProgram: ts.Program, tsChecker: t
       const sourcePath = resolvePackageSourcePath(importInfo.importPath, targetDir);
       const typeName = importInfo.typeName;
       const finalTypeName = importInfo.asName ?? typeName;
-      const existingRange = findExistingDefinitionRange(sourceFile, finalTypeName);
-
       const fullName = importInfo.namespace !== undefined ? `${importInfo.namespace}.${typeName}` : typeName;
       logger.info(`Resolving: ${fullName} from ${path.relative(process.cwd(), sourcePath)}...`);
+
+      // A member of a class rather than a type of a namespace, so it is copied as the overloads it is declared with.
+      const overloadNodes = importInfo.namespace !== undefined
+        ? findMethodOverloadNodes(tsProgram, tsChecker, importInfo.namespace, typeName, sourcePath)
+        : [];
+
+      if (overloadNodes.length > 0) {
+        logger.success(`Resolved '${fullName}' (${overloadNodes.length} overloads)`);
+
+        return {
+          typeName: finalTypeName,
+          definitionText: getProcessedOverloadsText(overloadNodes, finalTypeName),
+          insertionPoint: importInfo.commentRange.end,
+          existingRange: findExistingMethodRange(sourceFile, finalTypeName) ?? undefined
+        };
+      }
+
+      const existingRange = findExistingDefinitionRange(sourceFile, finalTypeName);
 
       const declarationNode = findTypeDeclarationNodeInSource(tsProgram, tsChecker, typeName, sourcePath, importInfo.namespace);
       if (!declarationNode) {

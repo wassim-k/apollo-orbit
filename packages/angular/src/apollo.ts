@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ApolloClient, NetworkStatus, OperationVariables as Variables } from '@apollo/client';
+import type { ApolloCache } from '@apollo/client/cache';
 import { defer, Observable, of } from 'rxjs';
 import { catchError, map, startWith } from 'rxjs/operators';
 import { ApolloCacheEx, extendCache } from './cacheEx';
@@ -68,18 +69,47 @@ export class Apollo {
     return new QueryObservable(this.client.watchQuery<TData, TVariables>(options), { notifyOnLoading });
   }
 
-  public watchFragment<
-    TData = unknown,
-    TVariables extends Variables = Variables
-  >(options: ApolloClient.WatchFragmentOptions<TData, TVariables>): Observable<ApolloClient.WatchFragmentResult<TData>> {
-    let { from, fragment, ...rest } = options;
+  // import { ApolloClient.watchFragment } from '@apollo/client';
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(options: ApolloClient.WatchFragmentOptions<TData, TVariables> & {
+    from: Array<ApolloCache.FromOptionValue<TData>>;
+  }): ApolloClient.ObservableFragment<Array<TData>>;
+
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(options: ApolloClient.WatchFragmentOptions<TData, TVariables> & {
+    from: Array<null>;
+  }): ApolloClient.ObservableFragment<Array<null>>;
+
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(options: ApolloClient.WatchFragmentOptions<TData, TVariables> & {
+    from: Array<ApolloCache.FromOptionValue<TData> | null>;
+  }): ApolloClient.ObservableFragment<Array<TData | null>>;
+
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(options: ApolloClient.WatchFragmentOptions<TData, TVariables> & {
+    from: null;
+  }): ApolloClient.ObservableFragment<null>;
+
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(options: ApolloClient.WatchFragmentOptions<TData, TVariables> & {
+    from: ApolloCache.FromOptionValue<TData>;
+  }): ApolloClient.ObservableFragment<TData>;
+
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: ApolloClient.WatchFragmentOptions<TData, TVariables>
+  ): ApolloClient.ObservableFragment<TData | null>;
+
+  public watchFragment<TData = unknown, TVariables extends Variables = Variables>(
+    options: ApolloClient.WatchFragmentOptions<TData, TVariables>
+  ): ApolloClient.ObservableFragment<any> {
+    const { from, fragment, ...rest } = options;
 
     // Extract fragment type from the fragment document if __typename is not provided.
-    if (typeof from === 'object' && 'id' in from && Object.keys(from).length === 1) {
-      from = { __typename: identifyFragmentType(fragment), id: from.id };
-    }
+    const identify = (value: ApolloCache.FromOptionValue<TData> | null): ApolloCache.FromOptionValue<TData> | null =>
+      typeof value === 'object' && value !== null && 'id' in value && Object.keys(value).length === 1
+        ? { __typename: identifyFragmentType(fragment), id: value.id }
+        : value;
 
-    return this.client.watchFragment({ from, fragment, ...rest });
+    return this.client.watchFragment({
+      ...rest,
+      fragment,
+      from: Array.isArray(from) ? from.map(identify) : identify(from)
+    } as ApolloClient.WatchFragmentOptions<TData, TVariables>);
   }
 
   public mutate<

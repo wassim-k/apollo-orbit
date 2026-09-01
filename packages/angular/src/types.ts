@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
 
-import type { ApolloCache, ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, InternalRefetchQueriesInclude, MutationFetchPolicy, MutationQueryReducersMap, MutationUpdaterFunction, NetworkStatus, NormalizedExecutionResult, OnQueryUpdated, RefetchWritePolicy, SubscribeToMoreUpdateQueryFn, TypedDocumentNode, Unmasked, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
+import type { ApolloCache, ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, InternalRefetchQueriesInclude, MutationFetchPolicy, MutationQueryReducersMap, MutationUpdaterFunction, NetworkStatus, NormalizedExecutionResult, OnQueryUpdated, RefetchOn, RefetchWritePolicy, SubscribeToMoreUpdateQueryFn, TypedDocumentNode, Unmasked, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
 import type { IgnoreModifier } from '@apollo/client/cache';
 import type { VariablesOption } from '@apollo/client/utilities/internal';
 
@@ -13,9 +13,9 @@ export interface ApolloOptions extends ApolloClient.Options {
 }
 
 export interface DefaultOptions {
-  watchQuery?: Partial<WatchQueryOptions<any, any>>;
-  query?: Partial<QueryOptions<any, any>>;
-  mutate?: Partial<MutationOptions<any, any, any>>;
+  watchQuery?: ApolloClient.DefaultOptions.WatchQuery.Input & ExtraWatchQueryOptions;
+  query?: ApolloClient.DefaultOptions.Query.Input & ExtraQueryOptions;
+  mutate?: ApolloClient.DefaultOptions.Mutate.Input;
 }
 
 // import { ApolloClient.WatchQueryOptions } from '@apollo/client';
@@ -107,6 +107,25 @@ export type WatchQueryOptions<TData = unknown, TVariables extends Variables = Va
   * @docGroup 1. Operation options
   */
   query: DocumentNode | TypedDocumentNode<TData, TVariables>;
+  /**
+  * Determines whether events trigger refetches for the query. Provide an
+  * object mapping each refetch event to `true` (enable), `false` (disable)
+  * or a callback function that returns `true`/`false` to control individual
+  * events. Provide `false` to disable all automatic refetch events for this
+  * query. Provide `true` to enable all automatic refetch events for this query.
+  * Provide a callback function to perform additional logic to determine
+  * whether to enable or disable a refetch for a query.
+  *
+  * `@remarks`
+  * `refetchOn` inherits from `defaultOptions.watchQuery.refetchOn`. If
+  * `defaultOptions.watchQuery.refetchOn` is not set, all refetch events are
+  * enabled by default.
+  *
+  * This option only has an effect when the client is configured with a
+  * `refetchEventManager`.
+  * @docGroup 1. Operation options
+  */
+  refetchOn?: RefetchOn.Option;
 
   /**
    * Whether or not observers should receive initial network loading status when subscribing to this observable.
@@ -303,7 +322,7 @@ export interface ExtraWatchQueryOptions {
 export interface ExtraQueryOptions {
   /**
    * Whether or not observers should receive initial network loading status when subscribing to this observable.
-   * @default true
+   * @default false
    */
   notifyOnLoading?: boolean;
 
@@ -359,32 +378,9 @@ export type QueryResult<TData, TStates extends DataState<TData>['dataState'] = D
 
 export type GetData<TData, TState extends DataState<TData>['dataState']> = GetDataState<TData, TState>['data'];
 
-// import { ApolloClient.QueryResult as SingleQueryResult } from '@apollo/client';
-export interface SingleQueryResult<TData = unknown> {
-  /**
-  * An object containing the result of your GraphQL query after it completes.
-  *
-  * This value might be `undefined` if a query results in one or more errors (depending on the query's `errorPolicy`).
-  *
-  * @docGroup 1. Operation data
-  */
-  data: TData | undefined;
-  /**
-  * A single ErrorLike object describing the error that occurred during the latest
-  * query execution.
-  *
-  * For more information, see [Handling operation errors](https://www.apollographql.com/docs/react/data/error-handling/).
-  *
-  * @docGroup 1. Operation data
-  */
-  error?: ErrorLike;
-  }
+export type SingleQueryResult<TData = unknown, TErrorPolicy extends ErrorPolicy | undefined = undefined> = ApolloClient.QueryResult<TData, TErrorPolicy>;
 
-export interface MutationResult<TData = unknown> {
-  data: TData | undefined;
-  error?: ErrorLike;
-  extensions?: Record<string, any>;
-}
+export type MutationResult<TData = unknown> = ApolloClient.MutateResult<TData>;
 
 export interface SubscriptionResult<TData = unknown> {
   data?: TData;

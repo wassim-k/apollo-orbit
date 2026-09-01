@@ -1,7 +1,7 @@
 import { Injector, PendingTasks, signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { Apollo, SignalQueryCancelledError, SingleQueryResult } from '@apollo-orbit/angular';
-import { gql, NetworkStatus, TypedDocumentNode } from '@apollo/client';
+import { gql, NetworkStatus, OperationVariables, TypedDocumentNode } from '@apollo/client';
 import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
 import { provideApolloMock } from './helpers/apollo-mock.provider';
@@ -685,7 +685,7 @@ describe('Signals', () => {
         signalQuery.execute();
         tick();
         expect(signalQuery.data()).toEqual({ book: { id: 2, name: 'Book 2' } });
-        // The observable is kept while terminated, so the previousData it tracks survives the cycle
+        // previousData is tracked by the query itself, so it survives the termination cycle
         expect(signalQuery.previousData()).toEqual({ book: { id: 1, name: 'Book 1' } });
 
         mockLink.addMockedResponse({
@@ -697,6 +697,86 @@ describe('Signals', () => {
         id.set(3);
         tick();
         expect(signalQuery.data()).toEqual({ book: { id: 3, name: 'Book 3' } });
+      }));
+
+      it('should not request the previous variables when re-executed after termination', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) { 
+          book(id: $id) { id name } 
+        }`;
+
+        mockLink.addMockedResponse({
+          request: { query, variables: () => true },
+          result: ({ id }) => ({ data: { book: { id, name: `Book ${id}` } } }),
+          maxUsageCount: Number.POSITIVE_INFINITY
+        });
+
+        // Collected from the link rather than from the mocked response, which only sees the requests it
+        // serves: a request that is superseded before it delivers a result never reaches the response.
+        const requestedVariables: Array<OperationVariables> = [];
+        const request = mockLink.request.bind(mockLink);
+        mockLink.request = operation => {
+          requestedVariables.push(operation.variables);
+          return request(operation);
+        };
+
+        const id = signal<number | null>(1);
+
+        const signalQuery = apollo.signal.query({
+          query,
+          variables: () => id() !== null ? ({ id: id() }) : null,
+          fetchPolicy: 'network-only',
+          injector
+        });
+
+        tick();
+        expect(signalQuery.data()).toEqual({ book: { id: 1, name: 'Book 1' } });
+
+        // Null variables terminate the query and discard the observable, so the next execution starts a fresh one.
+        id.set(null);
+        tick();
+
+        id.set(2);
+        tick();
+
+        expect(signalQuery.data()).toEqual({ book: { id: 2, name: 'Book 2' } });
+        expect(requestedVariables).toEqual([{ id: 1 }, { id: 2 }]);
+      }));
+
+      it('should apply the execution context when re-executed after termination', fakeAsync(() => {
+        const query = gql`query GetBook($id: Int!) {
+          book(id: $id) { id name }
+        }`;
+
+        mockLink.addMockedResponse({
+          request: { query, variables: () => true },
+          result: ({ id }) => ({ data: { book: { id, name: `Book ${id}` } } }),
+          maxUsageCount: Number.POSITIVE_INFINITY
+        });
+
+        const requestedContexts: Array<unknown> = [];
+        const request = mockLink.request.bind(mockLink);
+        mockLink.request = operation => {
+          requestedContexts.push(operation.getContext().tag);
+          return request(operation);
+        };
+
+        const signalQuery = apollo.signal.query({
+          query,
+          variables: () => ({ id: 1 }),
+          fetchPolicy: 'network-only',
+          context: { tag: 'initial' },
+          injector
+        });
+
+        tick();
+
+        signalQuery.terminate();
+
+        // The next execution starts a fresh observable, so its options are the ones the request is made with
+        signalQuery.execute({ context: { tag: 'second' } });
+        tick();
+
+        expect(requestedContexts).toEqual(['initial', 'second']);
       }));
 
       it('should handle variables nullability with lazy query', fakeAsync(() => {
@@ -1239,6 +1319,53 @@ describe('Signals', () => {
         id: '1',
         name: 'Updated Book'
       });
+    }));
+
+    it('should watch a fragment from many objects', fakeAsync(() => {
+      const bookFragment = gql`
+        fragment WatchBooksFragment on Book {
+          id
+          name
+        }
+      `;
+
+      for (const id of ['1', '2']) {
+        apollo.cache.writeFragment({
+          id: `Book:${id}`,
+          fragment: bookFragment,
+          data: { __typename: 'Book', id, name: `Book ${id}` }
+        });
+      }
+
+      const fragment = apollo.signal.fragment<Book>({
+        fragment: bookFragment,
+        from: [{ __typename: 'Book', id: '1' }, { __typename: 'Book', id: '2' }],
+        injector
+      });
+
+      // The data of a fragment watched from many objects starts as an array rather than an object
+      expect(fragment.data()).toEqual([]);
+
+      tick();
+
+      expect(fragment.data()).toEqual([
+        { __typename: 'Book', id: '1', name: 'Book 1' },
+        { __typename: 'Book', id: '2', name: 'Book 2' }
+      ]);
+      expect(fragment.complete()).toBe(true);
+
+      apollo.cache.writeFragment({
+        id: 'Book:2',
+        fragment: bookFragment,
+        data: { __typename: 'Book', id: '2', name: 'Updated Book 2' }
+      });
+
+      tick();
+
+      expect(fragment.data()).toEqual([
+        { __typename: 'Book', id: '1', name: 'Book 1' },
+        { __typename: 'Book', id: '2', name: 'Updated Book 2' }
+      ]);
     }));
 
     it('should create fragments with different reference IDs', fakeAsync(() => {

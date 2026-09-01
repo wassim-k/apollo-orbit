@@ -37,13 +37,13 @@ describe('Cache', () => {
       expect(value).toEqual(null);
     });
 
-    it('should return null for a fragment with null value', () => {
+    it('should return an empty object for a fragment written as null', () => {
       const cache = new InMemoryCache();
       const object = { __typename: 'Author', id: 1, name: 'old' };
       const id = cache.identify(object) as string;
       cache.writeFragment({ id, fragment: AuthorFragmentDoc, data: null });
       const value = cache.readFragment({ id, fragment: AuthorFragmentDoc });
-      expect(value).toEqual(null);
+      expect(value).toEqual({});
     });
 
     it('should modify fragment', () => {
