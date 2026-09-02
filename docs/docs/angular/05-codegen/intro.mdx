@@ -1,0 +1,20 @@
+---
+sidebar_position: 1
+pagination_label: Codegen
+---
+
+import Link from '@docusaurus/Link'
+
+# Introduction
+Codegen is a tool that generates strongly typed code from GraphQL operations (queries/mutations/subscriptions).  
+This provides compile time safety for any GraphQL server schema changes, and also enhances the developer experience by offering auto-completion and type checking for GraphQL operations.
+
+## GraphQL Code Generator
+**Orbit** provides its own codegen plugin that's built on top of <Link to="https://the-guild.dev/graphql/codegen">GraphQL Code Generator</Link>.  
+The plugin is designed for an optimal developer experience when working with GraphQL in Angular.  
+It is compliant with <Link to="https://github.com/dotansimha/graphql-typed-document-node">`TypedDocumentNode`</Link> standard which is supported by most GraphQL clients.
+
+The other plugins used in codegen as per [getting started guide](../../get-started/setup-environment/#setup-apollo-orbitcodegen) are:
+* <Link to="https://the-guild.dev/graphql/codegen/plugins/typescript/typescript">typescript</Link>
+* <Link to="https://the-guild.dev/graphql/codegen/plugins/typescript/typescript-operations">typescript-operations</Link>
+* <Link to="https://the-guild.dev/graphql/codegen/plugins/other/add">add</Link>

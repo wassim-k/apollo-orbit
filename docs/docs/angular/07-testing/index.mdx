@@ -1,0 +1,161 @@
+import Link from '@docusaurus/Link';
+
+# Testing
+
+## Overview
+**Apollo Client** provides some useful testing utilities out of the box in the form of mock links that can be imported from `@apollo/client/testing`.
+
+Testing **Orbit** code is as simple as wrapping those utilities in an **Angular** module and using them in our tests.
+
+The following example uses <Link to="https://jestjs.io/">Jest</Link> as the testing framework, but the same principles can be applied to other testing frameworks.
+
+## Writing unit tests
+Let's take the following component for example:
+```typescript title="book.component.ts"
+@Component({
+  template: `
+    @if (bookQuery | async; as result) {
+      @if (result.data) { <div id="query-result">{{ result.data.book.name }}</div> }
+      @if (result.error) { <div id="query-error">{{ result.error.message }}</div> }
+    }
+    @if (newBookSubscription | async; as result) {
+      @if (result.data) { <div id="subscription-result">{{ result.data.newBook.name }}</div> }
+    }
+  `
+})
+class BookComponent {
+  private readonly apollo = inject(Apollo);
+  
+  protected readonly bookQuery = this.apollo.watchQuery(gqlBookQuery({ id: '1' }));
+  protected readonly newBookSubscription = this.apollo.subscribe(gqlNewBookByAuthorSubscription({ id: '1' }));
+}
+```
+
+In order to write unit tests for the above component, we first start by creating our `provideApolloMock` which will be shared across all tests in the application and can be customised to suit your application's needs.
+```typescript title="apollo-mock.provider.ts"
+import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
+import { ApolloOptions, InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+import { ApolloLink } from '@apollo/client';
+import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
+import { isSubscriptionOperation } from '@apollo/client/utilities';
+
+export function provideApolloMock(): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    provideApollo(
+      withApolloOptions((): ApolloOptions => ({
+        cache: new InMemoryCache(),
+        link: ApolloLink.split(
+          ({ query }) => isSubscriptionOperation(query),
+          inject(MockSubscriptionLink),
+          inject(MockLink)
+        )
+      }))
+    ),
+    { provide: MockLink, useFactory: () => new MockLink([], { defaultOptions: { delay: 0 } }) },
+    { provide: MockSubscriptionLink, useFactory: () => new MockSubscriptionLink() }
+  ]);
+}
+```
+
+Next, we write our unit tests by setting up a `TestBed` that imports `BookComponent` and the `provideApolloMock` and we get references to `MockLink` & `MockSubscriptionLink`:
+```typescript title="book.component.spec.ts"
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
+import { GraphQLError } from 'graphql';
+import { provideApolloMock } from './helpers/apollo-mock.provider';
+import { BookComponent } from './book.component';
+import { gqlBookQuery, BookQueryData, NewBookByAuthorSubscriptionData } from './graphql';
+
+describe('BookComponent', () => {
+  let mockLink: MockLink;
+  let mockSubscriptionLink: MockSubscriptionLink;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [BookComponent],
+      providers: [provideApolloMock()]
+    });
+
+    // Set mock link references to be used in tests.
+    mockLink = TestBed.inject(MockLink);
+    mockSubscriptionLink = TestBed.inject(MockSubscriptionLink);
+  });
+
+  it('should render component with query result', async () => {
+    // Mock successful query response
+    mockLink.addMockedResponse({
+      request: gqlBookQuery({ id: '1' }),
+      result: {
+        data: {
+          book: { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: '1' }
+        } as BookQueryData
+      }
+    });
+
+    const fixture = TestBed.createComponent(BookComponent);
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('#query-result').textContent).toEqual('Book 1');
+  });
+
+  it('should render component with query error', async () => {
+    // Mock error query response
+    mockLink.addMockedResponse({
+      request: gqlBookQuery({ id: '1' }),
+      result: {
+        errors: [new GraphQLError('Book does not exist')]
+      }
+    });
+
+    const fixture = TestBed.createComponent(BookComponent);
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('#query-error').textContent).toEqual('Book does not exist');
+  });
+
+  // use fakeAsync for fine grained control over the clock.
+  it('should render component with subscription result', fakeAsync(() => {
+    const fixture = TestBed.createComponent(BookComponent);
+
+    // required to prevent warnings about missing mocked responses.
+    mockLink.addMockedResponse({
+      request: gqlBookQuery({ id: '1' }),
+      result: {
+        data: {
+          book: { __typename: 'Book', id: '1', name: 'Book 1', genre: 'Fiction', authorId: '1' }
+        } as BookQueryData
+      }
+    });
+
+    fixture.detectChanges();
+
+    mockSubscriptionLink.simulateResult({
+      result: {
+        data: {
+          newBook: { __typename: 'Book', id: '1', name: 'Book 1.1', genre: 'Fiction', authorId: '1' }
+        } as NewBookByAuthorSubscriptionData
+      }
+    });
+
+    tick();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#subscription-result').textContent).toEqual('Book 1.1');
+
+    mockSubscriptionLink.simulateResult({
+      delay: 10,
+      result: {
+        data: {
+          newBook: { __typename: 'Book', id: '2', name: 'Book 2', genre: 'Fiction', authorId: '1' }
+        } as NewBookByAuthorSubscriptionData
+      }
+    }, /* complete subscription */ true);
+
+
+    tick(10); // move clock forward by 10ms to match the simulated subscription result delay.
+    fixture.detectChanges();
+    
+    expect(fixture.nativeElement.querySelector('#subscription-result').textContent).toEqual('Book 2');
+  }));
+});
+```

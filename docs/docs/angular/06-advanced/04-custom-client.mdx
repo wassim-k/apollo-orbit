@@ -1,0 +1,31 @@
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Custom ApolloClient
+
+## Overview
+By default, **Orbit** uses the default `ApolloClient` implementation provided by `@apollo/client` library.  
+But, it is possible in some scenarios that an application needs to provide its own custom implementation of `ApolloClient`.
+
+This can be achieved by providing a custom `ApolloClientFactory` function to `APOLLO_CLIENT_FACTORY` injection token.
+
+## Usage
+```typescript
+// code-add-line
+import { ApolloClientFactory } from '@apollo-orbit/angular';
+import { CustomApolloClient } from 'custom-apollo-client';
+
+const customApolloClientFactory: ApolloClientFactory = (options: ApolloClient.Options): ApolloClient => {
+  return new CustomApolloClient(options);
+};
+
+...
+
+{
+  providers: [
+    // code-add-line
+    { provide: APOLLO_CLIENT_FACTORY, useValue: customApolloClientFactory }
+  ]
+}
+```

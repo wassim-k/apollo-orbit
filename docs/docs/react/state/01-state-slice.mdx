@@ -1,0 +1,64 @@
+---
+title: 'state'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`state` function is used to create a state slice.
+
+`state` provides a `descriptor` which can be used to define one of the following:
+* [onInit](#oninit)
+* [mutationUpdate](../mutation-update/)
+* [effect](../effect/)
+* [optimisticResponse](../optimistic-response/)
+* [refetchQueries](../refetch-queries/)
+* [typePolicies](../type-policies/)
+* [resolver](../resolver/)
+* [action](../action/)
+* <Link to="https://www.apollographql.com/docs/react/caching/cache-configuration/#possibletypes">possibleTypes</Link>
+
+## Defining state
+Defining a state slice is as simple as calling `state` function.
+
+```typescript title="states/theme/theme.state.ts"
+export const themeState = state(descriptor => ...)
+```
+
+:::note
+A `state` slice file name should be in the format `<stateName>.state.ts`, this is a requirement as per our [setup guide](../../get-started/).  
+`<stateName>` is singular by convention for simplicity.
+:::
+
+## Adding state
+Once a `state` slice is created it needs to be provided to `ApolloOrbitProvider` `states` array.
+
+`ApolloOrbitProvider` must be nested under `ApolloProvider` to ensure that it has access to the `ApolloClient` instance used in the app.
+
+`ApolloOrbitProvider` can be used **multiple times** and at at **any level** in the application, including in lazy loaded components.
+
+### Example
+```tsx title="index.tsx" 
+import { themeState } from './states/theme.state';
+
+root.render(
+  <ApolloProvider client={client}>
+    // code-add-line
+    <ApolloOrbitProvider states={[themeState]}>
+      <App />
+    // code-add-line
+    </ApolloOrbitProvider>
+  </ApolloProvider>,
+);
+```
+
+## `onInit`
+`onInit` defines a callback that is invoked when the state is initialised.
+
+```typescript title="states/theme/theme.state.ts"
+export const themeState = state(descriptor => descriptor
+  .onInit(cache => cache.writeQuery(...))
+);
+```
+
+`onInit` callback accepts the cache instance and can be used to initialise cache data for the state. More on this in [local state guide](../local-state/).

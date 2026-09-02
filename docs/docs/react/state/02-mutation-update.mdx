@@ -1,0 +1,141 @@
+---
+title: 'mutationUpdate'
+---
+
+import Link from '@docusaurus/Link'
+
+## Overview
+`mutationUpdate` is analogous to the <Link to="https://www.apollographql.com/docs/react/data/mutations/#the-update-function">`update`</Link> option passed to `useMutation`.  
+It is used to update the cache following the execution of a mutation.
+
+## Usage
+In this example, we have a book library management app. A book is present in two lists stored in the cache, one for all books in the library and one for books written by an author.
+
+First we add the mutation to `book.graphql`
+```graphql title="library/gql/book.graphql"
+fragment BookFragment on Book {
+  id
+  name
+  genre
+  authorId
+}
+
+query Books($name: String, $genre: String, $authorId: ID) {
+  books(name: $name, genre: $genre, authorId: $authorId) {
+    ...BookFragment
+  }
+}
+
+// code-add-start
+mutation AddBook($book: BookInput!) {
+  addBook(book: $book) {
+    ...BookFragment
+  }
+}
+// code-add-end
+```
+
+Then, we define two state slices, one for managing `book` state and one for `author` state:
+
+### `bookState`
+```typescript title="library/states/book.state.ts"
+import { state } from '@apollo-orbit/react';
+import { AddBookDocument, BooksDocument } from '../../graphql';
+
+export const bookState = state(descriptor => descriptor
+  .mutationUpdate(AddBookDocument, (cache, info) => {
+    const addBook = info.data?.addBook;
+    if (!addBook) return;
+
+    cache.updateQuery({ query: BooksDocument }, data => data ? { books: [...data.books, addBook] } : data);
+  })
+);
+```
+
+### `authorState`
+```typescript title="library/states/author.state.ts"
+import { state } from '@apollo-orbit/react';
+import { AddBookDocument, AuthorFragmentDoc } from '../../graphql';
+
+export const authorState = state(descriptor => descriptor
+  .mutationUpdate(AddBookDocument, (cache, info) => {
+    const addBook = info.data?.addBook;
+    if (!addBook) return;
+    
+    const authorId = info.variables?.book.authorId as string;
+    cache.updateFragment(
+      {
+        fragment: AuthorFragmentDoc,
+        fragmentName: 'AuthorFragment',
+        id: `Author:${authorId}`
+      },
+      author => author ? ({ ...author, books: [...author.books, addBook] }) : author
+    );
+  })
+);
+```
+
+`info` argument is of type `MutationInfo<AddBookMutationData, AddBookMutationVariables>` and all logic in `mutationUpdate` handler is type-safe.
+
+### Provide states
+Then, we add the states to `ApolloOrbitProvider` as [demonstrated previously](../state-slice/#adding-state):
+```tsx title="index.tsx" 
+import { authorState } from './library/states/author.state';
+import { bookState } from './library/states/book.state';
+
+root.render(
+  <ApolloProvider client={client}>
+    // code-add-line
+    <ApolloOrbitProvider states={[authorState, bookState]}>
+      <App />
+    </ApolloOrbitProvider>
+  </ApolloProvider>,
+);
+```
+
+### Execute mutation
+```tsx title="library/Books.tsx"
+export function Books() {
+  const [addBook] = useMutation(AddBookDocument);
+
+  const handleAddBook = (book: BookInput) => {
+    addBook({
+      variables: { book },
+      // code-remove-start
+      update(cache, result) {
+        const addBook = result.data?.addBook;
+        if (!addBook) return;
+
+        // Update full list of books
+        cache.updateQuery({ query: BooksDocument }, data => data ? { books: [...data.books, addBook] } : data);
+
+        // Update author's list of books
+        cache.updateFragment(
+          {
+            fragment: AuthorFragmentDoc,
+            fragmentName: 'AuthorFragment',
+            id: `Author:${book.authorId}`
+          },
+          author => author ? ({ ...author, books: [...author.books, addBook] }) : author
+        );
+      }
+      // code-remove-end
+    });
+  };
+
+  return (
+    <>
+      ...
+    </>
+  );
+}
+```
+
+Now, when a component calls `useMutation(AddBookDocument)`, the `mutationUpdate` functions in the states are automatically executed and the UI displaying books and author books is updated.
+
+The example above demonstrates how the same mutation can be handled independently by different states, achieving separation of concerns (SoC) and complete decoupling between component and state logic.
+
+:::note
+`mutationUpdate` also accepts the name of the mutation as a `string` argument. This can be used in projects that do not have codegen setup.  
+So the above code can be updated to `.mutationUpdate('AddBook', (cache, info) =>` and the rest of the code remains the same, except it won't be type-safe.
+:::

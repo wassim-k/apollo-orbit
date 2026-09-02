@@ -1,0 +1,116 @@
+import Link from '@docusaurus/Link'
+import SignalSingleQueryOptions from '@site/src/components/api-tables/SignalSingleQueryOptions.md';
+import SignalSingleQuerySignals from '@site/src/components/api-tables/SignalSingleQuerySignals.md';
+import SignalSingleQueryMethods from '@site/src/components/api-tables/SignalSingleQueryMethods.md';
+
+Fetch data once per execution using reactive Signals.
+
+Unlike <Link to="../signal.query/">`Apollo.signal.query`</Link>, it stops listening once the data is fetched: cache writes, refetches and subscriptions elsewhere in the application never re-emit into its signals. It is the **Signal** equivalent of <Link to="../watchQuery/#query">`Apollo.query`</Link>, whereas `signal.query` is the equivalent of `Apollo.watchQuery`.
+
+It is ideal when hydrating a form.
+
+## API
+```typescript
+Apollo.signal.query.once<TData, TVariables>(
+  options: SignalSingleQueryOptions<TVariables, TData>
+): SignalSingleQuery<TData, TVariables>
+```
+
+Returns a `SignalSingleQuery<TData, TVariables>` instance. This object provides the same reactive Signals as `SignalQuery` (`result`, `data`, `loading`, `error`, `networkStatus`, `previousData`), without the methods that depend on watching the cache.
+
+<details>
+  <summary>Options</summary>
+  <SignalSingleQueryOptions />
+</details>
+
+<details>
+  <summary>Signals</summary>
+  <SignalSingleQuerySignals />
+</details>
+
+<details>
+  <summary>Methods</summary>
+  <SignalSingleQueryMethods />
+</details>
+
+## Hydrating a form
+A form is edit state, not view state. Once the user starts typing, the server is no longer the source of truth for what's on screen, so the query that seeded the form must stop emitting.
+
+Fetch the book with `signal.query.once` and derive the form value from it with `linkedSignal` — no effect, no write:
+
+```typescript title="library/books/edit-book.component.ts"
+import { linkedSignal } from '@angular/core';
+import { form, required } from '@angular/forms/signals';
+import { Apollo } from '@apollo-orbit/angular';
+import { BOOK_QUERY } from '../graphql';
+
+@Component({
+  selector: 'app-edit-book',
+  templateUrl: './edit-book.component.html'
+})
+export class EditBookComponent {
+  private readonly apollo = inject(Apollo);
+
+  public readonly bookId = input.required<string>();
+
+  protected readonly bookQuery = this.apollo.signal.query.once({
+    query: BOOK_QUERY,
+    variables: () => ({ id: this.bookId() })
+  });
+
+  protected readonly value = linkedSignal({
+    source: this.bookQuery.data,
+    computation: data => ({ name: data?.book.name ?? '', genre: data?.book.genre ?? null })
+  });
+
+  protected readonly form = form(this.value, schema => {
+    required(schema.name);
+  });
+}
+```
+
+:::note
+`linkedSignal` rebuilds `value` whenever its `source` changes. Had this been `signal.query`, **every** cache write to that book — an `updateBook` mutation from another component, a `refetchQueries`, an incoming subscription — would re-emit and silently discard whatever the user had typed.
+
+`signal.query.once` emits once per execution, so `value` is only rebuilt when `bookId` changes.
+:::
+
+The fetched book is still written to the cache, so any watching query picks it up. The relationship is one-directional: `SignalSingleQuery` publishes to the cache but does not subscribe to it.
+
+:::tip
+Reach for `signal.query.once` whenever the data must not shift under the user: a report or export being read, a point-in-time snapshot, or a lookup whose result is consumed once.
+:::
+
+## Variables
+Variables behave exactly as they do in <Link to="../signal.query/#variables">`signal.query`</Link>. Passing a function or signal re-executes the query whenever its reactive dependencies change, and `previousData` holds the last value while the new execution is in flight.
+
+### Variables = `null`
+When the variables function returns `null`, the query is terminated and `data` is reset to `undefined`, preserving the last value in `previousData`. Returning a non-`null` value again re-executes the query, provided it is `enabled`.
+
+## Lazy Queries
+Setting `lazy: true` defers the first execution until `execute()` is called, and makes the query variables optional (even if required by the query):
+
+```typescript title="library/books/books.component.ts"
+export class BooksComponent {
+  private readonly apollo = inject(Apollo);
+
+  protected readonly booksQuery = this.apollo.signal.query.once({
+    query: BOOKS_QUERY,
+    lazy: true
+  });
+
+  protected async onExportClicked(): Promise<void> {
+    const { error, data } = await this.booksQuery.execute({ variables: { genre: 'Fiction' } });
+
+    if (error) {
+      // Optionally handle error
+    } else if (data) {
+      // Optionally handle data
+    }
+  }
+}
+```
+
+:::info
+The promise returned by `execute` **always** resolves without a rejection even if the query encounters errors, removing the need for `try...catch` or dealing with unhandled promise rejections.
+:::

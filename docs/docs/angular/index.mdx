@@ -1,0 +1,42 @@
+---
+sidebar_position: 1
+---
+
+import Link from '@docusaurus/Link'
+import StateFeatures from '../shared/_state-features.mdx'
+
+# Introduction
+**Orbit** is a full-featured **<Link to="https://www.apollographql.com/docs/react/">Apollo Client</Link>** for **<Link to="https://angular.io/">Angular</Link>**.
+
+**<Link to="https://www.apollographql.com/docs/react/">Apollo Client</Link>** is a GraphQL client with advanced caching capabilities which can be used to fetch, cache, and modify application data, all while automatically updating your Angular UI.
+
+**Orbit** brings the power of **Apollo Client** to **Angular** while focusing on developer experience, reliability and performance.
+
+## Why Orbit?
+
+### 🚀 Angular Integration
+APIs work naturally with **Angular**'s dependency injection, change detection, and reactive patterns. Supports Angular HTTP interceptors for auth and request handling.
+
+### ⚡ Reactive APIs
+Use **Signals** or **RxJS** depending on your needs. Signals fit neatly into components, while RxJS handles complex async flows.
+
+### 🛡️ Type Safety
+Fully type-safe with codegen integration—catch schema changes at compile time. Queries, mutations, and subscriptions are strongly typed with IntelliSense support.
+
+### 🎯 Developer Experience
+- **Consistent APIs**: Unified, type-safe for queries, mutations, subscriptions, and fragments
+- **Docs**: Clear examples and patterns
+- **Tooling**: Debug with Apollo Client Devtools
+
+### 💼 Enterprise-Ready
+- **Proven**: Battle-tested in production for 5+ years powering critical apps
+- **Tree-Shakeable**: Bundle only what you use
+- **SSR Support**: Compatible with server-side rendering
+- **Multi-Client**: Connect to multiple GraphQL endpoints
+- **Testing**: Built-in support for testing with **Apollo Client**'s testing utilities
+
+### 🔧 State Management <span style={{fontSize: '0.6em', verticalAlign: 'middle'}}>(Optional)</span>
+
+Turn Apollo Client into a full state management solution with the optional `state` module:
+
+<StateFeatures />

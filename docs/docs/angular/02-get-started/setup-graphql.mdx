@@ -1,0 +1,243 @@
+---
+sidebar_position: 2.2
+---
+
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Setup GraphQL
+
+Setup GraphQL based on your angular project's style.
+
+<Tabs queryString="project">
+
+  <TabItem value="standalone" label="Standalone" default>
+  
+    Create `provideGraphQL` under *app/graphql/graphql.provider.ts*
+
+    <Tabs queryString="link">
+
+      <TabItem value="http" label="HTTP" default>
+
+        ```typescript title="app/graphql/graphql.provider.ts"
+        import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
+        import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+        import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+
+        export function provideGraphQL(): EnvironmentProviders {
+          return makeEnvironmentProviders([
+            provideApollo(
+              withApolloOptions(() => {
+                const httpLinkFactory = inject(HttpLinkFactory);
+                const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' })
+
+                return {
+                  cache: new InMemoryCache(),
+                  link: httpLink
+                };
+              }),
+              withHttpLink()
+            )
+          ]);
+        }
+
+        ```
+
+      </TabItem>
+
+      <TabItem value="subscriptions" label="HTTP + Subscriptions" queryString="subscriptions">
+
+        <Tabs>
+          <TabItem value="yarn" label="yarn" default>
+          ```bash
+          yarn add graphql-ws
+          ```
+          </TabItem>
+          <TabItem value="npm" label="npm">
+          ```bash
+          npm install graphql-ws
+          ```
+          </TabItem>
+        </Tabs>
+
+        ```typescript title="app/graphql/graphql.provider.ts"
+        import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
+        import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+        import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+        import { ApolloLink } from '@apollo/client/link';
+        import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+        import { isSubscriptionOperation } from '@apollo/client/utilities';
+        import { createClient } from 'graphql-ws';
+
+        export function provideGraphQL(): EnvironmentProviders {
+          return makeEnvironmentProviders([
+            provideApollo(
+              withApolloOptions(() => {
+                const httpLinkFactory = inject(HttpLinkFactory);
+                const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+                const wsLink = new GraphQLWsLink(createClient({ url: 'ws://localhost:4000/graphql' }));
+
+                return {
+                  cache: new InMemoryCache(),
+                  link: ApolloLink.split(
+                    ({ query }) => isSubscriptionOperation(query),
+                    wsLink,
+                    httpLink
+                  )
+                };
+              }),
+              withHttpLink()
+            )
+          ]);
+        }
+
+        ```
+
+      </TabItem>
+    </Tabs>
+
+
+    Then import `provideGraphQL` into `appConfig`
+
+    ```typescript title="app/app.config.ts"
+    import { ApplicationConfig } from '@angular/core';
+    import { provideRouter } from '@angular/router';
+    import { routes } from './app.routes';
+    // code-add-start
+    import { provideGraphQL } from './graphql/graphql.provider';
+    import { provideHttpClient } from '@angular/common/http';
+    // code-add-end
+
+    export const appConfig: ApplicationConfig = {
+      providers: [
+        provideRouter(routes),
+        // code-add-start
+        provideHttpClient(),
+        provideGraphQL()
+        // code-add-end
+      ]
+    };
+    ```
+  </TabItem>
+
+  <TabItem value="module" label="Module" default>
+
+    Create `GraphQLModule` under *app/graphql/graphql.module.ts*
+
+    <Tabs queryString="link">
+
+      <TabItem value="http" label="HTTP" default>
+
+        ```typescript title="app/graphql/graphql.module.ts"
+        import { NgModule, inject } from '@angular/core';
+        import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+        import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+
+        @NgModule({
+          providers: [
+            provideApollo(
+              withApolloOptions(() => {
+                const httpLinkFactory = inject(HttpLinkFactory);
+                const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' })
+
+                return {
+                  cache: new InMemoryCache(),
+                  link: httpLink
+                };
+              }),
+              withHttpLink()
+            )
+          ]
+        })
+        export class GraphQLModule { }
+
+        ```
+
+      </TabItem>
+
+      <TabItem value="subscriptions" label="HTTP + Subscriptions" queryString="subscriptions">
+
+        <Tabs>
+          <TabItem value="yarn" label="yarn" default>
+          ```bash
+          yarn add graphql-ws
+          ```
+          </TabItem>
+          <TabItem value="npm" label="npm">
+          ```bash
+          npm install graphql-ws
+          ```
+          </TabItem>
+        </Tabs>
+
+        ```typescript title="app/graphql/graphql.module.ts"
+        import { NgModule, inject } from '@angular/core';
+        import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+        import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+        import { ApolloLink } from '@apollo/client/link';
+        import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+        import { isSubscriptionOperation } from '@apollo/client/utilities';
+        import { createClient } from 'graphql-ws';
+
+        @NgModule({
+          providers: [
+            provideApollo(
+              withApolloOptions(() => {
+                const httpLinkFactory = inject(HttpLinkFactory);
+                const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+                const wsLink = new GraphQLWsLink(createClient({ url: 'ws://localhost:4000/graphql' }));
+
+                return {
+                  cache: new InMemoryCache(),
+                  link: ApolloLink.split(
+                    ({ query }) => isSubscriptionOperation(query),
+                    wsLink,
+                    httpLink
+                  )
+                };
+              }),
+              withHttpLink()
+            )
+          ]
+        })
+        export class GraphQLModule { }
+
+        ```
+
+      </TabItem>
+    </Tabs>
+
+
+    Then import `GraphQLModule` into `AppModule`
+
+    ```typescript title="app/app.module.ts"
+    import { NgModule } from '@angular/core';
+    import { BrowserModule } from '@angular/platform-browser';
+    import { AppRoutingModule } from './app-routing.module';
+    import { AppComponent } from './app.component';
+    // code-add-start
+    import { HttpClientModule } from '@angular/common/http';
+    import { GraphQLModule } from './graphql/graphql.module';
+    // code-add-end
+
+    @NgModule({
+      declarations: [
+        AppComponent
+      ],
+      imports: [
+        BrowserModule,
+        AppRoutingModule,
+        // code-add-start
+        HttpClientModule,
+        GraphQLModule
+        // code-add-end
+      ],
+      providers: [],
+      bootstrap: [AppComponent]
+    })
+    export class AppModule { }
+    ```
+
+  </TabItem>
+
+</Tabs>

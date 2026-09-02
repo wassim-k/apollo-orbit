@@ -1,0 +1,64 @@
+import Link from '@docusaurus/Link'
+import SignalCacheQueryOptions from '@site/src/components/api-tables/SignalCacheQueryOptions.md';
+import SignalCacheQuerySignals from '@site/src/components/api-tables/SignalCacheQuerySignals.md';
+
+Watch data directly in the cache using reactive Signals.
+
+Unlike `Apollo.signal.query`, it can only query the cache and does not execute a network request or any of **Apollo Link**'s middleware.
+
+It is ideal when querying **local-only** data.
+
+## API
+```typescript
+Apollo.signal.cacheQuery<TData, TVariables>(
+  options: SignalCacheQueryOptions<TData, TVariables>
+): SignalCacheQuery<TData, TVariables>
+```
+
+Returns a `SignalCacheQuery<TData, TVariables>` instance. This object provides reactive Signals (`result`, `data`, `complete`, `missing`) reflecting the cache query's state.
+
+<details>
+<summary>Options</summary>
+<SignalCacheQueryOptions />
+</details>
+
+<details>
+<summary>Signals</summary>
+<SignalCacheQuerySignals />
+</details>
+
+## Executing a cache query
+```typescript title="theme/theme.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { THEME_QUERY } from '../graphql';
+
+@Component({
+ selector: 'app-theme',
+ template: `
+  <span>Current theme:</span>
+  <span>{{ theme().displayName }}</span>
+ `
+})
+export class ThemeComponent {
+ private readonly apollo = inject(Apollo);
+ 
+ protected readonly themeQuery = this.apollo.signal.cacheQuery({ query: THEME_QUERY });
+}
+```
+
+## Comparison
+`Apollo.signal.cacheQuery` has few pros and cons compared to `Apollo.signal.query` method.
+
+### Pros
+* By default `data` signal returns defined values and does not require null-checking.
+  * Unless `returnPartialData` option is set to `true`.
+* There's no need to handle loading and error states.
+* Synchronous execution
+  * The data is available immediately when the component is rendered.
+  * When the signal value is accessed from an Angular component template, the template will complete rendering in a single cycle.
+  * View children referenced in the component will be available in `ngAfterViewInit` lifecycle hook.
+
+### Cons
+* Does not execute a network request if the data is not available in the cache.
+* Throws an error if any selected field in the query is not available in the cache.
+  * Unless `returnPartialData` option is set to `true`.

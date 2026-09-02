@@ -1,0 +1,134 @@
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Apollo Link
+
+## Overview
+**Orbit** is compatible with all built-in <Link to="https://www.apollographql.com/docs/react/api/link/introduction">Apollo Link</Link>s, with the exception of `HTTP` and `HTTP Batch` links. For these, **Orbit** provides its own implementation that leverages **Angular**'s `HttpClient`. This allows for the use of **Angular**'s built-in features such as `HttpInterceptor`s, `TransferState`, etc...
+
+## HTTP Link
+`HttpLink` is a terminating link that sends a GraphQL operation to a remote endpoint over HTTP.
+
+It is registered using `withHttpLink` feature, which provides a `HttpLinkFactory` function that can be used to create an instance of `HttpLink`.
+
+### Usage
+```typescript
+import { NgModule, inject } from '@angular/core';
+import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+// code-add-line
+import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+
+...
+
+{ 
+  providers: [
+    provideApollo(
+      withApolloOptions(() => {
+        // code-add-start
+        const httpLinkFactory = inject(HttpLinkFactory);
+        const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+        // code-add-end
+
+        return {
+          cache: new InMemoryCache(),
+          // code-add-line
+          link: httpLink
+        };
+      }),
+      // code-add-line
+      withHttpLink()
+    )
+  ]
+}
+```
+
+
+## HTTP Batch Link
+`BatchHttpLink` is a terminating link that batches an array of individual GraphQL operations into a single HTTP request that's sent to a single GraphQL endpoint.
+
+It is registered using `withHttpLink` feature, which provides a `BatchHttpLinkFactory` function that can be used to create an instance of `BatchHttpLink`.
+
+### Usage
+```typescript
+import { NgModule, inject } from '@angular/core';
+import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+// code-add-line
+import { BatchHttpLinkFactory, withBatchHttpLink } from '@apollo-orbit/angular/batch-http';
+
+...
+
+{ 
+  providers: [
+    provideApollo(
+      withApolloOptions(() => {
+        // code-add-start
+        const batchHttpLinkFactory = inject(BatchHttpLinkFactory);
+        const batchHttpLink = batchHttpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+        // code-add-end
+
+        return {
+          cache: new InMemoryCache(),
+          // code-add-line
+          link: batchHttpLink
+        };
+      }),
+      // code-add-line
+      withBatchHttpLink()
+    )
+  ]
+}
+```
+
+## Automatic Persisted Queries Link (APQ)
+This link does not require a specific **Angular** implementation and works as-is with **Orbit**.
+
+### Install dependencies
+
+<Tabs>
+  <TabItem value="yarn" label="yarn" default>
+    
+    ```bash
+    yarn add --dev crypto-hash
+    ```
+
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    
+    ```bash
+    npm install --save-dev crypto-hash
+    ```
+
+  </TabItem>
+</Tabs>
+
+### Usage
+```typescript
+import { NgModule, inject } from '@angular/core';
+import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+import { HttpLinkFactory, withHttpLink } from '@apollo-orbit/angular/http';
+// code-add-start
+import { PersistedQueryLink } from '@apollo/client/link/persisted-queries';
+import { sha256 } from 'crypto-hash';
+// code-add-end
+
+...
+
+{ 
+  providers: [
+    provideApollo(
+      withApolloOptions(() => {
+        const httpLinkFactory = inject(HttpLinkFactory);
+        const httpLink = httpLinkFactory.create({ uri: 'http://localhost:4000/graphql' });
+
+        return {
+          cache: new InMemoryCache(),
+          // code-add-line
+          link: new PersistedQueryLink({ sha256 }).concat(httpLink)
+        };
+      }),
+      withHttpLink()
+    )
+  ]
+}
+```

@@ -1,0 +1,8 @@
+import Link from '@docusaurus/Link'
+
+* **Comprehensive state management**: **Orbit** combines the strengths of **Apollo Client** and event based state management <Link to="https://facebookarchive.github.io/flux/docs/in-depth-overview">(flux architecture)</Link>, providing a unified solution for managing both local and remote data.
+* **Decoupling**: Separate state management code from component code using modular `state` definitions and `action` handlers.
+* **Modular:** Each `state` definition manages its own slice of the cache.
+* **Separation of concerns (SoC):** Different `state` slices can handle the same `Mutation` or `Action` independently.
+* **Event-driven architecture:** **Actions** enable event-driven application design.
+* **Testability:** `state` logic can be tested in isolation, enhancing testability.
