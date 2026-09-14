@@ -1,5 +1,5 @@
 import { useLazyQuery, useMutation } from '@apollo/client/react';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { ADD_BOOK_MUTATION, AUTHORS_QUERY } from '../graphql';
 
 export function NewBook({
@@ -14,13 +14,8 @@ export function NewBook({
   });
   const [name, setName] = useState<string | undefined>();
   const [genre, setGenre] = useState<string | undefined>();
-  const [authorId, setAuthorId] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (authorsResult.data && authorsResult.data.authors.length > 0 && !authorId) {
-      setAuthorId(authorsResult.data.authors[0].id);
-    }
-  }, [authorId, authorsResult.data]);
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string | undefined>();
+  const authorId = selectedAuthorId ?? authorsResult.data?.authors[0]?.id;
 
   const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
@@ -46,12 +41,13 @@ export function NewBook({
         </div>
 
         {!authorsResult.called
-          ? <div><button onClick={() => getAuthors()}>Load authors</button></div>
+          ? <div><button type="button" onClick={() => getAuthors()}>Load authors</button></div>
           : <>
             {authorsResult.loading && <div>Loading authors...</div>}
+            {authorsResult.error && <div>{authorsResult.error.message}</div>}
             {authorsResult.data && <div>
               <label>Author:&nbsp;</label>
-              <select onChange={event => setAuthorId(event.target.value)}>
+              <select onChange={event => setSelectedAuthorId(event.target.value)}>
                 {authorsResult.data.authors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}
               </select>
             </div>}
