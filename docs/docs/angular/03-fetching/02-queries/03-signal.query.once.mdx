@@ -1,0 +1,123 @@
+import Link from '@docusaurus/Link'
+import SignalSingleQueryOptions from '@site/src/components/api-tables/SignalSingleQueryOptions.md';
+import SignalSingleQuerySignals from '@site/src/components/api-tables/SignalSingleQuerySignals.md';
+import SignalSingleQueryMethods from '@site/src/components/api-tables/SignalSingleQueryMethods.md';
+
+Fetch data once per execution using reactive Signals.
+
+Unlike <Link to="../signal.query/">`Apollo.signal.query`</Link>, it stops listening once the data is fetched: cache writes, refetches and subscriptions elsewhere in the application never re-emit into its signals. It is the **Signal** equivalent of <Link to="../watchQuery/#query">`Apollo.query`</Link>, whereas `signal.query` is the equivalent of `Apollo.watchQuery`.
+
+It is ideal when hydrating a form.
+
+## API
+```typescript
+Apollo.signal.query.once<TData, TVariables, TErrorPolicy>(
+  options: SignalSingleQueryOptions<TData, TVariables, TErrorPolicy>
+): SignalSingleQuery<TData, TVariables, TErrorPolicy>
+```
+
+Returns a `SignalSingleQuery<TData, TVariables>` instance. This object provides the same reactive Signals as `SignalQuery` (`result`, `data`, `loading`, `error`, `networkStatus`, `previousData`), without the methods that depend on watching the cache.
+
+<details>
+  <summary>Options</summary>
+  <SignalSingleQueryOptions />
+</details>
+
+<details>
+  <summary>Signals</summary>
+  <SignalSingleQuerySignals />
+</details>
+
+<details>
+  <summary>Methods</summary>
+  <SignalSingleQueryMethods />
+</details>
+
+## Hydrating a form
+A form is edit state, not view state. Once the user starts typing, the server is no longer the source of truth for what's on screen, so the query that seeded the form must stop emitting.
+
+Fetch the book with `signal.query.once` and derive the form value from it with `linkedSignal`, with no effect and no write:
+
+```typescript title="library/books/edit-book.component.ts"
+import { linkedSignal } from '@angular/core';
+import { form, required } from '@angular/forms/signals';
+import { Apollo } from '@apollo-orbit/angular';
+import { BOOK_QUERY } from '../graphql';
+
+@Component({
+  selector: 'app-edit-book',
+  templateUrl: './edit-book.component.html'
+})
+export class EditBookComponent {
+  private readonly apollo = inject(Apollo);
+
+  public readonly bookId = input.required<string>();
+
+  protected readonly bookQuery = this.apollo.signal.query.once({
+    query: BOOK_QUERY,
+    variables: () => ({ id: this.bookId() })
+  });
+
+  protected readonly value = linkedSignal({
+    source: this.bookQuery.data,
+    computation: data => ({ name: data?.book.name ?? '', genre: data?.book.genre ?? null })
+  });
+
+  protected readonly form = form(this.value, schema => {
+    required(schema.name);
+  });
+}
+```
+
+:::note
+`linkedSignal` rebuilds `value` whenever its `source` changes. Had this been `signal.query`, **every** cache write to that book (an `updateBook` mutation from another component, a `refetchQueries`, an incoming subscription) would re-emit and silently discard whatever the user had typed.
+
+`signal.query.once` stops watching after each execution. In this example, a changed `bookId` triggers a new execution and rebuilds `value`; calling `execute()` explicitly also replaces the snapshot. Use `previousData()` if you want to keep the last value visible while the next execution loads.
+:::
+
+The fetched book is still written to the cache, so any watching query picks it up. The relationship is one-directional: `SignalSingleQuery` publishes to the cache but does not subscribe to it.
+
+:::tip
+Reach for `signal.query.once` whenever the data must not shift under the user: a report or export being read, a point-in-time snapshot, or a lookup whose result is consumed once.
+:::
+
+## Variables
+Variables behave exactly as they do in <Link to="../signal.query/#variables">`signal.query`</Link>: they are given as a function or signal, and the query re-executes whenever its reactive dependencies change, with `previousData` holding the last value while the new execution is in flight.
+
+### Variables = `null`
+When the variables function returns `null`, the query is terminated, `loading()` becomes `false`, and `data` is reset to `undefined`, preserving the last value in `previousData`. Returning a non-`null` value again re-executes the query, provided it is `enabled`.
+
+## Lazy Queries
+Setting `lazy: true` defers the first execution until `execute()` is called, and makes the query variables optional (even if required by the query):
+
+```typescript title="library/books/books.component.ts"
+export class BooksComponent {
+  private readonly apollo = inject(Apollo);
+
+  protected readonly booksQuery = this.apollo.signal.query.once({
+    query: BOOKS_QUERY,
+    lazy: true
+  });
+
+  protected async onExportClicked(): Promise<void> {
+    try {
+      const { data } = await this.booksQuery.execute({ variables: { genre: 'Fiction' } });
+      // `data` is guaranteed under the default `errorPolicy` of `none`
+    } catch (error) {
+      // Optionally handle error
+    }
+  }
+}
+```
+
+:::info
+The promise follows the operation's `errorPolicy`: it **rejects** under `none` (the default), and resolves under `all` and `ignore`. Under `none`, a fulfilled promise has non-optional `data`. Failures are also available through the operation's `error()` signal.
+
+Ignoring the promise is safe: every outcome reaches the signals, and **Orbit** marks the promise so an unhandled rejection is never raised. Chaining `.then`, `.catch` or `.finally` creates a new promise that needs its own rejection handling.
+:::
+
+## Execution lifecycle
+
+A new execution supersedes the previous one. Terminating or destroying the query cancels its pending work; cancelled promises still follow `errorPolicy`. Requests participate in [Angular application stability](../../../advanced/ssr/).
+
+Options other than `variables` are fixed at creation. Defaults come from the client's [`watchQuery` slot](../../../advanced/default-options/). With [incremental delivery](../../../advanced/apollo-client-4.3/#incremental-delivery), the signals receive the final result after all chunks arrive.

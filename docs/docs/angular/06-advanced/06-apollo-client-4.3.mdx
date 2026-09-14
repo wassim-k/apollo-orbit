@@ -1,0 +1,44 @@
+# Apollo Client 4.3
+
+Orbit supports Apollo Client 4.3's custom scalars, cache and fragment-reference type overrides, and incremental result types. These features are opt-in.
+
+## Custom scalars
+
+Follow Apollo's [custom scalar guide](https://www.apollographql.com/docs/react/data/custom-scalars) for declarations, cache configuration, lists, nested inputs, and reusing `GraphQLScalarType` implementations.
+
+Pass the configured cache through `withApolloOptions`. Orbit's observable and signal APIs expose parsed values, including with `fetchPolicy: 'no-cache'`. Variables can contain parsed values such as `Date`; Apollo serializes them for the network. Cache snapshots are serialized too.
+
+Scalar field policies can also live in Orbit's `state(...).typePolicies(...)`. A field's `scalar` policy cannot be combined with `read` or `merge`.
+
+Map the scalar to its parsed type in your GraphQL Codegen configuration:
+
+```typescript
+config: {
+  scalars: { DateTime: { input: 'Date', output: 'Date' } }
+}
+```
+
+## Custom cache and fragment references
+
+Use Apollo's [cache type declaration](https://www.apollographql.com/docs/react/data/typescript#declaring-the-cache-type) to retain your cache's methods in `apollo.cache`, mutation updates, state initializers, and actions. Provide the declared implementation at runtime. Angular keeps Orbit's `cache.watchQuery` extension alongside those methods.
+
+The same override applies to React state callbacks.
+
+`watchFragment` and `signal.fragment` honor Apollo's [`FromOptionValue` override](https://www.apollographql.com/docs/react/data/typescript#available-type-overrides) for stricter identifiers. Orbit also accepts nullable and array `from` values; each non-null value must satisfy the override.
+
+## Incremental delivery
+
+For operation types generated with deferred-field unions, enable Apollo's new type overrides:
+
+```typescript
+import '@apollo/client';
+import type { GraphQLCodegenIncremental } from '@apollo/client/incremental';
+
+declare module '@apollo/client' {
+  interface TypeOverrides extends GraphQLCodegenIncremental.TypeOverrides {}
+}
+```
+
+Narrowing `result().dataState` to `'complete'` then exposes all deferred fields. Complete cache results use the same assembled type. Follow Apollo's [incremental delivery setup](https://www.apollographql.com/docs/react/data/defer) and set `incrementalHandler` through `withApolloOptions`; the type override alone does not enable delivery.
+
+`dataState` describes the available fields, while `loading` and `networkStatus` describe the request. An `@stream` result can have `dataState: 'complete'` while `networkStatus` is `NetworkStatus.streaming`. Use `loading()` to track pending work. Query execution promises wait for the final chunk.

@@ -1,0 +1,109 @@
+import Link from '@docusaurus/Link'
+import SignalCacheQueryOptions from '@site/src/components/api-tables/SignalCacheQueryOptions.md';
+import SignalCacheQuerySignals from '@site/src/components/api-tables/SignalCacheQuerySignals.md';
+
+Watch data directly in the cache using reactive Signals.
+
+Unlike `Apollo.signal.query`, it can only query the cache and does not execute a network request or any of **Apollo Link**'s middleware.
+
+It is ideal when querying **local-only** data.
+
+## API
+```typescript
+Apollo.signal.cacheQuery<TData, TVariables, TPartial>(
+  options: SignalCacheQueryOptions<TData, TVariables, TPartial>
+): SignalCacheQuery<TData, TVariables, TPartial>
+
+Apollo.signal.cacheQuery.required<TData, TVariables>(
+  options: Omit<SignalCacheQueryOptions<TData, TVariables, false>, 'returnPartialData'>
+): SignalCacheQuery<TData, TVariables, false, true>
+```
+
+Returns a `SignalCacheQuery<TData, TVariables>` instance. This object provides reactive Signals (`result`, `data`, `complete`, `missing`) reflecting the cache query's state.
+
+<details>
+<summary>Options</summary>
+<SignalCacheQueryOptions />
+</details>
+
+<details>
+<summary>Signals</summary>
+<SignalCacheQuerySignals />
+</details>
+
+## Executing a cache query
+```typescript title="theme/theme.component.ts"
+import { Apollo } from '@apollo-orbit/angular';
+import { THEME_QUERY } from '../graphql';
+
+@Component({
+ selector: 'app-theme',
+ template: `
+  <span>Current theme:</span>
+  <span>{{ theme()?.displayName }}</span>
+ `
+})
+export class ThemeComponent {
+ private readonly apollo = inject(Apollo);
+ 
+ protected readonly themeQuery = this.apollo.signal.cacheQuery({ query: THEME_QUERY });
+ protected readonly theme = computed(() => this.themeQuery.data()?.theme);
+}
+```
+
+## Reading the result
+`result()` is a discriminated union. Narrowing on `complete` gives fully typed `data`. Cache reads return `Unmasked<TData>` when using Apollo Client's data masking.
+
+```typescript
+protected readonly themeName = computed(() => {
+  const result = this.themeQuery.result();
+
+  return result.complete ? result.data.theme.displayName : undefined;
+});
+```
+
+With the default `returnPartialData: false`, `data()` is `Unmasked<TData> | null` and can be read with optional chaining. Set `returnPartialData: true` to also receive incomplete data as `DataValue.Partial<Unmasked<TData>>`. A runtime `boolean` option also permits partial data in the result type.
+
+Use a `TypedDocumentNode` for inference, or supply the partial-data flag explicitly: `signal.cacheQuery<TData, TVariables, true>({ query, returnPartialData: true })`.
+
+The exported `CacheQueryData<TData, TPartial, TRequired>` alias describes the `data()` signal's type across these modes.
+
+## Variables
+
+Pass variables as a function or signal, such as `variables: () => ({ id: this.bookId() })`. Required variables must be supplied; cache queries and fragments do not accept `null`.
+
+## Required cache queries
+Where a type policy guarantees the data, narrowing guards a branch that can never be taken. `required` says so up front and gives back fully typed `data`.
+
+```typescript
+protected readonly themeQuery = this.apollo.signal.cacheQuery.required({ query: THEME_QUERY });
+protected readonly theme = computed(() => this.themeQuery.data().theme);
+```
+
+`result()` collapses to `CacheQueryCompleteResult<TData>`, so `data` is `TData`, `complete` is `true` and `missing` is `undefined`. `returnPartialData` is not accepted, since asking for partial data while asserting completeness contradicts itself.
+
+The assertion is checked rather than taken on trust. Reading an incomplete result throws:
+
+```
+A required cache query read an incomplete result. Can't find field 'theme' on ROOT_QUERY object
+```
+
+Reads throw while the cache is incomplete. The signal continues watching the cache and recovers when complete data arrives. By comparison, an incomplete `cache.watchQuery.required` read errors and closes its observable subscription.
+
+Reach for it only where a type policy or a guaranteed write makes the read total. Anywhere the cache genuinely might not hold the data, narrow on `complete` instead.
+
+## Comparison
+`Apollo.signal.cacheQuery` has few pros and cons compared to `Apollo.signal.query` method.
+
+### Pros
+* `result` is a union that narrows on `complete`, so a complete read reaches fully typed `data` with no optional fields.
+* There's no need to handle loading and error states.
+* Synchronous execution
+  * The data is available immediately when the component is rendered.
+  * When the signal value is accessed from an Angular component template, the template will complete rendering in a single cycle.
+  * View children referenced in the component will be available in `ngAfterViewInit` lifecycle hook.
+
+### Cons
+* Does not execute a network request if the data is not available in the cache.
+* `data()` is `null` unless every requested field is available in the cache, so it needs narrowing or a null check.
+  * Set `returnPartialData` to `true` to receive the fields the cache did have instead.

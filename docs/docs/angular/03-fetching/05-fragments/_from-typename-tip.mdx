@@ -1,0 +1,6 @@
+:::tip
+In the example above, `__typename` can be omitted (e.g. `from: { id: '1' }`)  
+**Orbit** extracts the type name from the fragment selected by `fragmentName`. When the document contains multiple fragments, supply `fragmentName` to select the one to read. Without it, type-name inference falls back to the first fragment definition.
+
+If you declare a stricter [`FromOptionValue` type](https://www.apollographql.com/docs/react/data/typescript#available-type-overrides), inputs must satisfy it, including `__typename` when required. See Orbit's [fragment-reference support](../../../advanced/apollo-client-4.3/#custom-cache-and-fragment-references).
+:::

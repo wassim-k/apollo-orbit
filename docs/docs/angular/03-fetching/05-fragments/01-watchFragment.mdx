@@ -1,0 +1,30 @@
+import Link from '@docusaurus/Link'
+import FromTypenameTip from './_from-typename-tip.mdx';
+
+Watch a GraphQL fragment in the cache and get updates when the fragment changes.
+
+## API
+```typescript
+Apollo.watchFragment<TData, TVariables>(
+  options: ApolloClient.WatchFragmentOptions<TData, TVariables>
+): ApolloClient.ObservableFragment<TData>
+```
+
+Returns an `ObservableFragment`, which emits the current fragment value in the cache and continues to deliver changes until unsubscribed from. Each emission is an `ApolloClient.WatchFragmentResult<TData>`: narrow it on `complete` to reach fully typed `data`.
+
+Alongside the usual Observable members it carries `getCurrentResult()`, which reads the cache synchronously without subscribing. That is what <Link to="../signal.fragment/">`signal.fragment`</Link> uses to have data available on its first read.
+
+## Watching a fragment
+```typescript
+this.apollo.watchFragment({
+  fragment: AuthorFragmentDoc,
+  from: {
+    __typename: 'Author',
+    id: '1'
+  }
+}).pipe(
+  map(result => result.complete ? result.data : undefined)
+);
+```
+
+<FromTypenameTip />

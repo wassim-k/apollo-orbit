@@ -1,0 +1,82 @@
+import Link from '@docusaurus/Link'
+
+# Default options
+
+Set an option once for every operation, and let result types know about it.
+
+## Runtime defaults
+`defaultOptions` on the Apollo Client instance applies to every operation of a given kind, so individual call sites only specify what differs:
+
+```typescript title="app/graphql/graphql.provider.ts"
+import { InMemoryCache, provideApollo, withApolloOptions } from '@apollo-orbit/angular';
+
+export function provideGraphQL() {
+  return provideApollo(
+    withApolloOptions(() => ({
+      cache: new InMemoryCache(),
+      link: /* ... */,
+      defaultOptions: {
+        watchQuery: { errorPolicy: 'all' },
+        query: { errorPolicy: 'all' },
+        mutate: { errorPolicy: 'all' }
+      }
+    }))
+  );
+}
+```
+
+The three slots are independent. <Link to="../../fetching/queries/signal.query/">`signal.query`</Link>, <Link to="../../fetching/queries/signal.query.once/">`signal.query.once`</Link> and <Link to="../../fetching/queries/watchQuery/">`watchQuery`</Link> all read the `watchQuery` slot — `signal.query.once` because it is built on `watchQuery` and `reobserve`. The `query` slot applies only to <Link to="../../fetching/queries/watchQuery/#query">`Apollo.query`</Link>.
+
+## Declaring defaults to the type system
+See Apollo's [default-option declarations](https://www.apollographql.com/docs/react/data/typescript#declaring-default-options-types) for the underlying type contract.
+
+A runtime default alone does not change any types. `errorPolicy` decides whether a result carries `data`, an `error`, or both, so **Orbit** resolves result types against the default you declare:
+
+```typescript title="app/graphql/graphql.types.ts"
+import '@apollo/client';
+
+declare module '@apollo/client' {
+  namespace ApolloClient {
+    namespace DeclareDefaultOptions {
+      interface WatchQuery { errorPolicy: 'all' }
+      interface Query { errorPolicy: 'all' }
+      interface Mutate { errorPolicy: 'all' }
+    }
+  }
+}
+```
+
+Declare the same values you configured at runtime. Apollo Client requires the declaration whenever you set the runtime default, and reports it if you forget:
+
+> A default option for `mutate.errorPolicy` must be declared in `ApolloClient.DeclareDefaultOptions` before usage.
+
+With `errorPolicy: 'all'` declared, results widen the way the policy actually behaves: `data` becomes optional and `error` can be present:
+
+```typescript
+const { data, error } = await this.addBookMutation.mutate({ variables: { book } });
+//      ^ TData | undefined
+//            ^ ErrorLike | undefined
+```
+
+Under the default of `none`, the same call rejects on failure and `data` is guaranteed:
+
+```typescript
+const { data } = await this.addBookMutation.mutate({ variables: { book } });
+//      ^ TData
+```
+
+:::tip
+An explicit `errorPolicy` overrides the declared default. For signal operations, set it on the factory options; `execute()` and `mutate()` do not accept a new policy. `fetchMore` defaults independently to `none`, so pass its policy on the `fetchMore` call itself.
+:::
+
+## Signature style
+Declaring any non-optional member of `DeclareDefaultOptions` switches **Apollo Client's own** methods and hooks from their classic signatures to their modern ones, application-wide. Modern signatures read declared defaults into their return types, but they infer types from the document and reject explicit type arguments:
+
+```typescript
+this.apollo.client.query<Book>({ query });    // was fine, now a type error
+this.apollo.client.query({ query: typed });   // inferred, and reads your declared defaults
+```
+
+**Orbit**'s own APIs resolve declared defaults under either style and still accept explicit type arguments. `apollo.cache` and `QueryObservable` are unaffected.
+
+The fix is to type the document rather than the call. See <Link to="../../codegen/intro/">Codegen</Link>, which produces `TypedDocumentNode` documents that are correct under both styles.

@@ -1,0 +1,180 @@
+import Link from '@docusaurus/Link'
+
+# Migrating to v3
+
+v3 aligns **Orbit** with **Apollo Client v4**'s own error contract. Operations report failures the way Apollo Client does, and result types narrow accordingly.
+
+Requires **Apollo Client 4.3+** and **TypeScript 5.9+**. See <Link to="../../advanced/apollo-client-4.3/">Apollo Client 4.3</Link> for custom scalars, cache types, and incremental delivery.
+
+For upstream changes, see the [Apollo Client 4.2 release notes](https://github.com/apollographql/apollo-client/releases/tag/%40apollo%2Fclient%404.2.0), which introduced the `errorPolicy` result types this release builds on, and the [4.3 release notes](https://github.com/apollographql/apollo-client/releases/tag/%40apollo%2Fclient%404.3.0).
+
+:::tip
+To keep operation errors on resolved results, see [Opt into `errorPolicy: 'all'`](#opt-into-errorpolicy-all). The other API changes below still apply.
+:::
+
+## 1. Promises follow `errorPolicy`
+
+Previously `signal.mutation(...).mutate()` always resolved, converting every failure into `{ data: undefined, error }`. That collapsed the three error policies into one and diverged from Apollo Client, which has always propagated the error.
+
+Operation promises follow the configured `errorPolicy`. The `data` and `error` columns describe a fulfilled result:
+
+| `errorPolicy` | On operation failure | Fulfilled `data` | Fulfilled `error` |
+| --- | --- | --- | --- |
+| `none` (default) | **rejects** | guaranteed | absent |
+| `all` | resolves | possibly `undefined` | `ErrorLike` or `undefined` |
+| `ignore` | resolves | possibly `undefined` | absent |
+
+This covers `signal.mutation(...).mutate()`, `signal.query(...).execute()` and `.refetch()`, `signal.query.once(...).execute()`, and `refetch` / `reobserve` / `setVariables` on a watched query. `Apollo.query` and `Apollo.mutate` return observables: under `none`, failures go to their error channel.
+
+```typescript
+// Before
+const { data, error } = await this.updateMutation.mutate({ variables });
+if (error) { this.notify(error.message); return; }
+this.close(data?.updateBook.id);
+
+// After
+try {
+  const { data } = await this.updateMutation.mutate({ variables });
+  this.close(data.updateBook.id);          // `data` is guaranteed under `none`
+} catch (error) {
+  this.notify(toErrorLike(error).message);
+}
+```
+
+Under `none`, `data` is no longer optional, so the optional chaining and `!== undefined` guards that surrounded every result can go.
+
+`onError` still runs, but it is a side effect only and does not stop the promise from rejecting. Apollo Client made the same change in v4.
+
+:::caution
+`fetchMore` is the one exception. Apollo Client applies `errorPolicy: 'none'` to it whenever the call leaves the option out, so it rejects on error whatever the query's own policy or your declared default says. Pass `errorPolicy` on the `fetchMore` call itself if you want otherwise.
+
+Handle the returned promise to react to a failed page. A page failure does not replace the existing query data or populate its error signal; once the request settles, the query returns to its existing state. Ignoring the original promise is safe, since **Orbit** passes it through `preventUnhandledRejection`.
+:::
+
+### Fire-and-forget still works
+
+Signal operations expose their current result in signals as well as returning a promise. **Orbit** passes the original promise through Apollo Client's `preventUnhandledRejection`, so it can be ignored when the template handles the result:
+
+```typescript
+// Still fine: the error lands in `mutation.error()` and renders from the template
+this.addBookMutation.mutate({ variables: { book } });
+```
+
+Prevention does not survive chaining, though: `.then`, `.catch` and `.finally` each derive a **new** promise from the prevented one, and the derived promise is unhandled again. A fire-and-forget call that adds a `.finally` for cleanup needs its own handling:
+
+```typescript
+this.mutation.mutate({ variables }).finally(() => this.busy.set(false)).catch(() => undefined);
+```
+
+## 2. Ambient default error policy
+
+Result types now resolve against the application's declared defaults rather than always assuming `none`. Declare them once, alongside the runtime defaults.
+
+See <Link to="../../advanced/default-options/">Default options</Link> for the full picture, including the signature-style change that declaring them triggers. Both come from Apollo Client [4.2](https://github.com/apollographql/apollo-client/releases/tag/%40apollo%2Fclient%404.2.0), which added `DeclareDefaultOptions`.
+
+## 3. Removed and renamed options
+
+### `onData`
+
+`signal.mutation(M, { onData })` is now `signal.mutation(M, { onCompleted })`, matching `useMutation`.
+
+### `throwError`
+
+Removed from `QueryOptions`. `errorPolicy` already expresses this: `throwError: false` becomes `errorPolicy: 'all'`.
+
+### `notifyOnLoading`
+
+Removed from `WatchQueryOptions`, `QueryOptions`, `SignalQueryOptions` and `SignalSingleQueryOptions`.
+
+- **Watched queries**: use `notifyOnNetworkStatusChange`. Apollo Client v4 defaults it to `true` and emits the initial loading state natively, so `notifyOnLoading: true` is now the default behaviour and `notifyOnLoading: false` becomes `notifyOnNetworkStatusChange: false`. These are not perfectly equivalent: `notifyOnNetworkStatusChange: false` also suppresses loading states for refetches, which `notifyOnLoading` left alone.
+- **`apollo.query`**: emits only the final result, in Apollo Client's own `{ data, error }` shape.
+- **`signal.query.once`**: always tracks `loading`, since it owns a `loading` signal.
+
+### `apollo.query` emits a one-shot result
+
+`apollo.query` used to emit the watched-query result (`loading`, `networkStatus`, `dataState` and all) because `notifyOnLoading` needed somewhere to put a loading emission. With that gone it emits Apollo Client's own one-shot shape, narrowed by `errorPolicy` against your declared defaults:
+
+```typescript
+// Before: loading was always false and networkStatus always ready
+this.apollo.query<Book>({ query }).subscribe(({ data, loading }) => ...);
+
+// After
+this.apollo.query<Book>({ query }).subscribe(({ data }) => ...);
+```
+
+<Link to="../../fetching/queries/watchQuery/">`watchQuery`</Link> retains its watched-query result shape, including `loading`, `networkStatus` and `dataState`.
+
+Where a template renders from `loading` and `dataState`, `startWithLoading` converts the stream back:
+
+```typescript
+import { startWithLoading } from '@apollo-orbit/angular';
+
+this.apollo.query(options).pipe(startWithLoading());
+```
+
+## 4. Cache queries narrow on `complete`
+
+`cache.watchQuery` and `signal.cacheQuery` used to type `data` as `TData`. That was only true when every requested field was available in the cache: a miss handed back `null` at runtime while the type still promised an object.
+
+The result is now a discriminated union. With the default `returnPartialData: false`, `data` is fully typed once you have checked `complete`, and `null` otherwise. Cache reads return `Unmasked<TData>` when using Apollo Client's data masking.
+
+```typescript
+// Before: compiled, and threw at runtime on a cache miss
+const theme = this.themeQuery.data().theme;
+
+// After: narrow on `complete`
+const result = this.themeQuery.result();
+const theme = result.complete ? result.data.theme : undefined;
+
+// Or, where the missing case needs no special handling
+const theme = this.themeQuery.data()?.theme;
+```
+
+The same applies to the observable:
+
+```typescript
+this.apollo.cache.watchQuery({ query: THEME_QUERY }).pipe(
+  map(({ data }) => data?.theme)
+);
+```
+
+## 5. Reactive variables and execution
+
+Signal queries, subscriptions, cache queries and fragments require variables as a function or signal: `variables: () => ({ id: this.bookId() })`. Supply required variables upfront, or defer them with `lazy: true` for queries and subscriptions.
+
+Returning `null` pauses signal queries and subscriptions until variables become available. Cache queries and fragments do not accept `null` variables.
+
+Set `errorPolicy` when creating a signal query or mutation. It can no longer be passed to `execute()` or `mutate()`. `fetchMore` has its own policy as described above.
+
+## 6. Signal queries hold application stability
+
+An in-flight signal query now registers a task with Angular's `PendingTasks`, so `ApplicationRef.isStable` stays `false` until it settles. Tests that relied on `fixture.whenStable()` resolving before a query had responded will now wait for it. See <Link to="../../testing/">Testing</Link> and <Link to="../../advanced/ssr/">SSR</Link>.
+
+## Opt into `errorPolicy: 'all'` {#opt-into-errorpolicy-all}
+
+`errorPolicy: 'all'` resolves operation failures with an error on the result. Set it at runtime and declare the matching type defaults to keep using that error-handling style. This does not restore removed options, the old query result shape, or the other APIs changed above. Exceptions from your callbacks can still reject a promise.
+
+```typescript
+import '@apollo/client';
+
+declare module '@apollo/client' {
+  namespace ApolloClient {
+    namespace DeclareDefaultOptions {
+      interface Query { errorPolicy: 'all' }
+      interface WatchQuery { errorPolicy: 'all' }
+      interface Mutate { errorPolicy: 'all' }
+    }
+  }
+}
+
+provideApollo(withApolloOptions(() => ({
+  // ...
+  defaultOptions: {
+    query: { errorPolicy: 'all' },
+    watchQuery: { errorPolicy: 'all' },
+    mutate: { errorPolicy: 'all' }
+  }
+})));
+```
+
+With `all`, GraphQL errors may arrive alongside data. If your application treats any error as a failed operation, check `error` before using `data`. `fetchMore` still defaults independently to `none`, so set its policy on the call itself.

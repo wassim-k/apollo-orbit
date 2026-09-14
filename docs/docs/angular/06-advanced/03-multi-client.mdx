@@ -1,0 +1,91 @@
+import Link from '@docusaurus/Link';
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# Multi-client
+
+## Overview
+**Orbit** supports having multiple clients in the same **Angular** application. This is useful when you need to connect to multiple GraphQL APIs.
+
+This is accomplished using `provideApolloInstance` function. It accepts two parameters, the first is the injection token to be used for the client, and the second is the client's options.
+
+## Setup
+
+Let's assume for this example that the frontend needs to communicate with 2 GraphQL APIs:
+1. A standard backend for frontend API
+2. A billing API
+
+### Step 1: Create new client injection token
+This token will be used to inject the **billing** client into the application.
+
+```typescript title="app/graphql/apollo-billing.ts"
+import { Apollo } from '@apollo-orbit/angular';
+
+export class ApolloBilling extends Apollo {
+  public static readonly id = 'billing';
+}
+```
+
+### Step 2: Update app providers
+
+```typescript
+// code-add-start
+import { ApolloBilling } from './apollo-billing';
+import { provideApolloInstance, ... } from '@apollo-orbit/angular';
+// code-add-end
+
+{
+  providers: [
+    provideApollo(
+      withApolloOptions(() => ({
+        cache: new InMemoryCache(),
+        link: inject(HttpLinkFactory).create({ uri: 'http://api.backend.dev/graphql' })
+      })),
+      withHttpLink()
+    ),
+    // code-add-start
+    provideApolloInstance(ApolloBilling, () => ({
+      cache: new InMemoryCache(),
+      id: ApolloBilling.id,
+      link: inject(HttpLinkFactory).create({ uri: 'http://api.billing.dev/graphql' })
+    }))
+    // code-add-end
+  ]
+}
+```
+
+:::note
+It is required to provide a unique `id` for each client. This `id` is used for associating the client with a state definition.
+:::
+
+### Step 3: Use the client
+Now, the client can be injected just like any other Angular service.
+
+```typescript
+import { ApolloBilling } from 'app/graphql/apollo-billing';
+
+@Component({
+  selector: 'app-billing',
+  templateUrl: './billing.component.html',
+  styleUrls: ['./billing.component.css']
+})
+export class BillingComponent {
+  private readonly apolloBilling = inject(ApolloBilling);
+
+  protected readonly invoicesQuery = this.apolloBilling.watchQuery({ query: INVOICES_QUERY });
+}
+```
+
+### Step 4: Defining state for the client (Optional)
+This is accomplished using `clientId` function available on the `state` descriptor.
+
+```typescript title="app/billing/states/invoice.state.ts"
+// code-add-line
+import { ApolloBilling } from 'app/graphql/apollo-billing';
+
+export const invoiceState = state(descriptor => descriptor
+  // code-add-line
+  .clientId(ApolloBilling.id)
+  ...
+);
+```
