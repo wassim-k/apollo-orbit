@@ -11,19 +11,19 @@
     "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
-    "@apollo/server": "^5.0.0",
+    "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
-    "express": "^5.1.0",
-    "graphql": "^16.11.0",
+    "express": "^5.2.1",
+    "graphql": "^17.0.2",
     "graphql-subscriptions": "^3.0.0",
-    "graphql-ws": "^6.0.6",
+    "graphql-ws": "^6.2.1",
     "shortid": "^2.2.17"
   },
   "devDependencies": {
     "@graphql-codegen/typescript-resolvers": "^6.1.0",
     "@types/cors": "^2.8.19",
     "@types/shortid": "^2.2.0",
-    "nodemon": "^3.1.10",
-    "tsx": "^4.20.5"
+    "nodemon": "^3.1.14",
+    "tsx": "^4.23.13"
   }
 }

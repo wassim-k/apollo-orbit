@@ -22,9 +22,9 @@
     "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "@graphql-codegen/plugin-helpers": "^7.0.1",
+    "@graphql-codegen/plugin-helpers": "^7.3.0",
     "@graphql-codegen/testing": "^5.0.1",
-    "@graphql-codegen/visitor-plugin-common": "^7.1.2",
+    "@graphql-codegen/visitor-plugin-common": "^7.2.5",
     "bob-the-bundler": "^7.0.1"
   },
   "main": "dist/cjs/index.js",

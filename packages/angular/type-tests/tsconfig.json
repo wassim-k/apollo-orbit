@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "types": [],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "paths": {
+      "@apollo-orbit/angular": ["../src/index.ts"],
+      "@apollo-orbit/core": ["../../core/src/index.ts"]
+    }
+  },
+  "include": ["${configDir}/*.ts"]
+}

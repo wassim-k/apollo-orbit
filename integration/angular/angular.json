@@ -30,7 +30,6 @@
             "optimization": false,
             "namedChunks": true,
             "allowedCommonJsDependencies": [
-              "decorator-cache-getter",
               "graphql-tag"
             ],
             "server": "projects/core/src/main.server.ts",
@@ -121,7 +120,6 @@
             "optimization": false,
             "namedChunks": true,
             "allowedCommonJsDependencies": [
-              "decorator-cache-getter",
               "graphql-tag"
             ]
           },

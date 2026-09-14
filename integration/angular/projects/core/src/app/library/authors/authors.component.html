@@ -1,20 +1,18 @@
 <h3>Authors <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
 <div>
-  <input type="text" placeholder="Author name" [formControl]="nameControl" />
+  <input type="text" placeholder="Author name" [formField]="nameField" />
 </div>
-@if (authorsQuery | async; as authorsResult) {
-@if (authorsResult.loading) { Loading... }
-@if (authorsResult.error) { {{ authorsResult.error.message }} }
-@if ((authorsResult.data || authorsResult.previousData)?.authors; as authors) {
+@if (authorsQuery.loading()) { Loading... }
+@if (authorsQuery.error(); as error) { {{ error.message }} }
+@if ((authorsQuery.data() ?? authorsQuery.previousData())?.authors; as authors) {
 @for (author of authors; track author.id) {
 <div>
   <span>{{ author.name }}</span>
   <ul>
-    @for (book of author.books; track book) {
+    @for (book of author.books; track book.id) {
     <li>{{ book.name }}</li>
     }
   </ul>
 </div>
-}
 }
 }

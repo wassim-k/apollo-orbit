@@ -1,9 +1,13 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "./tsconfig.spec.json",
   "include": [
+    "*.ts",
     "packages",
     "integration",
     "docs",
     "scripts"
+  ],
+  "exclude": [
+    "packages/angular/type-tests"
   ]
 }

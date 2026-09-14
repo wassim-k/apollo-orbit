@@ -1,4 +1,4 @@
-import type { ApolloCache, ApolloClient } from '@apollo/client';
+import type { ApolloClient, Cache } from '@apollo/client';
 import { Policies } from '@apollo/client/cache';
 import type { LocalState } from '@apollo/client/local-state';
 import type { State } from './state';
@@ -22,7 +22,7 @@ export const addStateToClient = (client: ApolloClient) =>
     }
   };
 
-export const addStateToCache = (cache: ApolloCache) =>
+export const addStateToCache = (cache: Cache.Implementation) =>
   (definition: Pick<State, 'typePolicies' | 'possibleTypes'>): void => {
     if (definition.typePolicies.length > 0 || definition.possibleTypes.length > 0) {
       const policies = getCachePolicies(cache);
@@ -31,7 +31,7 @@ export const addStateToCache = (cache: ApolloCache) =>
     }
   };
 
-const getCachePolicies = (cache: ApolloCache): Policies => {
+const getCachePolicies = (cache: Cache.Implementation): Policies => {
   if ('policies' in cache) {
     return (cache as any)['policies']; // eslint-disable-line dot-notation
   } else {

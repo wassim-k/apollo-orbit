@@ -1,38 +1,46 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, inject, Output, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Apollo } from '@apollo-orbit/angular';
-import { cache } from 'decorator-cache-getter';
-import { AuthorInput, gqlAddAuthorMutation } from '../../graphql';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import { form, FormField, FormRoot, required, ValidationError } from '@angular/forms/signals';
+import { Apollo, toErrorLike } from '@apollo-orbit/angular';
+import { ADD_AUTHOR_MUTATION } from '../../graphql';
+
+export interface NewAuthorModel {
+  name: string;
+  age: number | null;
+}
 
 @Component({
   selector: 'app-new-author',
   templateUrl: './new-author.component.html',
   styleUrls: ['./new-author.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule]
+  imports: [FormRoot, FormField]
 })
 export class NewAuthorComponent {
   private readonly apollo = inject(Apollo);
-  private readonly fb = inject(FormBuilder);
 
-  @Output() public readonly onClose = new EventEmitter<void>();
+  public readonly closed = output<void>();
 
-  protected readonly error = signal<Error | undefined>(undefined);
+  protected readonly value = signal<NewAuthorModel>({ name: '', age: null });
 
-  @cache
-  protected get form() {
-    return this.fb.group({
-      name: this.fb.control<string | null>(null, Validators.required),
-      age: this.fb.control<number | null>(null)
-    });
-  }
+  protected readonly form = form(
+    this.value,
+    schema => {
+      required(schema.name);
+    },
+    {
+      submission: {
+        action: field => this.submit(field().value())
+      }
+    }
+  );
 
-  protected submit(): void {
-    if (!this.form.valid) return;
-    const author = this.form.value as AuthorInput;
-    this.error.set(undefined);
-    this.apollo.mutate(gqlAddAuthorMutation({ author })).subscribe({
-      error: (error: Error) => this.error.set(error)
-    });
+  private readonly addAuthorMutation = this.apollo.signal.mutation(ADD_AUTHOR_MUTATION);
+
+  private async submit(author: NewAuthorModel): Promise<ValidationError | void> {
+    try {
+      await this.addAuthorMutation.mutate({ variables: { author } });
+    } catch (error) {
+      return { kind: 'server', message: toErrorLike(error).message };
+    }
   }
 }

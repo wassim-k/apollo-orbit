@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Apollo } from '@apollo-orbit/angular';
 import { ApolloActions } from '@apollo-orbit/angular/state';
 import { gqlThemeQuery } from '../graphql';
@@ -8,9 +8,10 @@ import { ToggleThemeAction } from '../states/theme/theme.actions';
   selector: 'app-theme',
   template: `
     <span>Current theme:</span>
-    <span>{{ theme().displayName }}</span>
+    <span>{{ theme()?.displayName }}</span>
     <button type="button" (click)="toggleTheme()">Toggle theme</button>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     * {
       margin-right: 0.5em;
@@ -22,7 +23,7 @@ export class ThemeComponent {
   private readonly actions = inject(ApolloActions);
 
   protected readonly themeQuery = this.apollo.signal.cacheQuery(gqlThemeQuery());
-  protected readonly theme = computed(() => this.themeQuery.data().theme);
+  protected readonly theme = computed(() => this.themeQuery.data()?.theme);
 
   protected toggleTheme(): void {
     this.actions.dispatch(new ToggleThemeAction());

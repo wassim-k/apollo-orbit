@@ -1,10 +1,10 @@
 import angular from '@analogjs/vite-plugin-angular';
 import { defineConfig, mergeConfig } from 'vitest/config';
-import baseConfig from '../../vitest.config';
+import sharedConfig from '../../vitest.shared';
 import asyncZoneFix from './tests/config/async-zone-fix.js';
 
 export default mergeConfig(
-  baseConfig,
+  sharedConfig,
   mergeConfig(
     asyncZoneFix,
     defineConfig({

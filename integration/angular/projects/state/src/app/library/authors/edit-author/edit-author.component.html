@@ -1,5 +1,6 @@
 <div>
-  @if (authorResult$ | async; as authorResult) {
+  @if (authorFragment.result(); as authorResult) {
+  @if (authorResult.complete) {
   @let author = authorResult.data;
 
   <h4>Author Details</h4>
@@ -11,28 +12,29 @@
     </div>
   </div>
   }
+  }
 
   <div>
     <h4>Update Author</h4>
-    <form class="form" [formGroup]="authorForm" (ngSubmit)="onSubmit()">
-      <div class="form-field">
-        <label for="name">Name *</label>
-        <input id="name" type="text" formControlName="name">
-      </div>
-      @if (authorForm.controls.name.invalid && authorForm.controls.name.touched) {
-      <div class="form-field">Name is required</div>
+    <form class="form" [formRoot]="form">
+      <label class="form-field">
+        <span>Name *</span>
+        <input type="text" [formField]="form.name">
+      </label>
+      @if (form.name().invalid() && form.name().touched()) {
+      <div class="error-well">Name is required</div>
       }
 
-      <div class="form-field">
-        <label for="age">Age</label>
-        <input id="age" type="number" formControlName="age">
-      </div>
+      <label class="form-field">
+        <span>Age</span>
+        <input type="number" [formField]="form.age">
+      </label>
 
       <div class="actions-container">
-        <button type="submit" [disabled]="submitting()">
-          {{ submitting() ? 'Updating...' : 'Update Author' }}
+        <button type="submit" [disabled]="form().submitting()">
+          {{ form().submitting() ? 'Updating...' : 'Update Author' }}
         </button>
-        <button type="button" (click)="resetForm()">Reset</button>
+        <button type="button" (click)="reset()">Reset</button>
         <button type="button" (click)="closed.emit()">Close</button>
       </div>
     </form>
@@ -44,9 +46,9 @@
   </div>
   }
 
-  @if (error(); as error) {
+  @for (error of form().errors(); track error) {
   <div>
-    <div class="error-well">Error: {{ error?.message }}</div>
+    <div class="error-well">Error: {{ error.message }}</div>
   </div>
   }
 </div>

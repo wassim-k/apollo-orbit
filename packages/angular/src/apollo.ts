@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
-import { ApolloClient, NetworkStatus, OperationVariables as Variables } from '@apollo/client';
+import { ApolloClient, ErrorPolicy, OperationVariables as Variables } from '@apollo/client';
 import type { ApolloCache } from '@apollo/client/cache';
-import { defer, Observable, of } from 'rxjs';
-import { catchError, map, startWith } from 'rxjs/operators';
+import { defer, Observable } from 'rxjs';
 import { ApolloCacheEx, extendCache } from './cacheEx';
 import { identifyFragmentType } from './gql';
 import { QueryObservable } from './queryObservable';
 import { ApolloSignal } from './signals';
-import type { DefaultOptions, MutationOptions, MutationResult, QueryOptions, QueryResult, SubscriptionOptions, SubscriptionResult, WatchQueryOptions } from './types';
+import type { MutationOptions, MutationResultForOptions, ObservableFragment, QueryOptions, SingleQueryResultForOptions, SubscriptionOptions, SubscriptionResult, WatchFragmentOptions, WatchQueryOptions, WatchQueryStates } from './types';
 
 @Injectable()
 export class Apollo {
@@ -18,55 +17,27 @@ export class Apollo {
   public readonly cache: ApolloCacheEx;
   public readonly signal: ApolloSignal;
 
-  private readonly defaultOptions?: DefaultOptions;
-
-  public constructor(client: ApolloClient, defaultOptions?: DefaultOptions) {
+  public constructor(client: ApolloClient) {
     this.client = client;
-    this.defaultOptions = defaultOptions;
     this.cache = extendCache(client.cache);
     this.signal = new ApolloSignal(this);
   }
 
-  public query<TData = unknown, TVariables extends Variables = Variables>(
-    options: QueryOptions<TData, TVariables>
-  ): Observable<QueryResult<TData, 'empty' | 'complete'>> {
-    const { notifyOnLoading = false, throwError = true } = { ...this.defaultOptions?.query, ...options };
-    return defer(() => this.client.query<TData, TVariables>(options)).pipe(
-      map(({ data, error }): QueryResult<TData, 'empty' | 'complete'> => data === undefined
-        ? {
-          data: undefined,
-          error,
-          dataState: 'empty',
-          loading: false,
-          networkStatus: NetworkStatus.ready
-        }
-        : {
-          data,
-          error,
-          dataState: 'complete',
-          loading: false,
-          networkStatus: NetworkStatus.ready
-        }),
-      (source => notifyOnLoading
-        ? source.pipe(startWith<QueryResult<TData, 'empty' | 'complete'>>({ data: undefined, dataState: 'empty', loading: true, networkStatus: NetworkStatus.loading }))
-        : source),
-      (source => !throwError
-        ? source.pipe(catchError((error: Error) => of<QueryResult<TData, 'empty' | 'complete'>>({ error, data: undefined, dataState: 'empty', loading: false, networkStatus: NetworkStatus.error })))
-        : source)
-    );
+  public query<
+    TData = unknown,
+    TVariables extends Variables = Variables,
+    TErrorPolicy extends ErrorPolicy | undefined = undefined
+  >(options: QueryOptions<TData, TVariables, TErrorPolicy>): Observable<SingleQueryResultForOptions<TData, TErrorPolicy>> {
+    return defer(() => this.client.query(options as never)) as Observable<SingleQueryResultForOptions<TData, TErrorPolicy>>;
   }
 
-  public watchQuery<TData = unknown, TVariables extends Variables = Variables>(
-    options: WatchQueryOptions<TData, TVariables> & { returnPartialData: true }
-  ): QueryObservable<TData, TVariables, 'empty' | 'complete' | 'streaming' | 'partial'>;
-
-  public watchQuery<TData = unknown, TVariables extends Variables = Variables>(
-    options: WatchQueryOptions<TData, TVariables>
-  ): QueryObservable<TData, TVariables, 'empty' | 'complete' | 'streaming'>;
-
-  public watchQuery<TData = unknown, TVariables extends Variables = Variables>(options: WatchQueryOptions<TData, TVariables>): QueryObservable<TData, TVariables, any> {
-    const { notifyOnLoading } = { ...this.defaultOptions?.watchQuery, ...options };
-    return new QueryObservable(this.client.watchQuery<TData, TVariables>(options), { notifyOnLoading });
+  public watchQuery<
+    TData = unknown,
+    TVariables extends Variables = Variables,
+    TErrorPolicy extends ErrorPolicy | undefined = undefined,
+    TPartial extends boolean | undefined = undefined
+  >(options: WatchQueryOptions<TData, TVariables, TErrorPolicy, TPartial>): QueryObservable<TData, TVariables, WatchQueryStates<TPartial>, TErrorPolicy> {
+    return new QueryObservable(this.client.watchQuery<TData, TVariables>(options));
   }
 
   // import { ApolloClient.watchFragment } from '@apollo/client';
@@ -95,28 +66,29 @@ export class Apollo {
   ): ApolloClient.ObservableFragment<TData | null>;
 
   public watchFragment<TData = unknown, TVariables extends Variables = Variables>(
-    options: ApolloClient.WatchFragmentOptions<TData, TVariables>
-  ): ApolloClient.ObservableFragment<any> {
+    options: WatchFragmentOptions<TData, TVariables>
+  ): ObservableFragment<any> {
     const { from, fragment, ...rest } = options;
 
     // Extract fragment type from the fragment document if __typename is not provided.
-    const identify = (value: ApolloCache.FromOptionValue<TData> | null): ApolloCache.FromOptionValue<TData> | null =>
+    const identify = (value: unknown): unknown =>
       typeof value === 'object' && value !== null && 'id' in value && Object.keys(value).length === 1
-        ? { __typename: identifyFragmentType(fragment), id: value.id }
+        ? { __typename: identifyFragmentType(fragment, options.fragmentName), id: value.id }
         : value;
 
     return this.client.watchFragment({
       ...rest,
       fragment,
       from: Array.isArray(from) ? from.map(identify) : identify(from)
-    } as ApolloClient.WatchFragmentOptions<TData, TVariables>);
+    } as WatchFragmentOptions<TData, TVariables>);
   }
 
   public mutate<
     TData = unknown,
-    TVariables extends Variables = Variables
-  >(options: MutationOptions<TData, TVariables>): Observable<MutationResult<TData>> {
-    return defer(() => this.client.mutate<TData, TVariables>(options));
+    TVariables extends Variables = Variables,
+    TErrorPolicy extends ErrorPolicy | undefined = undefined
+  >(options: MutationOptions<TData, TVariables, TErrorPolicy>): Observable<MutationResultForOptions<TData, TErrorPolicy>> {
+    return defer(() => this.client.mutate(options as never)) as Observable<MutationResultForOptions<TData, TErrorPolicy>>;
   }
 
   public subscribe<

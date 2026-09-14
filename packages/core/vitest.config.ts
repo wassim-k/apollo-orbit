@@ -1,8 +1,8 @@
 import { defineConfig, mergeConfig } from 'vitest/config';
-import baseConfig from '../../vitest.config';
+import sharedConfig from '../../vitest.shared';
 
 export default mergeConfig(
-  baseConfig,
+  sharedConfig,
   defineConfig({
     test: {
       name: 'core',

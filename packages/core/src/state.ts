@@ -1,4 +1,4 @@
-import { ApolloCache, DefaultContext, DocumentNode, PossibleTypesMap, TypePolicies, OperationVariables as Variables } from '@apollo/client';
+import { Cache, DefaultContext, DocumentNode, PossibleTypesMap, TypePolicies, OperationVariables as Variables } from '@apollo/client';
 import type { LocalState } from '@apollo/client/local-state';
 import { identity, lastValueFrom, Observable } from 'rxjs';
 import { nameOfMutation } from './internal';
@@ -14,7 +14,7 @@ export interface State {
   optimisticResponses: Array<[string, OptimisticResponseFn<any, any>]>;
   actions: Array<[string, ActionFn<any>]>;
   effects: Array<[string, EffectFn<any, any>]>;
-  onInit?: (cache: ApolloCache) => void;
+  onInit?: (cache: Cache.Implementation) => void;
 }
 
 export const STATE_DEFINITION = Symbol('ORBIT.STATE_DEFINITION');
@@ -64,7 +64,7 @@ export class StateDescriptor {
     return this;
   }
 
-  public onInit(onInit: (cache: ApolloCache) => void): this {
+  public onInit(onInit: (cache: Cache.Implementation) => void): this {
     this.definition.onInit = onInit;
     return this;
   }

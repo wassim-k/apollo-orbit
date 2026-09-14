@@ -1,8 +1,14 @@
 {
-  "extends": "./node_modules/ng-packagr/src/lib/ts/conf/tsconfig.ngc.json",
   "compilerOptions": {
     "outDir": "dist",
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["dom", "es2022"],
     "esModuleInterop": true,
+    "skipLibCheck": true,
+    "importHelpers": true,
+    "experimentalDecorators": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -12,5 +18,8 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
+  },
+  "angularCompilerOptions": {
+    "compilationMode": "partial"
   }
 }

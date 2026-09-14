@@ -1,4 +1,4 @@
-import { mapMutation, mapQuery, mapSubscription, MutationResult, NetworkStatus, QueryResult, SubscriptionResult } from '@apollo-orbit/angular';
+import { mapMutation, mapMutationResult, mapQuery, mapSubscription, MutationResult, NetworkStatus, QueryResult, SubscriptionResult } from '@apollo-orbit/angular';
 import { of } from 'rxjs';
 
 interface Data {
@@ -81,5 +81,12 @@ describe('Map', () => {
       expect(result.data).toBeUndefined();
       expect(result.error?.message).toBe('Subscription error');
     });
+  });
+
+  // The mapper excludes undefined rather than all nullish values, so null data still reaches it.
+  it('should pass null mutation data to the mapper', () => {
+    const result = { data: null as { value: string } | null };
+
+    expect(mapMutationResult(result, data => data?.value ?? 'empty').data).toBe('empty');
   });
 });

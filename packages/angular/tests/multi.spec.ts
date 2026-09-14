@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, NgZone } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Apollo, InMemoryCache, provideApollo, provideApolloInstance } from '@apollo-orbit/angular';
 import { state, withState } from '@apollo-orbit/angular/state';
@@ -115,18 +115,16 @@ describe('Multi', () => {
     });
     const fixture = TestBed.createComponent(TestComponent);
     fixture.autoDetectChanges();
-    // why is wrapping the following in zone required after ng13 upgrade?
-    TestBed.inject(NgZone).run(() => {
-      fixture.componentInstance.addAuthor({ name: 'New Author' });
-      fixture.componentInstance.authorsQuery.pipe(take(2)).subscribe(author => {
-        if (author.data && author.data.authors.length > 0) {
-          fixture.componentInstance.addBook({ name: 'New Book', authorId: author.data.authors[0].id });
-        }
-      });
+    fixture.componentInstance.addAuthor({ name: 'New Author' });
+    fixture.componentInstance.authorsQuery.pipe(take(2)).subscribe(author => {
+      if (author.data && author.data.authors.length > 0) {
+        fixture.componentInstance.addBook({ name: 'New Book', authorId: author.data.authors[0].id });
+      }
     });
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('#authors').textContent).toEqual('New Author');
-    expect(fixture.nativeElement.querySelector('#books').textContent).toEqual('New Book');
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('#authors')?.textContent).toEqual('New Author');
+      expect(fixture.nativeElement.querySelector('#books')?.textContent).toEqual('New Book');
+    });
   });
 
   it('should throw error with duplicate default clients', async () => {

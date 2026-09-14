@@ -13,6 +13,7 @@ export default tseslint.config(
       '**/.bob/**',
       '**/coverage/**',
       '**/node_modules/**',
+      'packages/angular/type-tests/**',
     ]
   },
   {
@@ -513,7 +514,7 @@ export default tseslint.config(
     },
     extends: [
       react.configs.flat['jsx-runtime'],
-      reactHooks.configs['recommended-latest']
+      reactHooks.configs.flat['recommended-latest']
     ],
     rules: {
       '@typescript-eslint/strict-boolean-expressions': 'off',

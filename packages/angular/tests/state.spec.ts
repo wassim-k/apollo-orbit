@@ -132,14 +132,13 @@ describe('State', () => {
       it('should render component with result', async () => {
         const fixture = TestBed.createComponent(TestComponent);
         fixture.autoDetectChanges();
-        await fixture.whenStable();
-        expect(fixture.nativeElement.querySelector('#test').textContent).toEqual('4');
+        await vi.waitFor(() => expect(fixture.nativeElement.querySelector('#test')?.textContent).toEqual('4'));
       });
 
       it('should run client resolvers', waitForAsync(() => {
         const apollo = TestBed.inject(Apollo);
         apollo.query(gqlAuthorsClientQuery()).subscribe(result => {
-          expect(result.data?.authors).toHaveLength(2);
+          expect(result.data.authors).toHaveLength(2);
         });
       }));
 
@@ -148,7 +147,7 @@ describe('State', () => {
         apollo.query(gqlAuthorsClientQuery()).pipe(
           mergeMap(() => apollo.query(gqlAuthorClientQuery({ id: author1Id })))
         ).subscribe(result => {
-          expect(result.data?.author.id).toEqual(author1Id);
+          expect(result.data.author.id).toEqual(author1Id);
         });
       }));
 
@@ -157,7 +156,7 @@ describe('State', () => {
 
         // Query using fragments on the LibraryRecord union type
         apollo.query(gqlLibraryRecordsQuery()).subscribe(result => {
-          const records = result.data?.libraryRecords ?? [];
+          const records = result.data.libraryRecords;
           expect(records).toHaveLength(4);
 
           const books = records.filter(item => item.__typename === 'Book');
@@ -179,7 +178,7 @@ describe('State', () => {
         apollo.mutate(gqlAddBookClientMutation({ book })).pipe(
           mergeMap(() => apollo.query(gqlBooksClientQuery()))
         ).subscribe(({ data }) => {
-          expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
+          expect(data.books.find(b => b.name === book.name)).not.toBeUndefined();
           expect(effectMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ data: expect.objectContaining({ addBook: expect.objectContaining(book) }) }));
         });
       }));
@@ -193,7 +192,7 @@ describe('State', () => {
         from(actions.dispatch(new AddBook(book))).pipe(
           mergeMap(() => apollo.query(gqlBooksClientQuery()))
         ).subscribe(({ data }) => {
-          expect(data?.books.find(b => b.name === book.name)).not.toBeUndefined();
+          expect(data.books.find(b => b.name === book.name)).not.toBeUndefined();
         });
       }));
     });

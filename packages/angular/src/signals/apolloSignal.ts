@@ -1,8 +1,8 @@
 import { assertInInjectionContext, inject, Injector } from '@angular/core';
-import { DocumentNode, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
+import { ErrorPolicy, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
 import type { ApolloCache } from '@apollo/client/cache';
-import { DeepPartial } from '@apollo/client/utilities';
 import type { Apollo } from '../apollo';
+import type { WatchQueryStates } from '../types';
 import { SignalCacheQuery, SignalCacheQueryOptions } from './cacheQuery';
 import { FragmentFrom, SignalFragment, SignalFragmentOptions } from './fragment';
 import { SignalMutation, SignalMutationOptions } from './mutation';
@@ -11,25 +11,44 @@ import { SignalSingleQuery, SignalSingleQueryOptions } from './singleQuery';
 import { SignalSubscription, SignalSubscriptionOptions } from './subscription';
 
 export interface SignalQueryFn {
-  <TData = unknown, TVariables extends Variables = Variables>(
-    options: SignalQueryOptions<TData, TVariables> & { returnPartialData: true }
-  ): SignalQuery<TData, TVariables, 'empty' | 'complete' | 'streaming' | 'partial'>;
+  <
+    TData = unknown,
+    TVariables extends Variables = Variables,
+    TErrorPolicy extends ErrorPolicy | undefined = undefined,
+    TPartial extends boolean | undefined = undefined
+  >(
+    options: SignalQueryOptions<TData, TVariables, TErrorPolicy, TPartial>
+  ): SignalQuery<TData, TVariables, WatchQueryStates<TPartial>, TErrorPolicy>;
 
-  <TData = unknown, TVariables extends Variables = Variables>(
-    options: SignalQueryOptions<TData, TVariables>
-  ): SignalQuery<TData, TVariables, 'empty' | 'complete' | 'streaming'>;
+  once<
+    TData = unknown,
+    TVariables extends Variables = Variables,
+    TErrorPolicy extends ErrorPolicy | undefined = undefined
+  >(
+    options: SignalSingleQueryOptions<TData, TVariables, TErrorPolicy>
+  ): SignalSingleQuery<TData, TVariables, TErrorPolicy>;
+}
+
+export interface SignalCacheQueryFn {
+  /**
+   * Create a signal that reads a query from the cache and watches it for updates.
+   * Narrow the result on `complete` to reach fully typed `data`.
+   *
+   * Use `cacheQuery.required` for a query whose data is always available in the cache.
+   */
+  <TData = unknown, TVariables extends Variables = Variables, TPartial extends boolean = false>(
+    options: SignalCacheQueryOptions<TData, TVariables, TPartial>
+  ): SignalCacheQuery<TData, TVariables, TPartial>;
 
   /**
-   * Create a query that fetches once per execution instead of watching the cache.
+   * Create a signal for a query whose data is always available in the cache. `data()` is fully typed
+   * and needs no narrowing.
    *
-   * It executes initially (unless `lazy`), whenever variables change and on `execute()`. Between executions the
-   * result signal keeps its last value. Cache writes and refetches elsewhere in the application never re-emit into it.
-   *
-   * This is the signal equivalent of `apollo.query`, whereas `signal.query` is the equivalent of `apollo.watchQuery`.
+   * Reading an incomplete result throws, rather than handing back `null` behind a `TData`.
    */
-  once<TData = unknown, TVariables extends Variables = Variables>(
-    options: SignalSingleQueryOptions<TData, TVariables>
-  ): SignalSingleQuery<TData, TVariables>;
+  required<TData = unknown, TVariables extends Variables = Variables>(
+    options: Omit<SignalCacheQueryOptions<TData, TVariables, false>, 'returnPartialData'>
+  ): SignalCacheQuery<TData, TVariables, false, true>;
 }
 
 export class ApolloSignal {
@@ -43,13 +62,13 @@ export class ApolloSignal {
    * Use `query.once` for a query that fetches once per execution instead.
    */
   public readonly query: SignalQueryFn = Object.assign(
-    (options: SignalQueryOptions<any, any>): SignalQuery<any, any, any> => {
-      const injector = this._ensureInjector(options, SignalQuery);
+    (options: any): SignalQuery<any, any, any, any> => {
+      const injector = this.ensureInjector(options, SignalQuery);
       return new SignalQuery(injector, this.apollo, options);
     },
     {
-      once: (options: SignalSingleQueryOptions<any, any>): SignalSingleQuery<any, any> => {
-        const injector = this._ensureInjector(options, SignalSingleQuery);
+      once: (options: SignalSingleQueryOptions<any, any, any>): SignalSingleQuery<any, any, any> => {
+        const injector = this.ensureInjector(options, SignalSingleQuery);
         return new SignalSingleQuery(injector, this.apollo, options);
       }
     }
@@ -57,12 +76,13 @@ export class ApolloSignal {
 
   public mutation<
     TData = unknown,
-    TVariables extends Variables = Variables
+    TVariables extends Variables = Variables,
+    TErrorPolicy extends ErrorPolicy | undefined = undefined
   >(
-    mutation: DocumentNode | TypedDocumentNode<TData, TVariables>,
-    options?: SignalMutationOptions<TData, TVariables>
-  ): SignalMutation<TData, TVariables> {
-    return new SignalMutation<TData, TVariables>(
+    mutation: TypedDocumentNode<TData, TVariables>,
+    options?: SignalMutationOptions<TData, TVariables, TErrorPolicy>
+  ): SignalMutation<TData, TVariables, TErrorPolicy> {
+    return new SignalMutation<TData, TVariables, TErrorPolicy>(
       this.apollo,
       mutation,
       options
@@ -73,7 +93,7 @@ export class ApolloSignal {
     TData = unknown,
     TVariables extends Variables = Variables
   >(options: SignalSubscriptionOptions<TData, TVariables>): SignalSubscription<TData, TVariables> {
-    const injector = this._ensureInjector(options, SignalSubscription);
+    const injector = this.ensureInjector(options, SignalSubscription);
 
     return new SignalSubscription<TData, TVariables>(
       injector,
@@ -110,7 +130,7 @@ export class ApolloSignal {
   public fragment<TData = unknown, TVariables extends Variables = Variables>(
     options: SignalFragmentOptions<TData, TVariables, FragmentFrom<TData>>
   ): SignalFragment<TData, TVariables> {
-    const injector = this._ensureInjector(options, SignalFragment);
+    const injector = this.ensureInjector(options, SignalFragment);
 
     return new SignalFragment<TData, TVariables>(
       injector,
@@ -119,32 +139,25 @@ export class ApolloSignal {
     );
   }
 
-  public cacheQuery<TData = unknown, TVariables extends Variables = Variables>(
-    options: SignalCacheQueryOptions<TData, TVariables> & { returnPartialData: true }
-  ): SignalCacheQuery<DeepPartial<TData> | undefined, TVariables>;
-
-  public cacheQuery<TData = unknown, TVariables extends Variables = Variables>(
-    options: SignalCacheQueryOptions<TData, TVariables>
-  ): SignalCacheQuery<TData, TVariables>;
-
-  public cacheQuery<TData, TVariables extends Variables>(
-    options: SignalCacheQueryOptions<TData, TVariables>
-  ): SignalCacheQuery<TData, TVariables> {
-    const injector = this._ensureInjector(options, SignalCacheQuery);
-
-    return new SignalCacheQuery<TData, TVariables>(
-      injector,
-      this.apollo.cache,
-      options
-    );
-  }
+  public readonly cacheQuery: SignalCacheQueryFn = Object.assign(
+    (options: any): SignalCacheQuery<any, any, any, any> => {
+      const injector = this.ensureInjector(options, SignalCacheQuery);
+      return new SignalCacheQuery(injector, this.apollo.cache, options);
+    },
+    {
+      required: (options: SignalCacheQueryOptions<any, any, any>): SignalCacheQuery<any, any, any, any> => {
+        const injector = this.ensureInjector(options, SignalCacheQuery);
+        return new SignalCacheQuery(injector, this.apollo.cache, options, true);
+      }
+    }
+  );
 
   /**
    * Signals must be created within an injection context unless an `injector` is provided explicitly.
    *
    * `signalType` only names the offending signal in the assertion message.
    */
-  private _ensureInjector(options: { injector?: Injector }, signalType: new (...args: Array<any>) => unknown): Injector {
+  private ensureInjector(options: { injector?: Injector }, signalType: new (...args: Array<any>) => unknown): Injector {
     if (!options.injector) {
       assertInInjectionContext(signalType);
     }

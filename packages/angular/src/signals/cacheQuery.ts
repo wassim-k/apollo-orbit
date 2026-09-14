@@ -1,112 +1,92 @@
-import { computed, effect, Injector, Signal, signal, WritableSignal } from '@angular/core';
-import { DocumentNode, MissingFieldError, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
+import { computed, effect, Injector, linkedSignal, Signal, untracked, WritableSignal } from '@angular/core';
+import { MissingFieldError, OperationVariables as Variables } from '@apollo/client';
 import { equal } from '@wry/equality';
-import { Subscription } from 'rxjs';
-import { ApolloCacheEx, CacheWatchQueryCompleteResult, CacheWatchQueryPartialResult } from '../cacheEx';
+import { ApolloCacheEx, CacheQueryData, CacheQueryOptions, CacheQueryResult } from '../cacheEx';
+import { IncompleteCacheError } from '../cacheQueryObservable';
+import type { SignalCacheVariablesOption } from './types';
 
-export interface SignalCacheQueryOptions<
+export type SignalCacheQueryOptions<
   TData = unknown,
-  TVariables extends Variables = Variables
-> {
-  /**
-   * A GraphQL query document parsed into an AST by gql.
-   */
-  query: DocumentNode | TypedDocumentNode<TData, TVariables>;
-
-  /**
-   * An object containing all of the variables your query needs to execute.
-   * Can be provided as a static object, a signal, or a function that returns the variables.
-   * When provided as a function, it will be executed in a computed context and will
-   * automatically re-execute the query when any reactive dependencies change.
-   */
-  variables?: NoInfer<TVariables> | (() => NoInfer<TVariables>);
-
-  /**
-   * If `true`, the query will be evaluated against both the optimistic cache layer
-   * and the normal cache layer. This allows optimistic updates to be reflected
-   * in the query results immediately.
-   * @default true
-   */
-  optimistic?: boolean;
-
-  immediate?: boolean;
-
-  /**
-   * If set to `true`, the observable will emit the partial data that is available in the cache.
-   * If set to `false`, the observable will throw an error if the complete data is not available in the cache.
-   * @default false
-   */
-  returnPartialData?: boolean;
-
+  TVariables extends Variables = Variables,
+  TPartial extends boolean = boolean
+> = Omit<CacheQueryOptions<TData, TVariables, TPartial>, 'variables' | 'immediate'> & {
   /**
    * Custom injector to use for this signal.
    */
   injector?: Injector;
-}
+} & SignalCacheVariablesOption<NoInfer<TVariables>>;
 
-type SignalCacheQueryResult<TData> = TData extends undefined
-  ? CacheWatchQueryPartialResult<TData>
-  : CacheWatchQueryCompleteResult<TData>;
-
-export class SignalCacheQuery<TData, TVariables extends Variables = Variables> {
+export class SignalCacheQuery<
+  TData,
+  TVariables extends Variables = Variables,
+  TPartial extends boolean = false,
+  TRequired extends boolean = false
+> {
   /**
    * The cache query result, containing `data`, `complete`, and `missing`.
+   * Narrow on `complete` to reach fully typed `data`.
    */
-  public readonly result: Signal<SignalCacheQueryResult<TData>>;
+  public readonly result: Signal<CacheQueryResult<TData, TPartial, TRequired>>;
 
   /**
-   * The data returned by the cache query.
+   * The data the cache holds for the query, or `null` if the cache does not hold all of it. With
+   * `returnPartialData`, an incomplete read carries the fields the cache did have. A `required` query
+   * throws instead of reporting either.
    */
-  public readonly data: Signal<TData>;
+  public readonly data: Signal<CacheQueryData<TData, TPartial, TRequired>> = computed(() => this.result().data);
 
   /**
-   * A signal indicating whether the query result contains complete data.
-   * - `true`: All requested fields are available in the cache
-   * - `false`: Some fields are missing from the cache
-   * - `undefined`: Query has not been executed yet
+   * `true` if all requested fields are present in the cache, `false` otherwise.
    */
-  public readonly complete: Signal<boolean | undefined>;
+  public readonly complete = computed(() => this.result().complete as TRequired extends true ? true : boolean);
 
   /**
-   * A signal containing an array of missing field errors if the query is incomplete.
-   * Will be `undefined` if the query is complete or has not been executed.
+   * If `complete` is `false`, this field describes which fields are missing.
    */
-  public readonly missing: Signal<Array<MissingFieldError> | undefined>;
+  public readonly missing = computed(() => this.result().missing as TRequired extends true ? undefined : MissingFieldError | undefined);
 
-  private readonly _result: WritableSignal<SignalCacheQueryResult<TData>>;
-  private readonly variables: Signal<TVariables | undefined>;
-  private subscription: Subscription | undefined;
+  /**
+   * The variables the query is currently reading the cache with.
+   */
+  public readonly variables: Signal<TVariables | undefined>;
+
+  private readonly _result: WritableSignal<CacheQueryResult<TData, TPartial>>;
 
   public constructor(
     injector: Injector,
-    private readonly cache: ApolloCacheEx,
-    private readonly options: SignalCacheQueryOptions<TData, TVariables>
+    cache: ApolloCacheEx,
+    options: SignalCacheQueryOptions<TData, TVariables, TPartial>,
+    ...[required]: [TRequired] extends [false] ? [required?: TRequired] : [required: TRequired]
   ) {
-    this._result = signal<SignalCacheQueryResult<TData>>({
-      data: undefined,
-      complete: false
-    } as SignalCacheQueryResult<TData>);
+    const { variables: variablesOption, injector: _injector, ...cacheOptions } = options;
 
-    const { variables } = options;
-    this.result = this._result.asReadonly();
-    this.data = computed(() => this.result().data as TData);
-    this.complete = computed(() => this.result().complete);
-    this.missing = computed(() => this.result().missing);
-    this.variables = typeof variables === 'function' ? computed(variables, { equal }) : signal(variables);
+    this.variables = computed(() => variablesOption?.(), { equal });
+
+    const observable = computed(() => cache.watchQuery<TData, TVariables, TPartial>({
+      ...cacheOptions,
+      variables: this.variables()
+    }));
+
+    this._result = linkedSignal({
+      source: observable,
+      computation: observable => observable.getCurrentResult()
+    });
+
+    this.result = computed(() => {
+      const result = this._result();
+
+      if (required && !result.complete) throw new IncompleteCacheError(result.missing);
+
+      return result as CacheQueryResult<TData, TPartial, TRequired>;
+    });
 
     effect(onCleanup => {
-      this.subscription = this.subscribe(this.variables());
-
-      onCleanup(() => {
-        this.subscription?.unsubscribe();
-        this.subscription = undefined;
+      const _observable = observable();
+      const subscription = _observable.subscribe(result => {
+        if (untracked(observable) === _observable) this._result.set(result);
       });
-    }, { injector });
-  }
 
-  private subscribe(variables: TVariables | undefined): Subscription {
-    return this.cache
-      .watchQuery({ ...this.options, variables })
-      .subscribe(result => this._result.set(result as SignalCacheQueryResult<TData>));
+      onCleanup(() => subscription.unsubscribe());
+    }, { injector });
   }
 }

@@ -1,8 +1,9 @@
 import { fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing';
-import { Apollo, QueryResult } from '@apollo-orbit/angular';
-import { ErrorLike, gql } from '@apollo/client';
+import { Apollo, QueryResult, SingleQueryResult, startWithLoading } from '@apollo-orbit/angular';
+import { ErrorLike, gql, NetworkStatus, TypedDocumentNode } from '@apollo/client';
 import { MockLink, MockSubscriptionLink } from '@apollo/client/testing';
 import { GraphQLError } from 'graphql';
+import { firstValueFrom } from 'rxjs';
 import { provideApolloMock } from './helpers';
 
 interface Value {
@@ -26,19 +27,38 @@ describe('Apollo', () => {
 
   describe('query', () => {
     it('should query', waitForAsync(() => {
-      const query = gql`query { value }`;
+      const query: TypedDocumentNode<Value> = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
         result: { data: { value: 'expected' } }
       });
 
-      apollo.query<Value>({ query }).subscribe(result => {
-        expect(result.data?.value).toEqual('expected');
+      apollo.query({ query }).subscribe(result => {
+        expect(result.data.value).toEqual('expected');
       });
     }));
 
-    it('should emit loading state (notifyOnLoading: true)', waitForAsync(() => {
-      const query = gql`query { value }`;
+    it('should emit only the final result', waitForAsync(() => {
+      const query: TypedDocumentNode<Value> = gql`query { value }`;
+      const results: Array<SingleQueryResult<Value>> = [];
+
+      mockLink.addMockedResponse({
+        request: { query },
+        result: { data: { value: 'expected' } }
+      });
+
+      // `client.query` resolves once, and Apollo Client rejects `notifyOnNetworkStatusChange` for it, so there is
+      // no loading state to report.
+      apollo.query({ query }).subscribe({
+        next: result => results.push(result),
+        complete: () => {
+          expect(results).toMatchObject([{ data: { value: 'expected' } }]);
+        }
+      });
+    }));
+
+    it('should emit a loading result first with startWithLoading', waitForAsync(() => {
+      const query: TypedDocumentNode<Value> = gql`query { value }`;
       const results: Array<QueryResult<Value, 'empty' | 'complete'>> = [];
 
       mockLink.addMockedResponse({
@@ -46,24 +66,25 @@ describe('Apollo', () => {
         result: { data: { value: 'expected' } }
       });
 
-      apollo.query<Value>({ query, notifyOnLoading: true }).subscribe(result => {
-        results.push(result);
-
-        if (results.length === 2) {
-          expect(results[0]).toMatchObject({ loading: true, data: undefined });
-          expect(results[1]).toMatchObject({ loading: false, data: { value: 'expected' } });
+      apollo.query({ query }).pipe(startWithLoading()).subscribe({
+        next: result => results.push(result),
+        complete: () => {
+          expect(results).toMatchObject([
+            { loading: true, data: undefined, networkStatus: NetworkStatus.loading },
+            { loading: false, data: { value: 'expected' } }
+          ]);
         }
       });
     }));
 
     it('should throw graphql errors (errorPolicy: none)', waitForAsync(() => {
-      const query = gql`query { value }`;
+      const query: TypedDocumentNode<Value> = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
         result: { errors: [new GraphQLError('Invalid query')] }
       });
 
-      apollo.query<Value>({ query, errorPolicy: 'none' }).subscribe({
+      apollo.query({ query, errorPolicy: 'none' }).subscribe({
         error: (error: Error) => {
           expect(error.message).toEqual('Invalid query');
         }
@@ -71,13 +92,13 @@ describe('Apollo', () => {
     }));
 
     it('should emit graphql errors (errorPolicy: all)', waitForAsync(() => {
-      const query = gql`query { value }`;
+      const query: TypedDocumentNode<Value> = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
         result: { errors: [new GraphQLError('Invalid query')] }
       });
 
-      apollo.query<Value>({ query, errorPolicy: 'all' }).subscribe({
+      apollo.query({ query, errorPolicy: 'all' }).subscribe({
         next: result => {
           expect(result.error?.message).toEqual('Invalid query');
         }
@@ -85,27 +106,27 @@ describe('Apollo', () => {
     }));
 
     it('should emit network error', waitForAsync(() => {
-      const query = gql`query { value }`;
+      const query: TypedDocumentNode<Value> = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
         error: new Error('An unexpected error has occurred')
       });
 
-      apollo.query<Value>({ query }).subscribe({
+      apollo.query({ query }).subscribe({
         error: error => {
           expect(error.message).toEqual('An unexpected error has occurred');
         }
       });
     }));
 
-    it('should throw errors (throwError: false)', waitForAsync(() => {
+    it('should emit the error as a result (errorPolicy: all)', waitForAsync(() => {
       const query = gql`query { value }`;
       mockLink.addMockedResponse({
         request: { query },
         error: new Error('Network error')
       });
 
-      apollo.query({ query, throwError: false }).subscribe(result => {
+      apollo.query({ query, errorPolicy: 'all' }).subscribe(result => {
         expect(result.error?.message).toBe('Network error');
       });
     }));
@@ -135,25 +156,25 @@ describe('Apollo', () => {
 
   describe('mutate', () => {
     it('should mutate', waitForAsync(() => {
-      const mutation = gql`mutation Update { update }`;
+      const mutation: TypedDocumentNode<{ update: string }> = gql`mutation Update { update }`;
       mockLink.addMockedResponse({
         request: { query: mutation },
         result: { data: { update: 'expected' } }
       });
 
-      apollo.mutate<{ update: string }>({ mutation }).subscribe(result => {
-        expect(result.data?.update).toEqual('expected');
+      apollo.mutate({ mutation }).subscribe(result => {
+        expect(result.data.update).toEqual('expected');
       });
     }));
 
     it('should emit graphql errors (errorPolicy: none)', waitForAsync(() => {
-      const mutation = gql`mutation Update { update }`;
+      const mutation: TypedDocumentNode<{ update: string }> = gql`mutation Update { update }`;
       mockLink.addMockedResponse({
         request: { query: mutation },
         result: { errors: [new GraphQLError('Invalid query')] }
       });
 
-      apollo.mutate<{ update: string }>({ mutation, errorPolicy: 'none' }).subscribe({
+      apollo.mutate({ mutation, errorPolicy: 'none' }).subscribe({
         error: (error: ErrorLike) => {
           expect(error.message).toEqual('Invalid query');
         }
@@ -161,13 +182,13 @@ describe('Apollo', () => {
     }));
 
     it('should emit graphql errors (errorPolicy: all)', waitForAsync(() => {
-      const mutation = gql`mutation Update { update }`;
+      const mutation: TypedDocumentNode<{ update: string }> = gql`mutation Update { update }`;
       mockLink.addMockedResponse({
         request: { query: mutation },
         result: { errors: [new GraphQLError('Invalid query')] }
       });
 
-      apollo.mutate<{ update: string }>({ mutation, errorPolicy: 'all' }).subscribe({
+      apollo.mutate({ mutation, errorPolicy: 'all' }).subscribe({
         next: result => {
           expect(result.error?.message).toEqual('Invalid query');
         }
@@ -175,13 +196,13 @@ describe('Apollo', () => {
     }));
 
     it('should emit graphql errors (errorPolicy: ignore)', waitForAsync(() => {
-      const mutation = gql`mutation Update { update }`;
+      const mutation: TypedDocumentNode<{ update: string }> = gql`mutation Update { update }`;
       mockLink.addMockedResponse({
         request: { query: mutation },
         result: { data: { update: 'value' }, errors: [new GraphQLError('Invalid query')] }
       });
 
-      apollo.mutate<{ update: string }>({ mutation, errorPolicy: 'ignore' }).subscribe({
+      apollo.mutate({ mutation, errorPolicy: 'ignore' }).subscribe({
         next: result => {
           expect(result.error).toBeUndefined();
           expect(result.data).toEqual({ update: 'value' });
@@ -190,15 +211,21 @@ describe('Apollo', () => {
     }));
 
     it('should emit network error regardless of errorPolicy', waitForAsync(() => {
-      const mutation = gql`mutation Update { update }`;
+      const mutation: TypedDocumentNode<{ update: string }> = gql`mutation Update { update }`;
       mockLink.addMockedResponse({
         request: { query: mutation },
         error: new Error('An unexpected error has occurred')
       });
 
-      apollo.mutate<{ update: string }>({ mutation, errorPolicy: 'all' }).subscribe(result => {
+      apollo.mutate({ mutation, errorPolicy: 'all' }).subscribe(result => {
         expect(result.error?.message).toEqual('An unexpected error has occurred');
       });
     }));
+  });
+
+  it('should resolve a cache-only miss without data', async () => {
+    const document: TypedDocumentNode<{ value: string }> = gql`query { value }`;
+
+    expect((await firstValueFrom(apollo.query({ query: document, fetchPolicy: 'cache-only' }))).data).toBeUndefined();
   });
 });

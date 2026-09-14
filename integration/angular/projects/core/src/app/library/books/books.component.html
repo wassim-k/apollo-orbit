@@ -1,6 +1,6 @@
 <h3>Books <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
 <div>
-  <input type="text" placeholder="Book name" [formControl]="nameControl" />
+  <input type="text" placeholder="Book name" [formField]="nameField" />
 </div>
 @if (booksQuery.loading()) { Loading... }
 @if (booksQuery.error(); as error) { {{ error.message }} }

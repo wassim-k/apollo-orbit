@@ -1,9 +1,8 @@
-import { ApolloCache, ApolloClient, ApolloLink, CombinedGraphQLErrors, DefaultContext, ErrorLike, InternalRefetchQueriesInclude, NormalizedExecutionResult, Unmasked, OperationVariables as Variables } from '@apollo/client';
+import { Cache, ApolloClient, CombinedGraphQLErrors, DefaultContext, ErrorLike, InternalRefetchQueriesInclude, NormalizedExecutionResult, Unmasked, OperationVariables as Variables } from '@apollo/client';
 import type { IgnoreModifier } from '@apollo/client/cache';
-import { FormattedExecutionResult } from 'graphql';
 import { Notifier, ValuesByKey, invokeActionFn, nameOfMutationDocument } from './internal';
 import { State } from './state';
-import { Action, ActionContext, ActionFn, ActionInstance, DispatchResult, EffectFn, MutationInfo, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
+import { Action, ActionContext, ActionFn, ActionInstance, DispatchResult, EffectFn, MutationInfo, MutationResultLike, MutationUpdateFn, OptimisticResponseFn, RefetchQueriesFn } from './types';
 import { getActionType } from './utils/action';
 
 export class MutationManager {
@@ -45,10 +44,10 @@ export class MutationManager {
   public wrapMutationOptions<TData, TVariables extends Variables = DefaultContext>(
     options: ApolloClient.MutateOptions<TData, TVariables>
   ): ApolloClient.MutateOptions<TData, TVariables> {
-    return { ...options, ...this.withMutationOptions(options) } as ApolloClient.MutateOptions<TData, TVariables>;
+    return { ...options, ...this.withMutationOptions(options) };
   }
 
-  public withMutationOptions<TData, TVariables extends Variables, TCache extends ApolloCache>(
+  public withMutationOptions<TData, TVariables extends Variables, TCache extends Cache.Implementation>(
     options: ApolloClient.MutateOptions<TData, TVariables, TCache>
   ): Pick<ApolloClient.MutateOptions<TData, TVariables, TCache>, 'update' | 'refetchQueries' | 'optimisticResponse'> {
     const mutationName = nameOfMutationDocument(options.mutation);
@@ -59,7 +58,7 @@ export class MutationManager {
     };
   }
 
-  private withRefetchQueries<TData, TVariables extends Variables, TCache extends ApolloCache>(
+  private withRefetchQueries<TData, TVariables extends Variables, TCache extends Cache.Implementation>(
     mutationName: string,
     { refetchQueries, variables, context }: ApolloClient.MutateOptions<TData, TVariables, TCache>
   ): ApolloClient.MutateOptions<TData, TVariables>['refetchQueries'] {
@@ -70,35 +69,41 @@ export class MutationManager {
         : (result: NormalizedExecutionResult<Unmasked<TData>>): InternalRefetchQueriesInclude => {
           const mutationInfo = this.toMutationInfo({ variables, context }, result);
           return refetchQueriesDefs.reduce<InternalRefetchQueriesInclude>(
-            (prev, [, fn]) => [...prev, ...fn(mutationInfo)],
-            typeof refetchQueries === 'function'
-              ? refetchQueries(result)
-              : refetchQueries ?? []
+            (queries, [, fn]) => mergeInclude(queries, fn(mutationInfo)),
+            (typeof refetchQueries === 'function' ? refetchQueries(result) : refetchQueries) ?? []
           );
         }
     ) as ApolloClient.MutateOptions<TData, TVariables>['refetchQueries'];
+
+    function mergeInclude(queries: InternalRefetchQueriesInclude, include: InternalRefetchQueriesInclude): InternalRefetchQueriesInclude {
+      if (typeof queries !== 'string' && typeof include !== 'string') return [...queries, ...include];
+      if (typeof queries !== 'string' && queries.length === 0) return include;
+      if (typeof include !== 'string' && include.length === 0) return queries;
+
+      if (typeof queries === 'string' && typeof include === 'string') {
+        return queries === 'all' || include === 'all' ? 'all' : 'active';
+      }
+
+      throw new Error(`Cannot combine refetchQueries: '${typeof queries === 'string' ? queries : include}' replaces the query list rather than adding to it.`);
+    }
   }
 
-  private withUpdate<TData, TVariables extends Variables, TCache extends ApolloCache>(
+  private withUpdate<TData, TVariables extends Variables, TCache extends Cache.Implementation>(
     mutationName: string,
     { update }: ApolloClient.MutateOptions<TData, TVariables, TCache>
   ): ApolloClient.MutateOptions<TData, TVariables, TCache>['update'] {
     const mutationUpdates = this.mutationUpdates.get(mutationName);
-    return (
-      mutationUpdates === undefined
-        ? update
-        : (cache: TCache, result: FormattedExecutionResult<Unmasked<TData>>, options: {
-          context?: DefaultContext;
-          variables?: TVariables;
-        }): void => {
-          const mutationInfo = this.toMutationInfo<TData, TVariables>(options, result);
-          mutationUpdates.forEach(([, fn]) => fn(cache, mutationInfo));
-          update?.(cache, result, options);
-        }
-    ) as ApolloClient.MutateOptions<TData, TVariables, TCache>['update'];
+
+    if (mutationUpdates === undefined) return update as ApolloClient.MutateOptions<TData, TVariables, TCache>['update'];
+
+    return ((cache, result, options) => {
+      const mutationInfo = this.toMutationInfo<TData, TVariables>(options, result);
+      mutationUpdates.forEach(([, fn]) => fn(cache, mutationInfo));
+      update?.(cache, result, options);
+    }) as ApolloClient.MutateOptions<TData, TVariables, TCache>['update'];
   }
 
-  private withOptimisticResponse<TData, TVariables extends Variables, TCache extends ApolloCache>(
+  private withOptimisticResponse<TData, TVariables extends Variables, TCache extends Cache.Implementation>(
     mutationName: string,
     { optimisticResponse, context }: ApolloClient.MutateOptions<TData, TVariables, TCache>
   ): ApolloClient.MutateOptions<TData, TVariables>['optimisticResponse'] {
@@ -115,14 +120,14 @@ export class MutationManager {
 
   private toMutationInfo<TData, TVariables extends Variables = DefaultContext>(
     options: { variables?: TVariables; context?: DefaultContext },
-    result: ApolloClient.MutateResult<TData> | ApolloLink.Result<Unmasked<TData>> = {},
+    result: MutationResultLike<TData> = {},
     error?: ErrorLike
   ): MutationInfo<TData, TVariables> {
     const { variables, context } = options;
-    const { data, extensions } = result;
+    const { data, errors, extensions } = result;
     return {
-      data: data as TData | undefined,
-      error: 'errors' in result && result.errors && result.errors.length > 0 ? new CombinedGraphQLErrors({ errors: result.errors }) : error,
+      data: data ?? undefined,
+      error: errors !== undefined && errors.length > 0 ? new CombinedGraphQLErrors({ errors }) : result.error ?? error,
       context,
       variables,
       extensions

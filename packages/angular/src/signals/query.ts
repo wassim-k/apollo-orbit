@@ -1,11 +1,13 @@
-import { computed, DestroyRef, effect, Injector, linkedSignal, PendingTasks, signal, Signal, untracked, WritableSignal } from '@angular/core';
+import { computed, DestroyRef, effect, Injector, linkedSignal, signal, Signal, untracked, WritableSignal } from '@angular/core';
 import { ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, NetworkStatus, ObservableQuery, RefetchOn, RefetchWritePolicy, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
 import { equal } from '@wry/equality';
-import { noop, Subscription } from 'rxjs';
+import { noop } from 'rxjs';
 import { Apollo } from '../apollo';
-import { emptyQueryResult, withPreviousData } from '../internal/queryResult';
+import { resultWithoutData } from '../internal/errorPolicy';
+import { OperationTasks } from '../internal/operationTasks';
+import { emptyQueryResult, loadingQueryResult, withPreviousData } from '../internal/queryResult';
 import { QueryObservable } from '../queryObservable';
-import type { GetData, QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions } from '../types';
+import type { GetData, QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions, WatchQueryResultForOptions } from '../types';
 import type { SignalLazyVariablesOption } from './types';
 
 export class SignalQueryExecutionError extends Error {
@@ -16,7 +18,7 @@ export class SignalQueryExecutionError extends Error {
 }
 
 // import { ApolloClient.WatchQueryOptions as SignalQueryOptions } from  '@apollo/client';
-export type SignalQueryOptions<TData = unknown, TVariables extends Variables = Variables> = {
+export type SignalQueryOptions<TData = unknown, TVariables extends Variables = Variables, TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy, TPartial extends boolean | undefined = boolean> = {
   /**
   * Specifies how the query interacts with the Apollo Client cache during execution (for example, whether it checks the cache for results before sending a request to the server).
   *
@@ -26,7 +28,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 3. Caching options
   */
-  fetchPolicy?: WatchQueryFetchPolicy;
+  fetchPolicy?: WatchQueryFetchPolicy | (() => WatchQueryFetchPolicy);
   /**
   * Specifies the `FetchPolicy` to be used after this query has completed.
   *
@@ -40,7 +42,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 3. Caching options
   */
-  initialFetchPolicy?: WatchQueryFetchPolicy;
+  initialFetchPolicy?: WatchQueryFetchPolicy | (() => WatchQueryFetchPolicy);
   /**
   * Specifies whether a `NetworkStatus.refetch` operation should merge
   * incoming field data with existing data, or overwrite the existing data.
@@ -49,7 +51,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 3. Caching options
   */
-  refetchWritePolicy?: RefetchWritePolicy;
+  refetchWritePolicy?: RefetchWritePolicy | (() => RefetchWritePolicy);
   /**
   * Specifies how the query handles a response that returns both GraphQL errors and partial results.
   *
@@ -59,13 +61,13 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 1. Operation options
   */
-  errorPolicy?: ErrorPolicy;
+  errorPolicy?: TErrorPolicy;
   /**
   * If you're using [Apollo Link](https://www.apollographql.com/docs/react/api/link/introduction/), this object is the initial value of the `context` object that's passed along your link chain.
   *
   * @docGroup 2. Networking options
   */
-  context?: DefaultContext;
+  context?: DefaultContext | (() => DefaultContext);
   /**
   * Specifies the interval (in milliseconds) at which the query polls for updated results.
   *
@@ -73,7 +75,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 2. Networking options
   */
-  pollInterval?: number;
+  pollInterval?: number | (() => number);
   /**
   * If `true`, the in-progress query's associated component re-renders whenever the network status changes or a network error occurs.
   *
@@ -81,7 +83,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 2. Networking options
   */
-  notifyOnNetworkStatusChange?: boolean;
+  notifyOnNetworkStatusChange?: boolean | (() => boolean);
   /**
   * If `true`, the query can return partial results from the cache if the cache doesn't contain results for all queried fields.
   *
@@ -89,7 +91,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 3. Caching options
   */
-  returnPartialData?: boolean;
+  returnPartialData?: TPartial;
   /**
   * A callback function that's called whenever a refetch attempt occurs
   * while polling. If the function returns `true`, the refetch is
@@ -103,7 +105,7 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   *
   * @docGroup 1. Operation options
   */
-  query: DocumentNode | TypedDocumentNode<TData, TVariables>;
+  query: DocumentNode | TypedDocumentNode<TData, TVariables> | (() => DocumentNode | TypedDocumentNode<TData, TVariables>);
   /**
   * Determines whether events trigger refetches for the query. Provide an
   * object mapping each refetch event to `true` (enable), `false` (disable)
@@ -123,12 +125,6 @@ export type SignalQueryOptions<TData = unknown, TVariables extends Variables = V
   * @docGroup 1. Operation options
   */
   refetchOn?: RefetchOn.Option;
-
-  /**
-   * Whether or not to track initial network loading status.
-   * @default true
-   */
-  notifyOnLoading?: boolean;
 
   /**
    * Whether to execute query immediately or lazily via `execute` method.
@@ -153,7 +149,12 @@ export interface SignalQueryExecOptions<TVariables extends Variables = Variables
   context?: DefaultContext;
 }
 
-export class SignalQuery<TData, TVariables extends Variables = Variables, TStates extends DataState<TData>['dataState'] = 'empty' | 'complete' | 'streaming'> {
+interface Execution<TData, TVariables extends Variables, TStates extends DataState<TData>['dataState'], TErrorPolicy extends ErrorPolicy | undefined> {
+  readonly observable: QueryObservable<TData, TVariables, TStates, TErrorPolicy>;
+  readonly lastWatchOptions: WatchQueryOptions<TData, TVariables, TErrorPolicy>;
+}
+
+export class SignalQuery<TData, TVariables extends Variables = Variables, TStates extends DataState<TData>['dataState'] = 'empty' | 'complete' | 'streaming', TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy> {
   /**
    * The query result, containing `data`, `loading`, `error`, `networkStatus`, `previousData`, `dataState`.
    */
@@ -192,7 +193,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   /**
    * Whether the query is currently active, subscribed to the underlying observable and receiving cache updates.
    */
-  public readonly active: Signal<boolean> = computed(() => this.subscription() !== undefined);
+  public readonly active: Signal<boolean> = computed(() => this.execution() !== undefined);
 
   /**
    * Whether the query is currently enabled.
@@ -213,43 +214,53 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
    */
   public readonly enabled: Signal<boolean>;
 
-  private observable: QueryObservable<TData, TVariables, TStates> | undefined;
-  private resolvePendingTask: (() => void) | undefined;
-  private readonly watchOptions: WatchQueryOptions<TData, TVariables>;
-  private readonly subscription: WritableSignal<Subscription | undefined> = signal(undefined);
-  private readonly pendingTasks: PendingTasks;
-  private readonly _result: WritableSignal<QueryResult<TData, TStates>>;
+  private readonly execution: WritableSignal<Execution<TData, TVariables, TStates, TErrorPolicy> | undefined> = signal(undefined);
+  private readonly watchOptions: Signal<WatchQueryOptions<TData, TVariables, TErrorPolicy>>;
+  private readonly tasks: OperationTasks;
+  private readonly _result: WritableSignal<QueryResult<TData, TStates>> = linkedSignal({
+    source: computed(() => this.enabled() && this.variables() !== null),
+    computation: (executable, previous) => untracked(() => {
+      const fetchPolicy = this.watchOptions().fetchPolicy ??
+        this.apollo.client.defaultOptions.watchQuery?.fetchPolicy;
+      const loading = executable && fetchPolicy !== 'standby';
+      return withPreviousData(previous?.value, loading ? loadingQueryResult<TData, TStates>() : emptyQueryResult<TData, TStates>());
+    })
+  });
+
   private readonly _enabled: WritableSignal<boolean>;
 
   public constructor(
     injector: Injector,
     private readonly apollo: Apollo,
-    options: SignalQueryOptions<TData, TVariables>
+    options: SignalQueryOptions<TData, TVariables, TErrorPolicy>
   ) {
-    const { variables, lazy = false, injector: _, notifyOnLoading = true, notifyOnNetworkStatusChange = true, ...watchOptions } = options;
+    const { variables, lazy = false } = options;
 
-    this.pendingTasks = injector.get(PendingTasks);
-    this.watchOptions = { ...watchOptions, notifyOnLoading, notifyOnNetworkStatusChange } as WatchQueryOptions<TData, TVariables>;
-
-    this.variables = variables !== undefined ? linkedSignal(variables, { equal }) : signal(variables);
+    this.tasks = new OperationTasks(injector);
+    this.variables = linkedSignal(() => variables?.(), { equal });
+    this.watchOptions = computed(() => resolveOptions(options), { equal });
 
     this._enabled = signal(!lazy);
     this.enabled = this._enabled.asReadonly();
 
-    this._result = signal(emptyQueryResult<TData, TStates>());
     this.result = this._result.asReadonly();
 
     effect(() => {
       const variables = this.variables();
+      const watchOptions = this.watchOptions();
 
       if (!untracked(this.enabled)) return;
 
-      if (variables === null) {
-        this._terminate();
-      } else if (this.observable === undefined) {
-        this._execute({ variables }).catch(noop);
+      if (variables === null) return this._terminate();
+
+      const execution = untracked(this.execution);
+      const options = { ...watchOptions, variables } as WatchQueryOptions<TData, TVariables, TErrorPolicy>;
+
+      if (execution === undefined || shouldReobserve(execution.lastWatchOptions, options)) {
+        this._execute({}).catch(noop);
       } else {
-        this.observable.setVariables(variables as TVariables).catch(noop);
+        this.execution.set({ ...execution, lastWatchOptions: options });
+        execution.observable.applyOptions(watchOptions);
       }
     }, { injector });
 
@@ -259,7 +270,7 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   /**
    * Execute the query with the provided options.
    */
-  public execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<SingleQueryResult<TData>> {
+  public execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
     this._enabled.set(true);
     return this._execute(execOptions);
   }
@@ -273,52 +284,66 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
   }
 
   /**
-   * Refetch the query with the current variables.
+   * Refetch the query, optionally with new variables.
+   *
+   * Inherits the query's `errorPolicy`, so its result narrows the same way `execute` does.
    */
-  public refetch(variables?: Partial<TVariables>): Promise<SingleQueryResult<TData>> {
-    if (this.observable === undefined) throw new SignalQueryExecutionError('refetch');
-    return this.observable.refetch(variables)
-      .catch(error => ({ data: undefined, error }));
+  public refetch(variables?: Partial<TVariables>): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    const execution = this.requireExecution('refetch');
+    const result = this.tasks.add(execution.observable.refetch(variables));
+
+    if (variables !== undefined) {
+      const { variables: merged } = execution.observable;
+      this.execution.set({ ...execution, lastWatchOptions: { ...execution.lastWatchOptions, variables: merged } });
+      this.variables.set(merged);
+    }
+
+    return result;
   }
 
   /**
    * Fetch more data and merge it with the existing result.
+   *
+   * Rejects when the fetch fails, as `ObservableQuery.fetchMore` does, and leaves the result signals alone.
+   *
+   * Unlike a refetch it carries its own `errorPolicy`, so its result narrows against `none` rather than the
+   * ambient default.
    */
   public fetchMore<
     TFetchData = TData,
-    TFetchVars extends Variables = TVariables
-  >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars>): Promise<SingleQueryResult<TFetchData>> {
-    if (this.observable === undefined) throw new SignalQueryExecutionError('fetchMore');
-    return this.observable.fetchMore(options)
-      .catch(error => ({ data: undefined, error }));
+    TFetchVars extends Variables = TVariables,
+    TFetchErrorPolicy extends ErrorPolicy = 'none'
+  >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars> & { errorPolicy?: TFetchErrorPolicy }): Promise<SingleQueryResult<TFetchData, TFetchErrorPolicy>> {
+    const { observable } = this.requireExecution('fetchMore');
+    return this.tasks.add(observable.fetchMore<TFetchData, TFetchVars, TFetchErrorPolicy>(options));
   }
 
   /**
    * Update the query's cached data.
    */
   public updateQuery(mapFn: UpdateQueryMapFn<TData, TVariables>): void {
-    if (this.observable === undefined) throw new SignalQueryExecutionError('updateQuery');
-    this.observable.updateQuery(mapFn);
+    this.requireExecution('updateQuery').observable.updateQuery(mapFn);
   }
 
   /**
    * Start polling the query.
    */
   public startPolling(pollInterval: number): void {
-    if (this.observable === undefined) throw new SignalQueryExecutionError('startPolling');
-    this.observable.startPolling(pollInterval);
+    this.requireExecution('startPolling').observable.startPolling(pollInterval);
   }
 
   /**
    * Stop polling the query.
    */
   public stopPolling(): void {
-    if (this.observable === undefined) throw new SignalQueryExecutionError('stopPolling');
-    this.observable.stopPolling();
+    this.requireExecution('stopPolling').observable.stopPolling();
   }
 
   /**
    * Subscribe to more data.
+   *
+   * The registration belongs to the current execution. Terminating the query, or pausing it by returning
+   * `null` from `variables`, drops it, and resuming registers a fresh observable with no handlers.
    */
   public subscribeToMore<
     TSubscriptionData = TData,
@@ -331,44 +356,114 @@ export class SignalQuery<TData, TVariables extends Variables = Variables, TState
       TVariables
     >
   ): () => void {
-    if (this.observable === undefined) throw new SignalQueryExecutionError('subscribeToMore');
-    return this.observable.subscribeToMore<TSubscriptionData, TSubscriptionVariables>(options);
+    return this.requireExecution('subscribeToMore').observable.subscribeToMore<TSubscriptionData, TSubscriptionVariables>(options);
   }
 
-  private _execute(execOptions: SignalQueryExecOptions<TVariables>): Promise<SingleQueryResult<TData>> {
+  private _execute(execOptions: SignalQueryExecOptions<TVariables>): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
     if ('variables' in execOptions) {
       this.variables.set(execOptions.variables);
     }
 
     const variables = untracked(this.variables);
 
-    if (variables === null) {
-      return Promise.resolve({ data: untracked(this.data) as TData | undefined });
+    if (variables === null) return this.withoutResult();
+
+    const watchOptions = untracked(this.watchOptions);
+    const options = { ...watchOptions, ...execOptions, variables } as WatchQueryOptions<TData, TVariables, TErrorPolicy>;
+    let observable = untracked(this.execution)?.observable;
+
+    if (observable === undefined) {
+      observable = this.apollo.watchQuery({
+        ...options,
+        initialFetchPolicy: options.initialFetchPolicy ?? (options.fetchPolicy === 'standby' ? undefined : options.fetchPolicy),
+        fetchPolicy: 'standby'
+      }) as QueryObservable<TData, TVariables, TStates, TErrorPolicy>;
+
+      observable.subscribe(result => this._result.update(previous => withPreviousData(previous, result)));
     }
 
-    const options = { ...this.watchOptions, ...execOptions, variables } as WatchQueryOptions<TData, TVariables>;
+    this.execution.set({ observable, lastWatchOptions: options });
+    const fetchPolicy = observable.options.fetchPolicy === 'standby'
+      ? options.fetchPolicy ?? observable.options.initialFetchPolicy
+      : options.fetchPolicy;
 
-    if (this.observable === undefined) {
-      this.observable = this.apollo.watchQuery<TData, TVariables>(options) as QueryObservable<TData, TVariables, any>;
-      this.subscription.set(this.observable.subscribe(result => this._result.update(previous => withPreviousData(previous, result))));
+    const previousResult = untracked(this._result);
+    const result = this.tasks.add(observable.reobserve({ ...options, fetchPolicy }));
+
+    if (untracked(this._result) === previousResult) {
+      this._result.update(previous => withPreviousData(previous, observable.getCurrentResult()));
     }
 
-    const resolvePendingTask = this.pendingTasks.add();
-    this.resolvePendingTask = resolvePendingTask;
+    return result;
+  }
 
-    return this.observable.reobserve(options)
-      .catch(error => ({ data: undefined, error }))
-      .finally(resolvePendingTask);
+  private requireExecution(method: keyof SignalQuery<any, any>): Execution<TData, TVariables, TStates, TErrorPolicy> {
+    const execution = untracked(this.execution);
+
+    if (execution === undefined) throw new SignalQueryExecutionError(method);
+
+    return execution;
+  }
+
+  private withoutResult(): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    const errorPolicy = untracked(this.watchOptions).errorPolicy ??
+      this.apollo.client.defaultOptions.watchQuery?.errorPolicy;
+
+    return resultWithoutData<TData>(errorPolicy) as Promise<WatchQueryResultForOptions<TData, TErrorPolicy>>;
   }
 
   private _terminate(): void {
-    if (this.observable === undefined) return;
+    const execution = untracked(this.execution);
 
-    this.observable.stop();
-    this.observable = undefined;
-    this.subscription.set(undefined);
-    this.resolvePendingTask?.();
-    this.resolvePendingTask = undefined;
+    if (execution === undefined) return;
+
+    execution.observable.stop();
+    this.execution.set(undefined);
+    this.tasks.releaseAll();
     this._result.update(previous => withPreviousData(previous, emptyQueryResult<TData, TStates>()));
   }
+}
+
+function resolve<T>(option: T | (() => T)): T {
+  return typeof option === 'function' ? (option as () => T)() : option;
+}
+
+function resolveOptions<TData, TVariables extends Variables, TErrorPolicy extends ErrorPolicy | undefined>(
+  options: SignalQueryOptions<TData, TVariables, TErrorPolicy>
+): WatchQueryOptions<TData, TVariables, TErrorPolicy> {
+  const {
+    variables: _variables,
+    lazy: _lazy,
+    injector: _injector,
+    query,
+    context,
+    fetchPolicy,
+    initialFetchPolicy,
+    pollInterval,
+    notifyOnNetworkStatusChange,
+    refetchWritePolicy,
+    ...rest
+  } = options;
+
+  return {
+    ...rest,
+    query: resolve(query),
+    context: resolve(context),
+    fetchPolicy: resolve(fetchPolicy),
+    initialFetchPolicy: resolve(initialFetchPolicy),
+    pollInterval: resolve(pollInterval),
+    notifyOnNetworkStatusChange: resolve(notifyOnNetworkStatusChange),
+    refetchWritePolicy: resolve(refetchWritePolicy)
+    // Cast because `variables` are missing: they are held in their own signal and merged in at each call to Apollo.
+  } as WatchQueryOptions<TData, TVariables, TErrorPolicy>;
+}
+
+function shouldReobserve<TData, TVariables extends Variables, TErrorPolicy extends ErrorPolicy | undefined>(
+  previousOptions: WatchQueryOptions<TData, TVariables, TErrorPolicy>,
+  options: WatchQueryOptions<TData, TVariables, TErrorPolicy>
+): boolean {
+  return previousOptions.query !== options.query ||
+    !equal(previousOptions.variables, options.variables) ||
+    (previousOptions.fetchPolicy !== options.fetchPolicy &&
+      (options.fetchPolicy === 'standby' || previousOptions.fetchPolicy === 'standby'));
 }

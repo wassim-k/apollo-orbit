@@ -1,41 +1,50 @@
-import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, inject, Output, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Apollo } from '@apollo-orbit/angular';
-import { cache } from 'decorator-cache-getter';
-import { gqlAddBookMutation, gqlAuthorsQuery } from '../../graphql';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import { form, FormField, FormRoot, required, ValidationError } from '@angular/forms/signals';
+import { Apollo, toErrorLike } from '@apollo-orbit/angular';
+import { ADD_BOOK_MUTATION, gqlAuthorsQuery } from '../../graphql';
+
+export interface NewBookModel {
+  name: string;
+  genre: string;
+  authorId: string;
+}
 
 @Component({
   selector: 'app-new-book',
   templateUrl: './new-book.component.html',
   styleUrls: ['./new-book.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, AsyncPipe]
+  imports: [FormRoot, FormField]
 })
 export class NewBookComponent {
   private readonly apollo = inject(Apollo);
-  private readonly fb = inject(FormBuilder);
 
-  @Output() public readonly onClose = new EventEmitter<void>();
+  public readonly closed = output<void>();
 
-  protected readonly authorsQuery = this.apollo.watchQuery({ ...gqlAuthorsQuery(), fetchPolicy: 'cache-and-network' });
-  protected readonly error = signal<Error | undefined>(undefined);
+  protected readonly authorsQuery = this.apollo.signal.query({ ...gqlAuthorsQuery(), fetchPolicy: 'cache-and-network' });
 
-  @cache
-  protected get form() {
-    return this.fb.group({
-      name: this.fb.nonNullable.control<string>('', Validators.required),
-      genre: this.fb.control<string | null>(null),
-      authorId: this.fb.nonNullable.control<string>('', Validators.required)
-    });
-  }
+  protected readonly value = signal<NewBookModel>({ name: '', genre: '', authorId: '' });
 
-  protected submit(): void {
-    if (!this.form.valid) return;
-    const book = this.form.getRawValue();
-    this.error.set(undefined);
-    this.apollo.mutate(gqlAddBookMutation({ book })).subscribe({
-      error: (error: Error) => this.error.set(error)
-    });
+  protected readonly form = form(
+    this.value,
+    schema => {
+      required(schema.name);
+      required(schema.authorId);
+    },
+    {
+      submission: {
+        action: field => this.submit(field().value())
+      }
+    }
+  );
+
+  private readonly addBookMutation = this.apollo.signal.mutation(ADD_BOOK_MUTATION);
+
+  private async submit(book: NewBookModel): Promise<ValidationError | void> {
+    try {
+      await this.addBookMutation.mutate({ variables: { book: { ...book, genre: book.genre || null } } });
+    } catch (error) {
+      return { kind: 'server', message: toErrorLike(error).message };
+    }
   }
 }

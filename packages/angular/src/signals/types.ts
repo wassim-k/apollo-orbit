@@ -2,29 +2,35 @@ import { OperationVariables as Variables } from '@apollo/client';
 
 export type SignalVariablesOption<TVariables extends Variables> = {} extends TVariables ? { // eslint-disable-line @typescript-eslint/no-empty-object-type
   /**
-  * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
+  * The operation's variables, as a function or signal re-read whenever its reactive dependencies change.
   *
-  * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.
-  *
-  * When `null` is returned, the operation will be terminated until a non-null value is returned again.
+  * Returning `null` terminates the operation until it returns a non-null value again.
   */
   variables?: () => TVariables | undefined | null;
 } : {
   /**
-  * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
+  * The operation's variables, as a function or signal re-read whenever its reactive dependencies change.
   *
-  * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.
-  *
-  * When `null` is returned, the operation will be terminated until a non-null value is returned again.
+  * Returning `null` terminates the operation until it returns a non-null value again.
   */
   variables: () => TVariables | null;
 };
 
+export type SignalCacheVariablesOption<TVariables extends Variables> = {} extends TVariables ? { // eslint-disable-line @typescript-eslint/no-empty-object-type
+  /**
+  * The operation's variables, as a function or signal re-read whenever its reactive dependencies change.
+  */
+  variables?: () => TVariables | undefined;
+} : {
+  /**
+  * The operation's variables, as a function or signal re-read whenever its reactive dependencies change.
+  */
+  variables: () => TVariables;
+};
+
 /**
- * Variables option for an operation that can be lazy.
- *
- * When `lazy` is `true`, variables are always optional, even when the operation requires them, because
- * they can be provided later via `execute`.
+ * Variables option for an operation that can be lazy, where they are always optional because `execute` can
+ * supply them later.
  */
 export type SignalLazyVariablesOption<TVariables extends Variables> =
   | {
@@ -34,11 +40,9 @@ export type SignalLazyVariablesOption<TVariables extends Variables> =
     lazy: true;
 
     /**
-    * A function or signal returning an object containing all of the GraphQL variables your operation requires to execute.
+    * The operation's variables, as a function or signal re-read whenever its reactive dependencies change.
     *
-    * Each key in the object corresponds to a variable name, and that key's value corresponds to the variable value.
-    *
-    * When `null` is returned, the operation will be terminated until a non-null value is returned again.
+    * Returning `null` terminates the operation until it returns a non-null value again.
     */
     variables?: () => TVariables | undefined | null;
   }

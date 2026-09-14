@@ -1,67 +1,62 @@
-import { Component, effect, inject, input, output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Apollo } from '@apollo-orbit/angular';
+import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output } from '@angular/core';
+import { form, FormField, FormRoot, required, ValidationError } from '@angular/forms/signals';
+import { Apollo, toErrorLike } from '@apollo-orbit/angular';
 import { BookFragmentDoc, UPDATE_BOOK_MUTATION } from '../../../graphql';
+
+export interface EditBookModel {
+  name: string;
+  genre: string;
+}
 
 @Component({
   selector: 'app-edit-book',
   templateUrl: './edit-book.component.html',
   styleUrls: ['./edit-book.component.scss'],
-  imports: [ReactiveFormsModule]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormRoot, FormField]
 })
 export class EditBookComponent {
   private readonly apollo = inject(Apollo);
-  private readonly fb = inject(FormBuilder);
 
   public readonly bookId = input.required<string>();
 
   public readonly closed = output<void>();
-
-  protected readonly bookForm = this.fb.group({
-    name: this.fb.nonNullable.control<string>('', Validators.required),
-    genre: this.fb.control<string | null>(null)
-  });
 
   protected readonly bookFragment = this.apollo.signal.fragment({
     fragment: BookFragmentDoc,
     from: () => ({ id: this.bookId() })
   });
 
+  protected readonly value = linkedSignal<EditBookModel>(() => this.toModel());
+
+  protected readonly form = form(
+    this.value,
+    schema => {
+      required(schema.name);
+    },
+    {
+      submission: {
+        action: field => this.submit(field().value())
+      }
+    }
+  );
+
   protected readonly updateBookMutation = this.apollo.signal.mutation(UPDATE_BOOK_MUTATION);
 
-  public constructor() {
-    effect(() => {
-      const book = this.bookFragment.data();
-
-      this.bookForm.patchValue({
-        name: book.name,
-        genre: book.genre ?? ''
-      });
-    });
+  protected reset(): void {
+    this.value.set(this.toModel());
   }
 
-  protected async onSubmit(): Promise<void> {
-    if (!this.bookForm.valid) return;
-
-    const formValues = this.bookForm.value;
-
-    this.updateBookMutation.mutate({
-      variables: {
-        id: this.bookId(),
-        book: {
-          name: formValues.name as string,
-          genre: formValues.genre ?? null
-        }
-      }
-    });
+  private toModel(): EditBookModel {
+    const result = this.bookFragment.result();
+    return result.complete ? { name: result.data.name, genre: result.data.genre ?? '' } : { name: '', genre: '' };
   }
 
-  // Reset the form to the current book data
-  protected resetForm(): void {
-    const currentBook = this.bookFragment.data();
-    this.bookForm.patchValue({
-      name: currentBook.name,
-      genre: currentBook.genre
-    });
+  private async submit(book: EditBookModel): Promise<ValidationError | void> {
+    try {
+      await this.updateBookMutation.mutate({ variables: { id: this.bookId(), book: { ...book, genre: book.genre || null } } });
+    } catch (error) {
+      return { kind: 'server', message: toErrorLike(error).message };
+    }
   }
 }
