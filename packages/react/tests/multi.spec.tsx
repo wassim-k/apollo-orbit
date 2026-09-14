@@ -5,11 +5,12 @@ import { ApolloProvider, useMutation, useQuery } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing';
 import { act, render, waitFor } from '@testing-library/react';
 import React, { useEffect } from 'react';
+import type { Mock } from 'vitest';
 import * as wrapMutate from '../src/wrapMutate';
 import { ADD_AUTHOR_MUTATION } from './graphql';
 
-let update1Mock: ReturnType<typeof vi.fn>;
-let update2Mock: ReturnType<typeof vi.fn>;
+let update1Mock: Mock<() => void>;
+let update2Mock: Mock<() => void>;
 
 const cache1 = new InMemoryCache();
 const cache2 = new InMemoryCache();

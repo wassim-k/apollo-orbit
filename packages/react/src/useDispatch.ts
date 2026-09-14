@@ -6,9 +6,10 @@ import { ApolloOrbitContext } from './context';
 export function useDispatch(): <TAction extends Action | ActionInstance>(action: TAction) => Promise<void> {
   const { cache } = useApolloClient();
   const { mutationManager } = useContext(ApolloOrbitContext);
-  const dispatch = useCallback(
-    <TAction extends Action | ActionInstance>(action: TAction): Promise<void> => mutationManager.dispatch(action, { cache, dispatch }).then(resolveDispatchResults),
+  return useCallback(
+    function dispatch<TAction extends Action | ActionInstance>(action: TAction): Promise<void> {
+      return mutationManager.dispatch(action, { cache, dispatch }).then(resolveDispatchResults);
+    },
     [cache, mutationManager]
   );
-  return dispatch;
 }
