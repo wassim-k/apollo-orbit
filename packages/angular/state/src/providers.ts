@@ -1,5 +1,5 @@
 import { ENVIRONMENT_INITIALIZER, EnvironmentProviders, inject, makeEnvironmentProviders, Provider } from '@angular/core';
-import { Apollo, ɵAPOLLO_INSTANCE_FACTORY as APOLLO_INSTANCE_FACTORY, ApolloClient, ɵApolloInstanceFactory as ApolloInstanceFactory, ApolloOrbitFeature, DefaultOptions } from '@apollo-orbit/angular';
+import { Apollo, ɵAPOLLO_INSTANCE_FACTORY as APOLLO_INSTANCE_FACTORY, ApolloClient, ɵApolloInstanceFactory as ApolloInstanceFactory, ApolloOrbitFeature } from '@apollo-orbit/angular';
 import { State } from '@apollo-orbit/core';
 import { ApolloActions } from './apolloActions';
 import { ɵApollo } from './internal/apollo';
@@ -29,9 +29,9 @@ function getStatesProviders(states: Array<State | StateFactory>): Array<Provider
 }
 
 function apolloInstanceFactory(stateManager: StateManager): ApolloInstanceFactory {
-  return (clientId: string, client: ApolloClient, defaultOptions?: DefaultOptions): Apollo => {
+  return (clientId: string, client: ApolloClient): Apollo => {
     const manager = stateManager.createManager(clientId, client);
-    return new ɵApollo(client, manager, defaultOptions); // eslint-disable-line new-cap
+    return new ɵApollo(client, manager); // eslint-disable-line new-cap
   };
 }
 

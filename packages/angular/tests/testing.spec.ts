@@ -52,8 +52,7 @@ describe('Testing', () => {
 
     const fixture = TestBed.createComponent(BookComponent);
     fixture.autoDetectChanges();
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('#query-result').textContent).toEqual('Book 1');
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('#query-result')?.textContent).toEqual('Book 1'));
   });
 
   it('should render component with query error', async () => {
@@ -66,8 +65,7 @@ describe('Testing', () => {
 
     const fixture = TestBed.createComponent(BookComponent);
     fixture.autoDetectChanges();
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('#query-error').textContent).toEqual('Book does not exist');
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('#query-error')?.textContent).toEqual('Book does not exist'));
   });
 
   it('should render component with subscription result', fakeAsync(() => {

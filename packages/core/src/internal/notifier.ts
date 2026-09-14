@@ -1,6 +1,6 @@
 export class Notifier {
   private listeners: Array<() => void> = [];
-  private timeoutId: NodeJS.Timeout | undefined = undefined;
+  private timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
 
   public defer<T>(value: T): Promise<T> {
     return new Promise(resolve => this.schedule(() => resolve(value)));

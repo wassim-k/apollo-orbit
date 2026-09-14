@@ -106,7 +106,7 @@ describe('Action', () => {
       from(actions.dispatch(new AddBookObservable(newBook))).pipe(
         mergeMap(() => apollo.query(gqlBooksQuery()))
       ).subscribe(({ data }) => {
-        expect(data?.books.some(b => b.name === newBook.name)).toBe(true);
+        expect(data.books.some(b => b.name === newBook.name)).toBe(true);
       });
     }));
 
@@ -135,7 +135,7 @@ describe('Action', () => {
       ]).pipe(
         mergeMap(() => apollo.query(gqlBooksQuery()))
       ).subscribe(({ data }) => {
-        expect([newBook1, newBook2, newBook3].every(newBook => data?.books.some(b => b.name === newBook.name))).toBe(true);
+        expect([newBook1, newBook2, newBook3].every(newBook => data.books.some(b => b.name === newBook.name))).toBe(true);
       });
     }));
 

@@ -1,34 +1,19 @@
-import { computed, DestroyRef, effect, Injector, linkedSignal, PendingTasks, signal, Signal, untracked, WritableSignal } from '@angular/core';
-import { ErrorLike, NetworkStatus, OperationVariables as Variables } from '@apollo/client';
+import { computed, DestroyRef, effect, Injector, linkedSignal, signal, Signal, untracked, WritableSignal } from '@angular/core';
+import { ErrorLike, ErrorPolicy, NetworkStatus, OperationVariables as Variables } from '@apollo/client';
 import { equal } from '@wry/equality';
-import { finalize, noop, Subscription } from 'rxjs';
+import { noop } from 'rxjs';
 import { Apollo } from '../apollo';
-import { emptyQueryResult, withPreviousData } from '../internal/queryResult';
-import type { GetData, QueryOptions, QueryResult, SingleQueryResult } from '../types';
+import { resultWithoutData } from '../internal/errorPolicy';
+import { OperationTasks } from '../internal/operationTasks';
+import { emptyQueryResult, loadingQueryResult, toQueryResult, withPreviousData } from '../internal/queryResult';
+import { QueryObservable } from '../queryObservable';
+import type { GetData, QueryOptions, QueryResult, SingleQueryResult, WatchQueryResultForOptions } from '../types';
 import type { SignalQueryExecOptions } from './query';
 import type { SignalLazyVariablesOption } from './types';
 
-/**
- * Assigned to the result of an execution that was cancelled before it produced one, either because newer variables
- * superseded it or because the query was terminated. Without it, a cancelled execution would be indistinguishable
- * from a query that completed with no data.
- */
-export class SignalQueryCancelledError extends Error {
-  public constructor() {
-    super('Query execution was cancelled before it produced a result.');
-    this.name = 'SignalQueryCancelledError';
-  }
-}
-
-export type SignalSingleQueryOptions<TData = unknown, TVariables extends Variables = Variables> =
-  & Omit<QueryOptions<TData, TVariables>, 'variables' | 'notifyOnLoading' | 'throwError'>
+export type SignalSingleQueryOptions<TData = unknown, TVariables extends Variables = Variables, TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy> =
+  & Omit<QueryOptions<TData, TVariables, TErrorPolicy>, 'variables'>
   & {
-    /**
-     * Whether or not to track initial network loading status.
-     * @default true
-     */
-    notifyOnLoading?: boolean;
-
     /**
      * Whether to execute query immediately or lazily via `execute` method.
      */
@@ -41,13 +26,18 @@ export type SignalSingleQueryOptions<TData = unknown, TVariables extends Variabl
   }
   & SignalLazyVariablesOption<NoInfer<TVariables>>;
 
+interface Execution<TData, TVariables extends Variables> {
+  readonly variables: TVariables | undefined;
+  readonly observable: QueryObservable<TData, TVariables, 'empty' | 'complete', ErrorPolicy>;
+}
+
 /**
  * A query that fetches once per execution instead of watching the cache.
  *
  * Executes initially (unless `lazy`), whenever variables change and on `execute()`. Between executions the result
  * signal keeps its last value. Cache writes and refetches elsewhere in the application never re-emit into it.
  */
-export class SignalSingleQuery<TData, TVariables extends Variables = Variables> {
+export class SignalSingleQuery<TData, TVariables extends Variables = Variables, TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy> {
   /**
    * The query result, containing `data`, `loading`, `error`, `networkStatus`, `previousData`, `dataState`.
    */
@@ -107,27 +97,37 @@ export class SignalSingleQuery<TData, TVariables extends Variables = Variables> 
    */
   public readonly enabled: Signal<boolean>;
 
-  private resolvePendingTask: (() => void) | undefined;
-  private readonly execution: WritableSignal<{ variables: TVariables | undefined; subscription: Subscription } | undefined> = signal(undefined);
-  private readonly pendingTasks: PendingTasks;
-  private readonly _result: WritableSignal<QueryResult<TData, 'empty' | 'complete'>>;
+  private readonly execution: WritableSignal<Execution<TData, TVariables> | undefined> = signal(undefined);
+  private readonly tasks: OperationTasks;
+  private readonly _result: WritableSignal<QueryResult<TData, 'empty' | 'complete'>> = linkedSignal({
+    source: computed(() => this.enabled() && this.variables() !== null),
+    computation: (executable, previous) => untracked(() => {
+      const fetchPolicy = this.options.fetchPolicy ?? this.apollo.client.defaultOptions.watchQuery?.fetchPolicy;
+      const loading = executable && fetchPolicy !== 'standby';
+
+      return withPreviousData(
+        previous?.value,
+        loading ? loadingQueryResult<TData, 'empty' | 'complete'>() : emptyQueryResult<TData, 'empty' | 'complete'>()
+      );
+    })
+  });
+
   private readonly _enabled: WritableSignal<boolean>;
 
   public constructor(
     injector: Injector,
     private readonly apollo: Apollo,
-    private readonly options: SignalSingleQueryOptions<TData, TVariables>
+    private readonly options: SignalSingleQueryOptions<TData, TVariables, TErrorPolicy>
   ) {
     const { variables, lazy = false } = options;
 
-    this.pendingTasks = injector.get(PendingTasks);
+    this.tasks = new OperationTasks(injector);
 
-    this.variables = variables !== undefined ? linkedSignal(variables, { equal }) : signal(variables);
+    this.variables = linkedSignal(() => variables?.(), { equal });
 
     this._enabled = signal(!lazy);
     this.enabled = this._enabled.asReadonly();
 
-    this._result = signal(emptyQueryResult<TData, 'empty' | 'complete'>());
     this.result = this._result.asReadonly();
 
     effect(() => {
@@ -136,15 +136,11 @@ export class SignalSingleQuery<TData, TVariables extends Variables = Variables> 
 
       if (!enabled) return;
 
+      if (variables === null) return this._terminate();
+
       const execution = untracked(this.execution);
 
-      if (variables !== null) {
-        if (execution === undefined || execution.variables !== variables) {
-          this._execute({ variables }).catch(noop);
-        }
-      } else if (execution !== undefined) {
-        this._terminate();
-      }
+      if (execution === undefined || execution.variables !== variables) this._execute({ variables }).catch(noop);
     }, { injector });
 
     injector.get(DestroyRef).onDestroy(() => this.terminate());
@@ -152,8 +148,10 @@ export class SignalSingleQuery<TData, TVariables extends Variables = Variables> 
 
   /**
    * Execute the query with the provided options.
+   *
+   * Superseding or terminating an execution aborts its request; the promise follows `errorPolicy` either way.
    */
-  public execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<SingleQueryResult<TData>> {
+  public execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
     this._enabled.set(true);
     return this._execute(execOptions);
   }
@@ -166,7 +164,7 @@ export class SignalSingleQuery<TData, TVariables extends Variables = Variables> 
     this._terminate();
   }
 
-  private _execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<SingleQueryResult<TData>> {
+  private _execute(execOptions: SignalQueryExecOptions<TVariables> = {}): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
     if ('variables' in execOptions) {
       this.variables.set(execOptions.variables);
     }
@@ -174,40 +172,58 @@ export class SignalSingleQuery<TData, TVariables extends Variables = Variables> 
     const variables = untracked(this.variables);
 
     if (variables === null) {
-      return Promise.resolve({ data: untracked(this.data) });
+      return this.withoutResult();
     }
 
-    untracked(this.execution)?.subscription.unsubscribe();
+    const { query, lazy, injector, ...options } = this.options;
+    const watchOptions = { ...options, ...execOptions, query, variables, returnPartialData: false };
 
-    const { query, lazy, injector, notifyOnLoading = true, ...options } = this.options;
+    untracked(this.execution)?.observable.stop();
 
-    const resolvePendingTask = this.pendingTasks.add();
-    this.resolvePendingTask = resolvePendingTask;
+    // Never subscribe to observable, so nothing this query did not ask for can reach the result signals.
+    const execution: Execution<TData, TVariables> = {
+      variables,
+      observable: this.apollo.watchQuery(watchOptions as never) as unknown as QueryObservable<TData, TVariables, 'empty' | 'complete', ErrorPolicy>
+    };
 
-    return new Promise<SingleQueryResult<TData>>(resolve => {
-      const subscription = this.apollo.query<TData, TVariables>({
-        ...options,
-        ...execOptions,
-        notifyOnLoading,
-        throwError: false,
-        query,
-        variables
-      } as QueryOptions<TData, TVariables>).pipe(
-        finalize(() => resolve({ data: undefined, error: new SignalQueryCancelledError() }))
-      ).subscribe(result => {
-        if (!result.loading) resolve({ data: result.data, error: result.error });
-        this._result.update(previous => withPreviousData(previous, result));
-      });
+    this.execution.set(execution);
 
-      this.execution.set({ variables, subscription });
-    }).finally(resolvePendingTask);
+    this._result.update(previous => withPreviousData(previous, loadingQueryResult<TData, 'empty' | 'complete'>()));
+
+    return this.tasks.add(execution.observable.reobserve()
+      .then(
+        result => {
+          this.setResult(execution, result);
+          return result;
+        },
+        (error: ErrorLike) => {
+          this.setResult(execution, { data: undefined, error });
+          throw error;
+        }
+      )) as Promise<WatchQueryResultForOptions<TData, TErrorPolicy>>;
+  }
+
+  private setResult(execution: Execution<TData, TVariables>, result: SingleQueryResult<TData>): void {
+    if (untracked(this.execution) !== execution) return;
+
+    this._result.update(previous => withPreviousData(previous, toQueryResult(result)));
+  }
+
+  private withoutResult(): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    const errorPolicy = this.options.errorPolicy ??
+      this.apollo.client.defaultOptions.watchQuery?.errorPolicy;
+
+    return resultWithoutData<TData>(errorPolicy) as Promise<WatchQueryResultForOptions<TData, TErrorPolicy>>;
   }
 
   private _terminate(): void {
-    untracked(this.execution)?.subscription.unsubscribe();
+    const execution = untracked(this.execution);
+
+    if (execution === undefined) return;
+
+    execution.observable.stop();
     this.execution.set(undefined);
-    this.resolvePendingTask?.();
-    this.resolvePendingTask = undefined;
+    this.tasks.releaseAll();
     this._result.update(previous => withPreviousData(previous, emptyQueryResult<TData, 'empty' | 'complete'>()));
   }
 }

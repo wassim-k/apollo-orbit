@@ -1,25 +1,22 @@
 /* eslint-disable max-len */
 
-import type { ApolloCache, ApolloClient, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, InternalRefetchQueriesInclude, MutationFetchPolicy, MutationQueryReducersMap, MutationUpdaterFunction, NetworkStatus, NormalizedExecutionResult, OnQueryUpdated, RefetchOn, RefetchWritePolicy, SubscribeToMoreUpdateQueryFn, TypedDocumentNode, Unmasked, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
+import type { ApolloCache, ApolloClient, Cache, DataState, DefaultContext, DocumentNode, ErrorLike, ErrorPolicy, FetchPolicy, GetDataState, InternalRefetchQueriesInclude, MutationFetchPolicy, MutationQueryReducersMap, MutationUpdaterFunction, NetworkStatus, NormalizedExecutionResult, OnQueryUpdated, RefetchOn, RefetchWritePolicy, SubscribeToMoreUpdateQueryFn, TypedDocumentNode, Unmasked, OperationVariables as Variables, WatchQueryFetchPolicy } from '@apollo/client';
 import type { IgnoreModifier } from '@apollo/client/cache';
-import type { VariablesOption } from '@apollo/client/utilities/internal';
+import type { MaybeMasked } from '@apollo/client/masking';
+import type { OptionWithFallback, VariablesOption } from '@apollo/client/utilities/internal';
+import type { EffectiveMutateErrorPolicy, EffectiveQueryErrorPolicy, EffectiveWatchQueryErrorPolicy } from './internal/errorPolicy';
 
 export interface ApolloOptions extends ApolloClient.Options {
   /**
    * Client identifier in a multi-client setup
    */
   id?: string;
-  defaultOptions?: DefaultOptions;
 }
 
-export interface DefaultOptions {
-  watchQuery?: ApolloClient.DefaultOptions.WatchQuery.Input & ExtraWatchQueryOptions;
-  query?: ApolloClient.DefaultOptions.Query.Input & ExtraQueryOptions;
-  mutate?: ApolloClient.DefaultOptions.Mutate.Input;
-}
+export type DefaultOptions = ApolloClient.DefaultOptions.Input;
 
 // import { ApolloClient.WatchQueryOptions } from '@apollo/client';
-export type WatchQueryOptions<TData = unknown, TVariables extends Variables = Variables> = {
+export type WatchQueryOptions<TData = unknown, TVariables extends Variables = Variables, TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy, TPartial extends boolean | undefined = boolean> = {
   /**
   * Specifies how the query interacts with the Apollo Client cache during execution (for example, whether it checks the cache for results before sending a request to the server).
   *
@@ -62,7 +59,7 @@ export type WatchQueryOptions<TData = unknown, TVariables extends Variables = Va
   *
   * @docGroup 1. Operation options
   */
-  errorPolicy?: ErrorPolicy;
+  errorPolicy?: TErrorPolicy;
   /**
   * If you're using [Apollo Link](https://www.apollographql.com/docs/react/api/link/introduction/), this object is the initial value of the `context` object that's passed along your link chain.
   *
@@ -92,7 +89,7 @@ export type WatchQueryOptions<TData = unknown, TVariables extends Variables = Va
   *
   * @docGroup 3. Caching options
   */
-  returnPartialData?: boolean;
+  returnPartialData?: TPartial;
   /**
   * A callback function that's called whenever a refetch attempt occurs
   * while polling. If the function returns `true`, the refetch is
@@ -126,16 +123,10 @@ export type WatchQueryOptions<TData = unknown, TVariables extends Variables = Va
   * @docGroup 1. Operation options
   */
   refetchOn?: RefetchOn.Option;
-
-  /**
-   * Whether or not observers should receive initial network loading status when subscribing to this observable.
-   * @default true
-   */
-  notifyOnLoading?: boolean;
 } & VariablesOption<NoInfer<TVariables>>;
 
 // import { ApolloClient.QueryOptions } from '@apollo/client';
-export type QueryOptions<TData = unknown, TVariables extends Variables = Variables> = {
+export type QueryOptions<TData = unknown, TVariables extends Variables = Variables, TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy> = {
   /**
   * A GraphQL query string parsed into an AST with the gql template literal.
   *
@@ -151,7 +142,7 @@ export type QueryOptions<TData = unknown, TVariables extends Variables = Variabl
   *
   * @docGroup 1. Operation options
   */
-  errorPolicy?: ErrorPolicy;
+  errorPolicy?: TErrorPolicy;
   /**
   * If you're using [Apollo Link](https://www.apollographql.com/docs/react/api/link/introduction/), this object is the initial value of the `context` object that's passed along your link chain.
   *
@@ -168,18 +159,6 @@ export type QueryOptions<TData = unknown, TVariables extends Variables = Variabl
   * @docGroup 3. Caching options
   */
   fetchPolicy?: FetchPolicy;
-
-  /**
-   * Whether or not observers should receive initial network loading status when subscribing to this observable.
-   * @default false
-   */
-  notifyOnLoading?: boolean;
-
-  /**
-   * Throw errors on the observable's error stream instead of assigning them to the error property of the result object.
-   * @default true
-   */
-  throwError?: boolean;
 } & VariablesOption<NoInfer<TVariables>>;
 
 // import { ApolloClient.SubscribeOptions as SubscriptionOptions } from '@apollo/client';
@@ -205,10 +184,10 @@ export type SubscriptionOptions<TData = unknown, TVariables extends Variables = 
   * Shared context between your component and your network interface (Apollo Link).
   */
   extensions?: Record<string, any>;
-  } & VariablesOption<NoInfer<TVariables>>;
+} & VariablesOption<NoInfer<TVariables>>;
 
 // import { ApolloClient.MutateOptions as MutationOptions } from '@apollo/client';
-export type MutationOptions<TData = unknown, TVariables extends Variables = Variables, TCache extends ApolloCache = ApolloCache> = {
+export type MutationOptions<TData = unknown, TVariables extends Variables = Variables, TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy, TCache extends Cache.Implementation = Cache.Implementation> = {
   /**
   * By providing either an object or a callback function that, when invoked after
   * a mutation, allows you to return optimistic data and optionally skip updates
@@ -221,7 +200,7 @@ export type MutationOptions<TData = unknown, TVariables extends Variables = Vari
   * @docGroup 3. Caching options
   */
   optimisticResponse?: Unmasked<NoInfer<TData>> | ((vars: TVariables, { IGNORE }: {
-  IGNORE: IgnoreModifier;
+    IGNORE: IgnoreModifier;
   }) => Unmasked<NoInfer<TData>> | IgnoreModifier);
   /**
   * A `MutationQueryReducersMap`, which is map from query names to
@@ -275,7 +254,7 @@ export type MutationOptions<TData = unknown, TVariables extends Variables = Vari
   *
   * @docGroup 1. Operation options
   */
-  errorPolicy?: ErrorPolicy;
+  errorPolicy?: TErrorPolicy;
   /**
   * If you're using [Apollo Link](https://www.apollographql.com/docs/react/api/link/introduction/), this object is the initial value of the `context` object that's passed along your link chain.
   *
@@ -309,29 +288,7 @@ export type MutationOptions<TData = unknown, TVariables extends Variables = Vari
   * @docGroup 1. Operation options
   */
   mutation: DocumentNode | TypedDocumentNode<TData, TVariables>;
-  } & VariablesOption<NoInfer<TVariables>>;
-
-export interface ExtraWatchQueryOptions {
-  /**
-   * Whether or not observers should receive initial network loading status when subscribing to this observable.
-   * @default true
-   */
-  notifyOnLoading?: boolean;
-}
-
-export interface ExtraQueryOptions {
-  /**
-   * Whether or not observers should receive initial network loading status when subscribing to this observable.
-   * @default false
-   */
-  notifyOnLoading?: boolean;
-
-  /**
-   * Throw errors on the observable's error stream instead of assigning them to the error property of the result object.
-   * @default true
-   */
-  throwError?: boolean;
-}
+} & VariablesOption<NoInfer<TVariables>>;
 
 // import { ObservableQuery.SubscribeToMoreOptions } from '@apollo/client';
 export interface SubscribeToMoreOptions<TData = unknown, TSubscriptionVariables extends Variables = Variables, TSubscriptionData = TData, TVariables extends Variables = TSubscriptionVariables> {
@@ -340,7 +297,7 @@ export interface SubscribeToMoreOptions<TData = unknown, TSubscriptionVariables 
   updateQuery?: SubscribeToMoreUpdateQueryFn<TData, TVariables, TSubscriptionData>;
   onError?: (error: ErrorLike) => void;
   context?: DefaultContext;
-  }
+}
 
 // import { ObservableQuery.Result as QueryResult } from '@apollo/client';
 export type QueryResult<TData, TStates extends DataState<TData>['dataState'] = DataState<TData>['dataState']> = {
@@ -378,12 +335,44 @@ export type QueryResult<TData, TStates extends DataState<TData>['dataState'] = D
 
 export type GetData<TData, TState extends DataState<TData>['dataState']> = GetDataState<TData, TState>['data'];
 
+export type WatchQueryStates<TPartial extends boolean | undefined> = 'empty' | 'complete' | 'streaming' |
+  (OptionWithFallback<{ returnPartialData: TPartial }, ApolloClient.DefaultOptions.WatchQuery.Calculated, 'returnPartialData'> extends false ? never : 'partial');
+
 export type SingleQueryResult<TData = unknown, TErrorPolicy extends ErrorPolicy | undefined = undefined> = ApolloClient.QueryResult<TData, TErrorPolicy>;
 
-export type MutationResult<TData = unknown> = ApolloClient.MutateResult<TData>;
+export type WatchFragmentOptions<TData = unknown, TVariables extends Variables = Variables> = ApolloClient.WatchFragmentOptions<TData, TVariables>;
 
+export type WatchFragmentResult<TData = unknown> = ApolloClient.WatchFragmentResult<TData>;
+
+export type ObservableFragment<TData = unknown> = ApolloClient.ObservableFragment<TData>;
+
+export type FragmentFromValue<TData = unknown> = ApolloCache.FromOptionValue<TData>;
+
+export type MutationResult<TData = unknown, TErrorPolicy extends ErrorPolicy | undefined = undefined> = ApolloClient.MutateResult<TData, TErrorPolicy>;
+
+export type MutationResultForOptions<TData, TErrorPolicy extends ErrorPolicy | undefined> = MutationResult<MaybeMasked<TData>, EffectiveMutateErrorPolicy<TErrorPolicy>>;
+
+export type SingleQueryResultForOptions<TData, TErrorPolicy extends ErrorPolicy | undefined> = SingleQueryResult<MaybeMasked<TData>, EffectiveQueryErrorPolicy<TErrorPolicy>>;
+
+export type WatchQueryResultForOptions<TData, TErrorPolicy extends ErrorPolicy | undefined> =
+  SingleQueryResult<MaybeMasked<TData>, EffectiveWatchQueryErrorPolicy<TErrorPolicy>>;
+
+// import { ApolloClient.SubscribeResult as SubscriptionResult } from '@apollo/client';
 export interface SubscriptionResult<TData = unknown> {
-  data?: TData;
+  /**
+  * The data returned from your mutation. Can be `undefined` if the `errorPolicy`
+  * is `all` or `ignore` and the server returns a GraphQL response with `errors`
+  * but not `data` or a network error is returned.
+  */
+  data: TData | undefined;
+  /**
+  * If the mutation produces one or more errors, this object contains either an array of `graphQLErrors` or a single `networkError`. Otherwise, this value is `undefined`.
+  *
+  * For more information, see [Handling operation errors](https://www.apollographql.com/docs/react/data/error-handling/).
+  */
   error?: ErrorLike;
-  extensions?: Record<string, any>;
+  /**
+  * Custom extensions returned from the GraphQL server
+  */
+  extensions?: Record<string, unknown>;
 }

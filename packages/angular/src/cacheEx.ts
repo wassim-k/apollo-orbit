@@ -1,73 +1,100 @@
-import type { ApolloCache, DocumentNode, MissingFieldError, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
-import type { DeepPartial } from '@apollo/client/utilities';
-import { Observable } from 'rxjs';
+import type { Cache, DataValue, DocumentNode, MissingFieldError, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
+import type { Unmasked } from '@apollo/client/masking';
+import { CacheQueryObservable } from './cacheQueryObservable';
 
-export interface CacheWatchQueryOptions<TData, TVariables> {
-  query: DocumentNode | TypedDocumentNode<TData, TVariables>;
-  variables?: TVariables;
-  optimistic?: boolean;
-  immediate?: boolean;
+export interface CacheQueryOptions<TData, TVariables, TPartial extends boolean = boolean> {
   /**
-   * If set to true, the observable will emit the partial data that is available in the cache.
-   * If set to false, the observable will throw an error if the complete data is not available in the cache.
+   * A GraphQL query document parsed into an AST by gql.
+   */
+  query: DocumentNode | TypedDocumentNode<TData, TVariables>;
+
+  /**
+   * An object containing all of the variables your query needs to execute.
+   */
+  variables?: TVariables;
+
+  /**
+   * If `true`, the query is evaluated against the optimistic cache layer as well as the normal one, so
+   * optimistic updates show up immediately.
+   * @default true
+   */
+  optimistic?: boolean;
+
+  /**
+   * If `false`, the observable waits for the next cache change rather than emitting what the cache
+   * already holds when it is subscribed to.
+   * @default true
+   */
+  immediate?: boolean;
+
+  /**
+   * If `true`, an incomplete read carries the partial data the cache holds rather than `data: null`,
+   * and widens `data` to match. `complete` is `false` either way.
    * @default false
    */
-  returnPartialData?: boolean;
+  returnPartialData?: TPartial;
 }
 
-export interface CacheWatchQueryCompleteResult<TData> {
-  data: TData;
+export interface CacheQueryCompleteResult<TData> {
+  data: DataValue.Complete<Unmasked<TData>>;
   complete: true;
   missing?: never;
 }
 
-export interface CacheWatchQueryPartialResult<TData> {
-  data: DeepPartial<TData> | undefined;
+export interface CacheQueryIncompleteResult<TData, TPartial extends boolean = false> {
+  data: TPartial extends true ? DataValue.Partial<Unmasked<TData>> | null : null;
   complete: false;
-  missing?: Array<MissingFieldError>;
+  missing?: MissingFieldError;
 }
 
-export type CacheWatchQueryResult<TData> =
-  | CacheWatchQueryCompleteResult<TData>
-  | CacheWatchQueryPartialResult<TData>;
+export type CacheQueryResult<TData, TPartial extends boolean = false, TRequired extends boolean = false> =
+  TRequired extends true
+  ? CacheQueryCompleteResult<TData>
+  : CacheQueryCompleteResult<TData> | CacheQueryIncompleteResult<TData, TPartial>;
 
-export interface ApolloCacheEx extends ApolloCache {
+export type CacheQueryData<TData, TPartial extends boolean = false, TRequired extends boolean = false> =
+  CacheQueryResult<TData, TPartial, TRequired>['data'];
+
+export interface CacheQueryFn {
   /**
    * Watches the cache store for the query document provided.
+   * Narrow each result on `complete` to reach fully typed `data`.
+   *
+   * Use `watchQuery.required` for a query whose data is always available in the cache.
    */
-  watchQuery<TData = unknown, TVariables extends Variables = Variables>(options: CacheWatchQueryOptions<TData, TVariables> & { returnPartialData: true }): Observable<CacheWatchQueryPartialResult<TData>>;
-  watchQuery<TData = unknown, TVariables extends Variables = Variables>(options: CacheWatchQueryOptions<TData, TVariables>): Observable<CacheWatchQueryCompleteResult<TData>>;
+  <TData = unknown, TVariables extends Variables = Variables, TPartial extends boolean = false>(
+    options: CacheQueryOptions<TData, TVariables, TPartial>
+  ): CacheQueryObservable<TData, TVariables, TPartial>;
+
+  /**
+   * Watches a query whose data is always available in the cache. Each result carries fully typed
+   * `data`.
+   *
+   * An incomplete read reaches the observable's error channel, rather than emitting `null` behind a
+   * `TData`.
+   */
+  required<TData = unknown, TVariables extends Variables = Variables>(
+    options: Omit<CacheQueryOptions<TData, TVariables, false>, 'returnPartialData'>
+  ): CacheQueryObservable<TData, TVariables, false, true>;
 }
 
-export function extendCache(cache: ApolloCache): ApolloCacheEx {
+export type ApolloCacheEx = Cache.Implementation & {
+  watchQuery: CacheQueryFn;
+};
+
+export function extendCache(cache: Cache.Implementation): ApolloCacheEx {
   return Object.defineProperties(cache, {
     watchQuery: {
-      value: watchQuery,
+      value: Object.assign(
+        (options: CacheQueryOptions<any, any, any>): CacheQueryObservable<any, any, any, any> =>
+          new CacheQueryObservable(cache, options),
+        {
+          required: (options: CacheQueryOptions<any, any, any>): CacheQueryObservable<any, any, any, any> =>
+            new CacheQueryObservable(cache, options, true)
+        }
+      ) satisfies CacheQueryFn,
       writable: false,
-      configurable: false
+      configurable: true // A shared cache instance between clients overwrite this property
     }
   }) as ApolloCacheEx;
-}
-
-function watchQuery<TData, TVariables extends Variables = Variables>(
-  this: ApolloCache,
-  options: CacheWatchQueryOptions<TData, TVariables>
-): Observable<CacheWatchQueryResult<TData>> {
-  const { immediate = true, optimistic = true } = options;
-  return new Observable<CacheWatchQueryResult<TData>>(
-    subscriber => {
-      try {
-        return this.watch<TData, TVariables>({
-          ...options,
-          optimistic,
-          immediate,
-          callback: ({ result, ...rest }) => {
-            subscriber.next({ ...rest, data: result } as CacheWatchQueryResult<TData>);
-          }
-        });
-      } catch (error) {
-        subscriber.error(error);
-        return void 0;
-      }
-    });
 }

@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
-  "files": [
-    "./syncApolloTypes.ts"
+  "files": [],
+  "include": [
+    "./**/*.ts"
   ]
 }

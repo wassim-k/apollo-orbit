@@ -6,7 +6,6 @@ import {
   platformBrowserTesting
 } from '@angular/platform-browser/testing';
 
-getTestBed().initTestEnvironment(
-  BrowserTestingModule,
-  platformBrowserTesting()
-);
+// `setup-zone` loads zone.js for `fakeAsync`/`tick`. The TestBed itself stays zoneless, matching how the
+// library runs in an application.
+getTestBed().initTestEnvironment(BrowserTestingModule, platformBrowserTesting());

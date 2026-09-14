@@ -1,11 +1,11 @@
-import { computed, effect, Injector, Signal, signal, untracked, WritableSignal } from '@angular/core';
-import { ApolloClient, DataValue, DocumentNode, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
+import { computed, effect, Injector, linkedSignal, Signal, untracked, WritableSignal } from '@angular/core';
+import { ApolloClient, DocumentNode, TypedDocumentNode, OperationVariables as Variables } from '@apollo/client';
 import type { ApolloCache, MissingTree } from '@apollo/client/cache';
 import { equal } from '@wry/equality';
-import { Subscription } from 'rxjs';
+import type { SignalCacheVariablesOption } from './types';
 import { Apollo } from '../apollo';
 
-export type SignalFragmentResult<TData> = ApolloCache.WatchFragmentResult<TData>;
+export type SignalFragmentResult<TData> = ApolloClient.WatchFragmentResult<TData>;
 
 /**
  * What a fragment can be watched from: an object, `null`, or an array of either.
@@ -13,11 +13,11 @@ export type SignalFragmentResult<TData> = ApolloCache.WatchFragmentResult<TData>
 export type FragmentFrom<TData> = ApolloCache.WatchFragmentOptions<TData>['from'];
 
 // import { ApolloCache.WatchFragmentOptions as SignalFragmentOptions } from '@apollo/client';
-export interface SignalFragmentOptions<
+export type SignalFragmentOptions<
   TData = unknown,
   TVariables extends Variables = Variables,
   TFrom extends FragmentFrom<TData> = FragmentFrom<TData>
-> {
+> = {
   /**
   * A GraphQL fragment document parsed into an AST with the `gql`
   * template literal.
@@ -36,12 +36,6 @@ export interface SignalFragmentOptions<
   from:
   | TFrom
   | (() => TFrom);
-  /**
-  * Any variables that the GraphQL fragment may depend on.
-  *
-  * @docGroup 2. Cache options
-  */
-  variables?: NoInfer<TVariables> | (() => NoInfer<TVariables>);
   /**
   * The name of the fragment defined in the fragment document.
   *
@@ -64,7 +58,7 @@ export interface SignalFragmentOptions<
    * Custom injector to use for this signal.
    */
   injector?: Injector;
-}
+} & SignalCacheVariablesOption<NoInfer<TVariables>>;
 
 export class SignalFragment<TData, TVariables extends Variables = Variables> {
   /**
@@ -73,68 +67,58 @@ export class SignalFragment<TData, TVariables extends Variables = Variables> {
   public readonly result: Signal<SignalFragmentResult<TData>>;
 
   /**
-   * The data returned by the fragment.
+   * The data the cache holds for the fragment. Narrow `result` on `complete` to reach fully typed data.
    */
-  public readonly data: Signal<DataValue.Partial<TData>>;
+  public readonly data: Signal<SignalFragmentResult<TData>['data']> = computed(() => this.result().data);
 
   /**
    * `true` if all requested fields in the fragment are present in the cache, `false` otherwise.
    */
-  public readonly complete: Signal<boolean>;
+  public readonly complete: Signal<boolean> = computed(() => this.result().complete);
 
   /**
    * If `complete` is `false`, this field describes which fields are missing.
    */
-  public readonly missing: Signal<MissingTree | undefined>;
+  public readonly missing: Signal<MissingTree | undefined> = computed(() => this.result().missing);
+
+  /**
+   * The variables the fragment is currently reading the cache with.
+   */
+  public readonly variables: Signal<TVariables | undefined>;
 
   private readonly _result: WritableSignal<SignalFragmentResult<TData>>;
-  private readonly from: Signal<FragmentFrom<unknown>>;
-  private readonly variables: Signal<TVariables | undefined>;
-  private subscription: Subscription | undefined;
 
   public constructor(
     injector: Injector,
-    private readonly apollo: Apollo,
-    private readonly options: SignalFragmentOptions<any, TVariables, any>
+    apollo: Apollo,
+    options: SignalFragmentOptions<any, TVariables, any>
   ) {
-    const { variables, from } = options;
+    const { variables: variablesOption, from: fromOption, injector: _injector, ...fragmentOptions } = options;
 
-    this.from = typeof from === 'function' ? computed(from, { equal }) : signal(from);
-    this.variables = typeof variables === 'function' ? computed(variables, { equal }) : signal(variables);
+    const from = computed(() => typeof fromOption === 'function' ? fromOption() : fromOption, { equal });
 
-    this._result = signal<SignalFragmentResult<TData>>({
-      data: emptyData(untracked(this.from)) as DataValue.Partial<TData>,
-      complete: false,
-      dataState: 'partial'
-    } as SignalFragmentResult<TData>);
+    this.variables = computed(() => variablesOption?.(), { equal });
+
+    const observable = computed(() => apollo.watchFragment({
+      ...fragmentOptions,
+      from: from(),
+      variables: this.variables()
+    } as ApolloClient.WatchFragmentOptions<TData, TVariables>) as ApolloClient.ObservableFragment<TData>);
+
+    this._result = linkedSignal({
+      source: observable,
+      computation: observable => observable.getCurrentResult()
+    });
 
     this.result = this._result.asReadonly();
-    this.data = computed(() => this.result().data);
-    this.complete = computed(() => this.result().complete);
-    this.missing = computed(() => this.result().missing);
 
     effect(onCleanup => {
-      const from = this.from();
-      const variables = this.variables();
-      this.subscription = this.subscribe(from, variables);
-
-      onCleanup(() => {
-        this.subscription?.unsubscribe();
-        this.subscription = undefined;
+      const _observable = observable();
+      const subscription = _observable.subscribe(result => {
+        if (untracked(observable) === _observable) this._result.set(result);
       });
+
+      onCleanup(() => subscription.unsubscribe());
     }, { injector });
   }
-
-  private subscribe(from: FragmentFrom<unknown>, variables: TVariables | undefined): Subscription {
-    return this.apollo.watchFragment({
-      ...this.options,
-      from,
-      variables
-    } as ApolloClient.WatchFragmentOptions<TData, TVariables>).subscribe(result => this._result.set(result as SignalFragmentResult<TData>));
-  }
-}
-
-function emptyData(from: FragmentFrom<unknown>): unknown {
-  if (Array.isArray(from)) return [];
-  return from === null ? null : {};
 }

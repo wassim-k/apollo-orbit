@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { AuthorsComponent } from './authors/authors.component';
 import { BooksComponent } from './books/books.component';
 import { NewAuthorComponent } from './new-author/new-author.component';
@@ -8,6 +8,7 @@ import { NewBookComponent } from './new-book/new-book.component';
   selector: 'app-library',
   templateUrl: './library.component.html',
   styleUrls: ['./library.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [BooksComponent, AuthorsComponent, NewBookComponent, NewAuthorComponent]
 })
 export class LibraryComponent {

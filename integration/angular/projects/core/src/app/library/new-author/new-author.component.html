@@ -1,17 +1,17 @@
-<form class="form" [formGroup]="form" autocomplete="off" (ngSubmit)="submit()">
-  @if (error(); as error) {
+<form class="form" [formRoot]="form" autocomplete="off">
+  @for (error of form().errors(); track error) {
   <div class="error-well">An error has occurred: {{ error.message }}</div>
   }
-  <div class="form-field">
-    <label for="name">Name *</label>
-    <input name="name" type="text" formControlName="name" />
-  </div>
-  <div class="form-field">
-    <label for="age">Age</label>
-    <input name="age" type="number" formControlName="age" />
-  </div>
+  <label class="form-field">
+    <span>Name *</span>
+    <input type="text" [formField]="form.name" />
+  </label>
+  <label class="form-field">
+    <span>Age</span>
+    <input type="number" [formField]="form.age" />
+  </label>
   <div class="form-buttons">
-    <button type="submit">Submit</button>
-    <button type="button" (click)="onClose.next()">Close</button>
+    <button type="submit" [disabled]="form().submitting()">Submit</button>
+    <button type="button" (click)="closed.emit()">Close</button>
   </div>
 </form>

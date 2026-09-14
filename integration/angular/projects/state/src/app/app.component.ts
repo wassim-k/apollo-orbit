@@ -16,5 +16,5 @@ export class AppComponent {
   private readonly apollo = inject(Apollo);
 
   protected readonly themeQuery = this.apollo.signal.cacheQuery(gqlThemeQuery());
-  protected readonly themeName = computed(() => this.themeQuery.data().theme.name.toLowerCase());
+  protected readonly themeName = computed(() => this.themeQuery.data()?.theme.name.toLowerCase());
 }

@@ -24,7 +24,7 @@ export class ApolloOrbitAngularVisitor extends ApolloOrbitVisitor<ApolloOrbitAng
           mutation: 'mutation',
           subscription: 'subscription'
         })
-      } as ApolloOrbitAngularConfig,
+      },
       documents
     );
   }

@@ -1,29 +1,26 @@
-import { AsyncPipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { debounce, form, FormField } from '@angular/forms/signals';
 import { Apollo } from '@apollo-orbit/angular';
-import { debounceTime } from 'rxjs';
 import { gqlAuthorsQuery } from '../../graphql';
 
 @Component({
   selector: 'app-authors',
   templateUrl: './authors.component.html',
   styleUrls: ['./authors.component.scss'],
-  imports: [ReactiveFormsModule, AsyncPipe]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormField]
 })
 export class AuthorsComponent {
   private readonly apollo = inject(Apollo);
 
-  protected readonly authorsQuery = this.apollo.watchQuery({ ...gqlAuthorsQuery(), notifyOnNetworkStatusChange: true });
-  protected readonly nameControl = new FormControl<string | null>(null);
+  protected readonly nameField = form(signal<string>(''), schema => {
+    debounce(schema, 500);
+  });
 
-  public constructor() {
-    this.nameControl.valueChanges.pipe(
-      debounceTime(500),
-      takeUntilDestroyed()
-    ).subscribe(name => this.authorsQuery.refetch({ name: name !== null && name.length > 0 ? name : undefined }));
-  }
+  protected readonly authorsQuery = this.apollo.signal.query(gqlAuthorsQuery(() => {
+    const name = this.nameField().value().trim();
+    return { name: name.length > 0 ? name : undefined };
+  }));
 
   protected refetch(): void {
     this.authorsQuery.refetch();

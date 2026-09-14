@@ -1,41 +1,28 @@
-import { DataState, ObservableQuery, OperationVariables, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables } from '@apollo/client';
-import { Observable, Subscription } from 'rxjs';
+import { DataState, ErrorLike, ErrorPolicy, ObservableQuery, TypedDocumentNode, UpdateQueryMapFn, OperationVariables as Variables } from '@apollo/client';
+import { preventUnhandledRejection } from '@apollo/client/utilities/internal';
+import { Observable } from 'rxjs';
+import { resultWithoutData } from './internal/errorPolicy';
 import { withPreviousData } from './internal/queryResult';
-import { ExtraWatchQueryOptions, QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions } from './types';
+import { QueryResult, SingleQueryResult, SubscribeToMoreOptions, WatchQueryOptions, WatchQueryResultForOptions } from './types';
 
 export class QueryObservable<
   TData = unknown,
   TVariables extends Variables = Variables,
-  TStates extends DataState<TData>['dataState'] = DataState<TData>['dataState']
+  TStates extends DataState<TData>['dataState'] = DataState<TData>['dataState'],
+  TErrorPolicy extends ErrorPolicy | undefined = ErrorPolicy
 > extends Observable<QueryResult<TData, TStates>> {
-  private previousResult: QueryResult<TData, TStates> | undefined;
-
   public constructor(
-    private readonly observableQuery: ObservableQuery<TData, TVariables>,
-    { notifyOnLoading = true }: ExtraWatchQueryOptions
+    private readonly observableQuery: ObservableQuery<TData, TVariables>
   ) {
     super(subscriber => {
-      let subscription: Subscription | undefined;
-
-      const next = ({ partial, ...result }: ObservableQuery.Result<TData>): void => {
-        this.previousResult = withPreviousData(this.previousResult, result as QueryResult<TData, TStates>);
-        subscriber.next(this.previousResult);
-      };
-
-      const complete = (): void => {
-        subscription = undefined;
-        subscriber.complete();
-      };
-
-      subscription = observableQuery.subscribe({
-        next: notifyOnLoading ? next : skipInitialLoading(next),
-        complete
+      let previousResult: QueryResult<TData, TStates> | undefined;
+      return observableQuery.subscribe({
+        next: ({ partial, ...result }) => {
+          previousResult = withPreviousData(previousResult, result as QueryResult<TData, TStates>);
+          subscriber.next(previousResult);
+        },
+        complete: () => subscriber.complete()
       });
-
-      return () => {
-        subscription?.unsubscribe();
-        subscription = undefined;
-      };
     });
   }
 
@@ -64,25 +51,22 @@ export class QueryObservable<
    * Update the variables of this observable query, and fetch the new results.
    * This method should be preferred over `setVariables` in most use cases.
    *
-   * Returns a `ResultPromise` with an additional `.retain()` method. Calling
-   * `.retain()` keeps the network operation running even if the `ObservableQuery`
-   * no longer requires the result.
-   *
    * Note: `refetch()` guarantees that a value will be emitted from the
    * observable, even if the result is deep equal to the previous value.
    *
    * @param variables - The new set of variables. If there are missing variables,
    * the previous values of those variables will be used.
    */
-  public refetch(variables?: Partial<TVariables>): Promise<SingleQueryResult<TData>> {
-    return this.observableQuery.refetch(variables);
+  public refetch(variables?: Partial<TVariables>): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    return this.settleByPolicy(this.observableQuery.refetch(variables));
   }
 
   public fetchMore<
     TFetchData = TData,
-    TFetchVars extends OperationVariables = TVariables
-  >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars>): Promise<SingleQueryResult<TFetchData>> {
-    return this.observableQuery.fetchMore(options);
+    TFetchVars extends Variables = TVariables,
+    TFetchErrorPolicy extends ErrorPolicy = 'none'
+  >(options: ObservableQuery.FetchMoreOptions<TData, TVariables, TFetchData, TFetchVars> & { errorPolicy?: TFetchErrorPolicy }): Promise<SingleQueryResult<TFetchData, TFetchErrorPolicy>> {
+    return this.observableQuery.fetchMore<TFetchData, TFetchVars, TFetchErrorPolicy>(options);
   }
 
   public subscribeToMore<
@@ -116,8 +100,8 @@ export class QueryObservable<
    * @param variables - The new set of variables. If there are missing variables,
    * the previous values of those variables will be used.
    */
-  public setVariables(variables: TVariables): Promise<SingleQueryResult<TData>> {
-    return this.observableQuery.setVariables(variables);
+  public setVariables(variables: TVariables): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    return this.settleByPolicy(this.observableQuery.setVariables(variables));
   }
 
   /**
@@ -144,14 +128,37 @@ export class QueryObservable<
   }
 
   /**
+   * @internal
+   *
+   * @deprecated This is an internal API and should not be used directly. This can be removed or changed at any time.
+   */
+  public applyOptions(newOptions: Partial<WatchQueryOptions<TData, TVariables, TErrorPolicy>>): void {
+    this.observableQuery.applyOptions(newOptions);
+  }
+
+  /**
    * Reevaluate the query, optionally against new options. New options will be
    * merged with the current options when given.
    *
    * Note: `variables` can be reset back to their defaults (typically empty) by calling `reobserve` with
    * `variables: undefined`.
    */
-  public reobserve(newOptions?: Partial<WatchQueryOptions<TData, TVariables>>): Promise<SingleQueryResult<TData>> {
-    return this.observableQuery.reobserve(newOptions);
+  public reobserve(newOptions?: Partial<WatchQueryOptions<TData, TVariables, TErrorPolicy>>): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    return this.settleByPolicy(this.observableQuery.reobserve(newOptions));
+  }
+
+  /**
+   * A cancelled operation rejects whatever the policy says, which these narrowed results would contradict.
+   * Every rejection is converted, not just `AbortError`: a failure cannot reject under `all` or `ignore`,
+   * so one that does came from above Apollo's policy layer and is a cancellation.
+   */
+  private settleByPolicy(promise: Promise<unknown>): Promise<WatchQueryResultForOptions<TData, TErrorPolicy>> {
+    const { errorPolicy } = this.observableQuery.options;
+
+    // The `catch` makes a new promise, which loses the marking Apollo Client put on the one it returned.
+    return preventUnhandledRejection(promise.catch((error: ErrorLike) =>
+      resultWithoutData<TData>(errorPolicy, error)
+    )) as Promise<WatchQueryResultForOptions<TData, TErrorPolicy>>;
   }
 
   public hasObservers(): boolean {
@@ -164,14 +171,4 @@ export class QueryObservable<
   public stop(): void {
     this.observableQuery.stop();
   }
-}
-
-function skipInitialLoading<TFunc extends (result: ObservableQuery.Result<any>) => void>(fn: TFunc): TFunc {
-  let first = true;
-  return ((result: ObservableQuery.Result<any>) => {
-    const skipped = first && result.loading;
-    first = false;
-    if (skipped) return;
-    return fn(result);
-  }) as TFunc;
 }

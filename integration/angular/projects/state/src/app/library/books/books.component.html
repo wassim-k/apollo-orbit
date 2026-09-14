@@ -2,7 +2,7 @@
   <div>
     <h3>Books <a href="javascript: void 0" (click)="refetch()">⟳</a></h3>
     <div>
-      <input type="text" placeholder="Book name" [formControl]="nameControl" />
+      <input type="text" placeholder="Book name" [formField]="nameField" />
     </div>
     @if (booksQuery.loading()) { Loading... }
     @if (booksQuery.error(); as error) { {{ error.message }} }
@@ -10,14 +10,14 @@
     @for (book of books; track book.id) {
     <div>
       <span>{{ book.displayName }}</span>
-      <button type="button" class="icon-btn" href="javascript: void 0" (click)="edit(book)">✏️</button>
+      <button type="button" class="icon-btn" (click)="edit(book)">✏️</button>
     </div>
     }
     }
   </div>
-  @if (bookId !== undefined) {
+  @if (bookId(); as bookId) {
   <div>
-    <app-edit-book [bookId]="bookId" (closed)="bookId = undefined"></app-edit-book>
+    <app-edit-book [bookId]="bookId" (closed)="this.bookId.set(undefined)"></app-edit-book>
   </div>
   }
 </div>

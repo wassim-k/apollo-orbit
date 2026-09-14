@@ -75,6 +75,11 @@ export interface SignalSubscriptionResult<TData> extends SubscriptionResult<TDat
   loading: boolean;
 }
 
+interface Execution<TVariables extends Variables> {
+  readonly variables: TVariables | undefined;
+  readonly subscription: Subscription | undefined;
+}
+
 export class SignalSubscription<TData, TVariables extends Variables = Variables> {
   /**
    * The subscription result, containing `data`, `loading`, and `error`.
@@ -84,17 +89,17 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
   /**
    * If `true`, the subscription is currently loading the initial result.
    */
-  public readonly loading: Signal<boolean>;
+  public readonly loading: Signal<boolean> = computed(() => this.result().loading);
 
   /**
    * The data returned by the subscription, or `undefined` if loading, errored, or no data received yet.
    */
-  public readonly data: Signal<TData | undefined>;
+  public readonly data: Signal<TData | undefined> = computed(() => this.result().data);
 
   /**
    * An error object if the subscription failed, `undefined` otherwise.
    */
-  public readonly error: Signal<ErrorLike | undefined>;
+  public readonly error: Signal<ErrorLike | undefined> = computed(() => this.result().error);
 
   /**
    * A writable signal that represents the current subscription variables.
@@ -104,7 +109,7 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
   /**
    * Whether the subscription is currently active, connected to the server and receiving real-time updates.
    */
-  public readonly active: Signal<boolean> = computed(() => this.execution() !== undefined);
+  public readonly active: Signal<boolean> = computed(() => this.execution()?.subscription !== undefined);
 
   /**
    * Whether the subscription is currently enabled.
@@ -125,8 +130,16 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
    */
   public readonly enabled: Signal<boolean>;
 
-  private readonly execution: WritableSignal<{ variables: TVariables | undefined; subscription: Subscription } | undefined> = signal(undefined);
-  private readonly _result: WritableSignal<SignalSubscriptionResult<TData>>;
+  private readonly execution: WritableSignal<Execution<TVariables> | undefined> = signal(undefined);
+  private readonly _result: WritableSignal<SignalSubscriptionResult<TData>> = linkedSignal({
+    source: computed(() => this.enabled() && this.variables() !== null),
+    computation: (executable, previous) => ({
+      loading: executable,
+      data: previous?.value.data,
+      error: previous?.value.error
+    })
+  });
+
   private readonly _enabled: WritableSignal<boolean>;
 
   public constructor(
@@ -139,29 +152,19 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
     this._enabled = signal(!lazy);
     this.enabled = this._enabled.asReadonly();
 
-    this._result = signal({ loading: false, data: undefined, error: undefined });
-    this.result = this._result.asReadonly();
+    this.variables = linkedSignal(() => variables?.(), { equal });
 
-    this.loading = computed(() => this.result().loading);
-    this.data = computed(() => this.result().data);
-    this.error = computed(() => this.result().error);
-    this.variables = variables !== undefined ? linkedSignal(variables, { equal }) : signal(variables);
+    this.result = this._result.asReadonly();
 
     effect(() => {
       const variables = this.variables();
-      const enabled = untracked(this.enabled);
-
-      if (!enabled) return;
-
       const execution = untracked(this.execution);
 
-      if (variables !== null) {
-        if (execution === undefined || execution.variables !== variables) {
-          this._execute({ variables });
-        }
-      } else if (execution !== undefined) {
-        this._terminate();
-      }
+      if (!untracked(this.enabled)) return;
+      if (execution !== undefined && execution.variables === variables) return;
+
+      if (variables === null) this._terminate();
+      else this._execute({ variables });
     }, { injector });
 
     injector.get(DestroyRef).onDestroy(() => this.terminate());
@@ -200,40 +203,56 @@ export class SignalSubscription<TData, TVariables extends Variables = Variables>
       error: undefined
     });
 
-    const { subscription, onData, onError, onComplete, injector, lazy, ...options } = this.options;
-    untracked(this.execution)?.subscription.unsubscribe();
-    this.execution.set({
-      variables,
-      subscription: this.apollo.subscribe<TData, TVariables>({
-        ...options,
-        ...execOptions,
-        subscription,
-        variables
-      } as SubscriptionOptions<TData, TVariables>).subscribe({
-        next: result => {
-          this._result.set({
-            loading: false,
-            ...result
-          });
+    const { subscription: document, onData, onError, onComplete, injector, lazy, ...options } = this.options;
+    const previous = untracked(this.execution);
+    let execution: Execution<TVariables> = { variables, subscription: undefined };
+    this.execution.set(execution);
+    previous?.subscription?.unsubscribe();
 
-          if (result.error) {
-            onError?.(result.error);
-          } else if (result.data !== undefined) {
-            onData?.(result.data);
-          }
-        },
-        // error is never called for subscriptions in Apollo Client
-        complete: () => {
-          this.terminate();
-          onComplete?.();
+    const subscription = this.apollo.subscribe<TData, TVariables>({
+      ...options,
+      ...execOptions,
+      subscription: document,
+      variables
+    } as SubscriptionOptions<TData, TVariables>).subscribe({
+      next: result => {
+        if (untracked(this.execution) !== execution) return;
+
+        this._result.set({
+          loading: false,
+          ...result
+        });
+
+        if (result.error) {
+          onError?.(result.error);
+        } else if (result.data !== undefined) {
+          onData?.(result.data);
         }
-      })
+      },
+      complete: () => {
+        if (untracked(this.execution) !== execution) return;
+
+        this.execution.set({ variables, subscription: undefined });
+        this._result.update(result => ({ ...result, loading: false }));
+        onComplete?.();
+      }
     });
+
+    if (untracked(this.execution) === execution) {
+      execution = { variables, subscription };
+      this.execution.set(execution);
+    } else {
+      subscription.unsubscribe();
+    }
   }
 
   private _terminate(): void {
-    untracked(this.execution)?.subscription.unsubscribe();
+    const execution = untracked(this.execution);
+
+    if (execution === undefined) return;
+
     this.execution.set(undefined);
     this._result.update(result => ({ ...result, loading: false }));
+    execution.subscription?.unsubscribe();
   }
 }

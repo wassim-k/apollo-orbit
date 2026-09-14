@@ -5,7 +5,7 @@ import { APOLLO_CLIENT_FACTORY, apolloClientFactory } from './clientFactory';
 import { ApolloRegistry } from './internal/apolloRegistry';
 import { APOLLO_INSTANCE_FACTORY, ApolloInstanceFactory } from './internal/instanceFactory';
 import { APOLLO_MULTI_ROOT, APOLLO_PROVIDED } from './tokens';
-import { ApolloOptions, DefaultOptions } from './types';
+import { ApolloOptions } from './types';
 
 export interface ApolloOrbitFeature {
   kind: `APOLLO_ORBIT_${string}`;
@@ -50,15 +50,15 @@ function getApolloInstanceProviders(token: Type<unknown> | InjectionToken<Apollo
 }
 
 function apolloInstanceFactory(): ApolloInstanceFactory {
-  return (_clientId: string, client: ApolloClient, defaultOptions?: DefaultOptions): Apollo => new Apollo(client, defaultOptions);
+  return (_clientId: string, client: ApolloClient): Apollo => new Apollo(client);
 }
 
 function apolloFactory(options: ApolloOptions | null): Apollo {
   if (!options) throw new Error('withApolloOptions feature must be passed to provideApollo() before injecting Apollo');
-  const { id = 'default', cache, defaultOptions, ...rest } = options;
+  const { id = 'default', ...clientOptions } = options;
   const createClient = inject(APOLLO_CLIENT_FACTORY);
-  const client = createClient({ cache, defaultOptions, ...rest });
-  return inject(APOLLO_INSTANCE_FACTORY)(id, client, defaultOptions);
+  const client = createClient(clientOptions);
+  return inject(APOLLO_INSTANCE_FACTORY)(id, client);
 }
 
 function apolloOrbitRootGuard(): void {
